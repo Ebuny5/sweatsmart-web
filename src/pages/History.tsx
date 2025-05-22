@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
@@ -167,7 +166,7 @@ const History = () => {
                     <SelectValue placeholder="Severity" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Severities</SelectItem>
+                    <SelectItem value="all">All Severities</SelectItem>
                     <SelectItem value="1">Level 1 (Mild)</SelectItem>
                     <SelectItem value="2">Level 2 (Moderate)</SelectItem>
                     <SelectItem value="3">Level 3 (Medium)</SelectItem>
@@ -183,7 +182,7 @@ const History = () => {
                     <SelectValue placeholder="Body Area" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Body Areas</SelectItem>
+                    <SelectItem value="all">All Body Areas</SelectItem>
                     <SelectItem value="palms">Palms</SelectItem>
                     <SelectItem value="soles">Feet Soles</SelectItem>
                     <SelectItem value="face">Face</SelectItem>
