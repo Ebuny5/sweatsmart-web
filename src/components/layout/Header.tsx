@@ -44,7 +44,7 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <header className="w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate(isAuthenticated ? '/dashboard' : '/')}>
           <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
             <span className="text-white text-lg font-bold">S</span>
           </div>

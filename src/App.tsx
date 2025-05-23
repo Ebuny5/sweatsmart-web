@@ -11,6 +11,8 @@ import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import LogEpisode from "./pages/LogEpisode";
 import History from "./pages/History";
+import EpisodeDetail from "./pages/EpisodeDetail";
+import Profile from "./pages/Profile";
 import Insights from "./pages/Insights";
 import Community from "./pages/Community";
 import Settings from "./pages/Settings";
@@ -32,6 +34,8 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/log-episode" element={<LogEpisode />} />
           <Route path="/history" element={<History />} />
+          <Route path="/episode/:id" element={<EpisodeDetail />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/insights" element={<Insights />} />
           <Route path="/community" element={<Community />} />
           <Route path="/settings" element={<Settings />} />
