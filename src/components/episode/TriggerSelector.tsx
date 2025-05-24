@@ -11,6 +11,7 @@ interface TriggerSelectorProps {
   onChange: (triggers: Trigger[]) => void;
 }
 
+// Clean, relevant trigger options without demo data
 const triggerOptions: Trigger[] = [
   // Environmental triggers
   { type: "environmental", value: "hotTemperature", label: "Hot Temperature" },

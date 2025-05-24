@@ -8,55 +8,54 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Episode, BodyArea, Trigger } from "@/types";
 import { Calendar, MapPin, Thermometer, Clock, ArrowLeft, Edit3 } from "lucide-react";
-
-// Mock episode data (in a real app, this would come from an API)
-const getMockEpisode = (id: string): Episode | null => {
-  const episodes = [
-    {
-      id: "episode-0",
-      userId: "user-1",
-      datetime: new Date("2025-05-19T14:26:00"),
-      severityLevel: 4 as any,
-      bodyAreas: ["palms"] as BodyArea[],
-      triggers: [],
-      notes: undefined,
-      createdAt: new Date("2025-05-19T14:26:00"),
-    },
-    {
-      id: "episode-1",
-      userId: "user-1",
-      datetime: new Date("2025-05-16T04:25:00"),
-      severityLevel: 4 as any,
-      bodyAreas: ["entireBody", "palms"] as BodyArea[],
-      triggers: [
-        { type: "emotional", value: "stress", label: "Stress" },
-        { type: "environmental", value: "highHumidity", label: "High Humidity" },
-      ] as Trigger[],
-      notes: undefined,
-      createdAt: new Date("2025-05-16T04:25:00"),
-    },
-    // Add more episodes as needed
-  ];
-  
-  return episodes.find(ep => ep.id === id) || null;
-};
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const EpisodeDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [episode, setEpisode] = useState<Episode | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (id) {
-      // Simulate API fetch
-      setTimeout(() => {
-        const mockEpisode = getMockEpisode(id);
-        setEpisode(mockEpisode);
+    const fetchEpisode = async () => {
+      if (!id || !user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('episodes')
+          .select('*')
+          .eq('id', id)
+          .eq('user_id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching episode:', error);
+          setEpisode(null);
+        } else if (data) {
+          const episodeData: Episode = {
+            id: data.id,
+            userId: data.user_id,
+            datetime: new Date(data.date),
+            severityLevel: data.severity,
+            bodyAreas: data.body_areas || [],
+            triggers: JSON.parse(data.triggers || '[]'),
+            notes: data.notes,
+            createdAt: new Date(data.created_at),
+          };
+          setEpisode(episodeData);
+        }
+      } catch (error) {
+        console.error('Error fetching episode:', error);
+        setEpisode(null);
+      } finally {
         setIsLoading(false);
-      }, 500);
-    }
-  }, [id]);
+      }
+    };
+
+    fetchEpisode();
+  }, [id, user]);
 
   const getSeverityColor = (level: number) => {
     switch (level) {
@@ -93,7 +92,7 @@ const EpisodeDetail = () => {
 
   if (isLoading) {
     return (
-      <AppLayout isAuthenticated={true} userName="John Doe">
+      <AppLayout>
         <div className="space-y-6">
           <div className="h-8 bg-muted animate-pulse rounded" />
           <div className="h-64 bg-muted animate-pulse rounded-lg" />
@@ -104,7 +103,7 @@ const EpisodeDetail = () => {
 
   if (!episode) {
     return (
-      <AppLayout isAuthenticated={true} userName="John Doe">
+      <AppLayout>
         <div className="space-y-6">
           <div className="flex items-center gap-4">
             <Button
@@ -133,7 +132,7 @@ const EpisodeDetail = () => {
   }
 
   return (
-    <AppLayout isAuthenticated={true} userName="John Doe">
+    <AppLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">

@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import AppLayout from "@/components/layout/AppLayout";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,11 +17,14 @@ import BodyAreaSelector from "@/components/episode/BodyAreaSelector";
 import TriggerSelector from "@/components/episode/TriggerSelector";
 import { SeverityLevel, BodyArea, Trigger } from "@/types";
 import { CalendarIcon, Clock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const LogEpisode = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   const searchParams = new URLSearchParams(location.search);
   const isNow = searchParams.get("now") === "true";
   
@@ -46,6 +49,15 @@ const LogEpisode = () => {
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to save episodes.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (!date) {
       toast({
@@ -72,10 +84,22 @@ const LogEpisode = () => {
     const datetime = new Date(date);
     datetime.setHours(hours, minutes);
     
-    // In a real app, this would call your API to save the episode
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { error } = await supabase
+        .from('episodes')
+        .insert({
+          user_id: user.id,
+          title: `Episode - ${format(datetime, 'MMM d, yyyy')}`,
+          severity: severity,
+          body_areas: bodyAreas,
+          triggers: JSON.stringify(triggers),
+          notes: notes || null,
+          date: datetime.toISOString(),
+        });
+
+      if (error) {
+        throw error;
+      }
       
       toast({
         title: "Episode logged successfully",
@@ -84,6 +108,7 @@ const LogEpisode = () => {
       
       navigate("/dashboard");
     } catch (error) {
+      console.error('Error saving episode:', error);
       toast({
         title: "Failed to log episode",
         description: "An error occurred. Please try again.",
@@ -95,7 +120,7 @@ const LogEpisode = () => {
   };
   
   return (
-    <AppLayout isAuthenticated={true} userName="John Doe">
+    <AppLayout>
       <div className="max-w-3xl mx-auto">
         <h1 className="text-3xl font-bold mb-6">Log Sweating Episode</h1>
         
