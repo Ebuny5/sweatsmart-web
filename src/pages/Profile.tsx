@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -30,7 +30,7 @@ const Profile = () => {
   });
 
   // Update local state when profile loads
-  useState(() => {
+  useEffect(() => {
     if (profile) {
       setProfileData({
         full_name: profile.full_name || "",
@@ -39,7 +39,7 @@ const Profile = () => {
         location: profile.location || "",
       });
     }
-  });
+  }, [profile]);
 
   const handleSave = async () => {
     setIsSaving(true);
