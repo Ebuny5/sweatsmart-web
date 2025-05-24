@@ -10,46 +10,103 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Calendar, MapPin, Mail, User, Settings } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useProfile } from "@/hooks/useProfile";
+import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { profile, loading, updateProfile } = useProfile();
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
-  // Mock user data
-  const [profile, setProfile] = useState({
-    name: "John Doe",
-    email: "john@example.com",
-    avatar: "",
-    bio: "Living with hyperhidrosis and tracking my journey to better management.",
-    location: "New York, NY",
-    joinDate: "March 2024",
-    episodeCount: 47,
-    streakDays: 12,
+  const [profileData, setProfileData] = useState({
+    full_name: "",
+    email: "",
+    bio: "",
+    location: "",
+  });
+
+  // Update local state when profile loads
+  useState(() => {
+    if (profile) {
+      setProfileData({
+        full_name: profile.full_name || "",
+        email: profile.email || "",
+        bio: profile.bio || "",
+        location: profile.location || "",
+      });
+    }
   });
 
   const handleSave = async () => {
     setIsSaving(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast({
-      title: "Profile updated",
-      description: "Your profile has been updated successfully.",
-    });
-    
-    setIsEditing(false);
-    setIsSaving(false);
+    try {
+      const success = await updateProfile(profileData);
+      
+      if (success) {
+        toast({
+          title: "Profile updated",
+          description: "Your profile has been updated successfully.",
+        });
+        setIsEditing(false);
+      } else {
+        toast({
+          title: "Update failed",
+          description: "Failed to update profile. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: "An error occurred while updating your profile.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
     setIsEditing(false);
-    // Reset any changes here if needed
+    if (profile) {
+      setProfileData({
+        full_name: profile.full_name || "",
+        email: profile.email || "",
+        bio: profile.bio || "",
+        location: profile.location || "",
+      });
+    }
   };
 
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!user) {
+    navigate('/login');
+    return null;
+  }
+
+  const displayName = profileData.full_name || user.email || 'User';
+  const userInitials = displayName.split(' ').map(n => n[0]).join('').toUpperCase();
+  const joinDate = new Date(user.created_at).toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'long' 
+  });
+
   return (
-    <AppLayout isAuthenticated={true} userName={profile.name}>
+    <AppLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Profile</h1>
@@ -68,9 +125,9 @@ const Profile = () => {
                 <div className="flex justify-center mb-4">
                   <div className="relative">
                     <Avatar className="h-24 w-24">
-                      <AvatarImage src={profile.avatar} alt={profile.name} />
+                      <AvatarImage src={profile?.avatar_url || ''} alt={displayName} />
                       <AvatarFallback className="text-lg">
-                        {profile.name.split(' ').map(n => n[0]).join('')}
+                        {userInitials}
                       </AvatarFallback>
                     </Avatar>
                     {isEditing && (
@@ -84,21 +141,21 @@ const Profile = () => {
                     )}
                   </div>
                 </div>
-                <CardTitle>{profile.name}</CardTitle>
+                <CardTitle>{displayName}</CardTitle>
                 <CardDescription className="flex items-center justify-center gap-1">
                   <Mail className="h-4 w-4" />
-                  {profile.email}
+                  {user.email}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center text-sm text-muted-foreground">
                   <Calendar className="mr-2 h-4 w-4" />
-                  Joined {profile.joinDate}
+                  Joined {joinDate}
                 </div>
-                {profile.location && (
+                {profileData.location && (
                   <div className="flex items-center text-sm text-muted-foreground">
                     <MapPin className="mr-2 h-4 w-4" />
-                    {profile.location}
+                    {profileData.location}
                   </div>
                 )}
               </CardContent>
@@ -111,11 +168,11 @@ const Profile = () => {
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Episodes Logged</span>
-                  <Badge variant="secondary">{profile.episodeCount}</Badge>
+                  <Badge variant="secondary">0</Badge>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Current Streak</span>
-                  <Badge variant="outline">{profile.streakDays} days</Badge>
+                  <Badge variant="outline">0 days</Badge>
                 </div>
               </CardContent>
             </Card>
@@ -137,8 +194,8 @@ const Profile = () => {
                         <Label htmlFor="name">Name</Label>
                         <Input
                           id="name"
-                          value={profile.name}
-                          onChange={(e) => setProfile({...profile, name: e.target.value})}
+                          value={profileData.full_name}
+                          onChange={(e) => setProfileData({...profileData, full_name: e.target.value})}
                         />
                       </div>
                       <div className="space-y-2">
@@ -146,8 +203,9 @@ const Profile = () => {
                         <Input
                           id="email"
                           type="email"
-                          value={profile.email}
-                          onChange={(e) => setProfile({...profile, email: e.target.value})}
+                          value={user.email || ''}
+                          disabled
+                          className="bg-muted"
                         />
                       </div>
                     </div>
@@ -155,8 +213,8 @@ const Profile = () => {
                       <Label htmlFor="location">Location</Label>
                       <Input
                         id="location"
-                        value={profile.location}
-                        onChange={(e) => setProfile({...profile, location: e.target.value})}
+                        value={profileData.location}
+                        onChange={(e) => setProfileData({...profileData, location: e.target.value})}
                         placeholder="City, State/Country"
                       />
                     </div>
@@ -164,8 +222,8 @@ const Profile = () => {
                       <Label htmlFor="bio">Bio</Label>
                       <Textarea
                         id="bio"
-                        value={profile.bio}
-                        onChange={(e) => setProfile({...profile, bio: e.target.value})}
+                        value={profileData.bio}
+                        onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
                         placeholder="Tell us about yourself..."
                         className="min-h-[100px]"
                       />
@@ -184,20 +242,20 @@ const Profile = () => {
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
                         <Label className="text-sm font-medium text-muted-foreground">Name</Label>
-                        <p className="mt-1">{profile.name}</p>
+                        <p className="mt-1">{profileData.full_name || 'Not set'}</p>
                       </div>
                       <div>
                         <Label className="text-sm font-medium text-muted-foreground">Email</Label>
-                        <p className="mt-1">{profile.email}</p>
+                        <p className="mt-1">{user.email}</p>
                       </div>
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-muted-foreground">Location</Label>
-                      <p className="mt-1">{profile.location}</p>
+                      <p className="mt-1">{profileData.location || 'Not set'}</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-muted-foreground">Bio</Label>
-                      <p className="mt-1 text-muted-foreground">{profile.bio}</p>
+                      <p className="mt-1 text-muted-foreground">{profileData.bio || 'No bio added yet.'}</p>
                     </div>
                   </>
                 )}
@@ -212,15 +270,13 @@ const Profile = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Button variant="outline" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => navigate('/settings')}
+                >
                   <Settings className="mr-2 h-4 w-4" />
                   Go to Settings
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  Privacy & Security
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  Notification Preferences
                 </Button>
               </CardContent>
             </Card>

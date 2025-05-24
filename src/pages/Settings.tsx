@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,13 +9,21 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/contexts/AuthContext";
+import { useProfile } from "@/hooks/useProfile";
+import { useSettings } from "@/hooks/useSettings";
+import { useNavigate } from "react-router-dom";
 
 const Settings = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { profile, updateProfile } = useProfile();
+  const { settings, updateSettings, loading: settingsLoading } = useSettings();
+  const navigate = useNavigate();
   
   // Profile settings
-  const [name, setName] = useState("John Doe");
-  const [email, setEmail] = useState("john@example.com");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   
   // Notification settings
@@ -35,50 +43,127 @@ const Settings = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSavingPassword, setIsSavingPassword] = useState(false);
+
+  // Update state when data loads
+  useEffect(() => {
+    if (profile) {
+      setName(profile.full_name || "");
+      setEmail(profile.email || "");
+    }
+  }, [profile]);
+
+  useEffect(() => {
+    if (settings) {
+      setReminderEnabled(settings.reminder_enabled);
+      setReminderTime(settings.reminder_time);
+      setWeeklyReportEnabled(settings.weekly_report_enabled);
+      setTriggerAlertsEnabled(settings.trigger_alerts_enabled);
+      setDataSharing(settings.data_sharing);
+      setAnonymousSharing(settings.anonymous_sharing);
+    }
+  }, [settings]);
+
+  if (!user) {
+    navigate('/login');
+    return null;
+  }
   
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingProfile(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast({
-      title: "Profile updated",
-      description: "Your profile information has been updated successfully.",
-    });
-    
-    setIsSavingProfile(false);
+    try {
+      const success = await updateProfile({ full_name: name });
+      
+      if (success) {
+        toast({
+          title: "Profile updated",
+          description: "Your profile information has been updated successfully.",
+        });
+      } else {
+        toast({
+          title: "Update failed",
+          description: "Failed to update profile. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: "An error occurred while updating your profile.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
   
   const handleSaveNotifications = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingNotifications(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast({
-      title: "Notification preferences saved",
-      description: "Your notification settings have been updated.",
-    });
-    
-    setIsSavingNotifications(false);
+    try {
+      const success = await updateSettings({
+        reminder_enabled: reminderEnabled,
+        reminder_time: reminderTime,
+        weekly_report_enabled: weeklyReportEnabled,
+        trigger_alerts_enabled: triggerAlertsEnabled,
+      });
+
+      if (success) {
+        toast({
+          title: "Notification preferences saved",
+          description: "Your notification settings have been updated.",
+        });
+      } else {
+        toast({
+          title: "Update failed",
+          description: "Failed to update notification settings. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: "An error occurred while updating your settings.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingNotifications(false);
+    }
   };
   
   const handleSavePrivacy = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingPrivacy(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast({
-      title: "Privacy settings updated",
-      description: "Your privacy preferences have been saved.",
-    });
-    
-    setIsSavingPrivacy(false);
+    try {
+      const success = await updateSettings({
+        data_sharing: dataSharing,
+        anonymous_sharing: anonymousSharing,
+      });
+
+      if (success) {
+        toast({
+          title: "Privacy settings updated",
+          description: "Your privacy preferences have been saved.",
+        });
+      } else {
+        toast({
+          title: "Update failed",
+          description: "Failed to update privacy settings. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: "An error occurred while updating your privacy settings.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingPrivacy(false);
+    }
   };
   
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -95,7 +180,7 @@ const Settings = () => {
     
     setIsSavingPassword(true);
     
-    // Simulate API call
+    // Simulate API call for now - implement with Supabase auth update
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     toast({
@@ -110,17 +195,24 @@ const Settings = () => {
   };
   
   const handleExportData = async () => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
     toast({
       title: "Data export initiated",
       description: "Your data export is being prepared and will be emailed to you.",
     });
   };
+
+  if (settingsLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </AppLayout>
+    );
+  }
   
   return (
-    <AppLayout isAuthenticated={true} userName="John Doe">
+    <AppLayout>
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Settings</h1>
@@ -160,8 +252,9 @@ const Settings = () => {
                     <Input
                       id="email"
                       type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      value={user.email || ''}
+                      disabled
+                      className="bg-muted"
                     />
                   </div>
                 </CardContent>

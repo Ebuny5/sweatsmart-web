@@ -9,7 +9,174 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      community_events: {
+        Row: {
+          attendee_count: number | null
+          created_at: string
+          description: string | null
+          event_date: string
+          id: string
+          title: string
+        }
+        Insert: {
+          attendee_count?: number | null
+          created_at?: string
+          description?: string | null
+          event_date: string
+          id?: string
+          title: string
+        }
+        Update: {
+          attendee_count?: number | null
+          created_at?: string
+          description?: string | null
+          event_date?: string
+          id?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      community_posts: {
+        Row: {
+          comments_count: number | null
+          content: string
+          created_at: string
+          id: string
+          likes_count: number | null
+          type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comments_count?: number | null
+          content: string
+          created_at?: string
+          id?: string
+          likes_count?: number | null
+          type?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comments_count?: number | null
+          content?: string
+          created_at?: string
+          id?: string
+          likes_count?: number | null
+          type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      episodes: {
+        Row: {
+          body_areas: string[] | null
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          severity: number | null
+          title: string
+          triggers: string[] | null
+          user_id: string
+        }
+        Insert: {
+          body_areas?: string[] | null
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          severity?: number | null
+          title: string
+          triggers?: string[] | null
+          user_id: string
+        }
+        Update: {
+          body_areas?: string[] | null
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          severity?: number | null
+          title?: string
+          triggers?: string[] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          location: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          location?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          location?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          anonymous_sharing: boolean | null
+          created_at: string
+          data_sharing: boolean | null
+          id: string
+          reminder_enabled: boolean | null
+          reminder_time: string | null
+          trigger_alerts_enabled: boolean | null
+          updated_at: string
+          user_id: string
+          weekly_report_enabled: boolean | null
+        }
+        Insert: {
+          anonymous_sharing?: boolean | null
+          created_at?: string
+          data_sharing?: boolean | null
+          id?: string
+          reminder_enabled?: boolean | null
+          reminder_time?: string | null
+          trigger_alerts_enabled?: boolean | null
+          updated_at?: string
+          user_id: string
+          weekly_report_enabled?: boolean | null
+        }
+        Update: {
+          anonymous_sharing?: boolean | null
+          created_at?: string
+          data_sharing?: boolean | null
+          id?: string
+          reminder_enabled?: boolean | null
+          reminder_time?: string | null
+          trigger_alerts_enabled?: boolean | null
+          updated_at?: string
+          user_id?: string
+          weekly_report_enabled?: boolean | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
