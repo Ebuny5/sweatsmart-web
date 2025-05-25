@@ -85,6 +85,13 @@ const LogEpisode = () => {
     datetime.setHours(hours, minutes);
     
     try {
+      // Convert trigger objects to JSON strings for storage
+      const triggerStrings = triggers.map(trigger => JSON.stringify({
+        type: trigger.type,
+        value: trigger.value,
+        label: trigger.label
+      }));
+
       const { error } = await supabase
         .from('episodes')
         .insert({
@@ -92,11 +99,7 @@ const LogEpisode = () => {
           title: `Episode - ${format(datetime, 'MMM d, yyyy')}`,
           severity: severity,
           body_areas: bodyAreas,
-          triggers: triggers.map(trigger => ({
-            type: trigger.type,
-            value: trigger.value,
-            label: trigger.label
-          })),
+          triggers: triggerStrings,
           notes: notes || null,
           date: datetime.toISOString(),
         });
