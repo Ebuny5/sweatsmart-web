@@ -13,7 +13,7 @@ const Index = () => {
             <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
               <span className="text-white text-lg font-bold">S</span>
             </div>
-            <h1 className="text-xl font-bold tracking-tight">SweatSense</h1>
+            <h1 className="text-xl font-bold tracking-tight">SweatSmart</h1>
           </div>
           
           <div className="flex items-center gap-4">
@@ -126,7 +126,7 @@ const Index = () => {
             <div className="max-w-3xl mx-auto text-center space-y-6">
               <h2 className="text-3xl font-bold">Ready to take control?</h2>
               <p className="text-xl opacity-90">
-                Join thousands of users who are managing their hyperhidrosis with SweatSense.
+                Join thousands of users who are managing their hyperhidrosis with SweatSmart.
               </p>
               <Link to="/register">
                 <Button size="lg" variant="secondary" className="mt-4">
@@ -145,11 +145,11 @@ const Index = () => {
               <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
                 <span className="text-white text-lg font-bold">S</span>
               </div>
-              <span className="font-medium">SweatSense</span>
+              <span className="font-medium">SweatSmart</span>
             </div>
             
             <div className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} SweatSense. All rights reserved.
+              &copy; {new Date().getFullYear()} SweatSmart. All rights reserved.
             </div>
             
             <div className="flex gap-6">
