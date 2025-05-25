@@ -1,470 +1,254 @@
 
 import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Bell, Clock, BarChart3, Shield, User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useProfile } from "@/hooks/useProfile";
-import { useSettings } from "@/hooks/useSettings";
-import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import DataManagement from "@/components/settings/DataManagement";
+
+interface UserSettings {
+  reminder_enabled: boolean;
+  reminder_time: string;
+  weekly_report_enabled: boolean;
+  trigger_alerts_enabled: boolean;
+  data_sharing: boolean;
+  anonymous_sharing: boolean;
+}
 
 const Settings = () => {
-  const { toast } = useToast();
   const { user } = useAuth();
-  const { profile, updateProfile } = useProfile();
-  const { settings, updateSettings, loading: settingsLoading } = useSettings();
-  const navigate = useNavigate();
-  
-  // Profile settings
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
-  
-  // Notification settings
-  const [reminderEnabled, setReminderEnabled] = useState(true);
-  const [reminderTime, setReminderTime] = useState("20:00");
-  const [weeklyReportEnabled, setWeeklyReportEnabled] = useState(true);
-  const [triggerAlertsEnabled, setTriggerAlertsEnabled] = useState(false);
-  const [isSavingNotifications, setIsSavingNotifications] = useState(false);
-  
-  // Privacy settings
-  const [dataSharing, setDataSharing] = useState(false);
-  const [anonymousSharing, setAnonymousSharing] = useState(true);
-  const [isSavingPrivacy, setIsSavingPrivacy] = useState(false);
-  
-  // Password settings
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isSavingPassword, setIsSavingPassword] = useState(false);
-
-  // Update state when data loads
-  useEffect(() => {
-    if (profile) {
-      setName(profile.full_name || "");
-      setEmail(profile.email || "");
-    }
-  }, [profile]);
+  const { toast } = useToast();
+  const [settings, setSettings] = useState<UserSettings>({
+    reminder_enabled: true,
+    reminder_time: "20:00",
+    weekly_report_enabled: true,
+    trigger_alerts_enabled: false,
+    data_sharing: false,
+    anonymous_sharing: true,
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (settings) {
-      setReminderEnabled(settings.reminder_enabled);
-      setReminderTime(settings.reminder_time);
-      setWeeklyReportEnabled(settings.weekly_report_enabled);
-      setTriggerAlertsEnabled(settings.trigger_alerts_enabled);
-      setDataSharing(settings.data_sharing);
-      setAnonymousSharing(settings.anonymous_sharing);
-    }
-  }, [settings]);
-
-  if (!user) {
-    navigate('/login');
-    return null;
-  }
-  
-  const handleSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSavingProfile(true);
-    
-    try {
-      const success = await updateProfile({ full_name: name });
+    const fetchSettings = async () => {
+      if (!user) return;
       
-      if (success) {
-        toast({
-          title: "Profile updated",
-          description: "Your profile information has been updated successfully.",
-        });
-      } else {
-        toast({
-          title: "Update failed",
-          description: "Failed to update profile. Please try again.",
-          variant: "destructive",
-        });
+      try {
+        const { data, error } = await supabase
+          .from('user_settings')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error fetching settings:', error);
+        } else if (data) {
+          setSettings({
+            reminder_enabled: data.reminder_enabled ?? true,
+            reminder_time: data.reminder_time ?? "20:00",
+            weekly_report_enabled: data.weekly_report_enabled ?? true,
+            trigger_alerts_enabled: data.trigger_alerts_enabled ?? false,
+            data_sharing: data.data_sharing ?? false,
+            anonymous_sharing: data.anonymous_sharing ?? true,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      toast({
-        title: "Update failed",
-        description: "An error occurred while updating your profile.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSavingProfile(false);
-    }
-  };
-  
-  const handleSaveNotifications = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSavingNotifications(true);
+    };
+
+    fetchSettings();
+  }, [user]);
+
+  const handleSave = async () => {
+    if (!user) return;
     
+    setSaving(true);
     try {
-      const success = await updateSettings({
-        reminder_enabled: reminderEnabled,
-        reminder_time: reminderTime,
-        weekly_report_enabled: weeklyReportEnabled,
-        trigger_alerts_enabled: triggerAlertsEnabled,
-      });
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: user.id,
+          ...settings,
+        });
 
-      if (success) {
-        toast({
-          title: "Notification preferences saved",
-          description: "Your notification settings have been updated.",
-        });
-      } else {
-        toast({
-          title: "Update failed",
-          description: "Failed to update notification settings. Please try again.",
-          variant: "destructive",
-        });
+      if (error) {
+        throw error;
       }
-    } catch (error) {
+
       toast({
-        title: "Update failed",
-        description: "An error occurred while updating your settings.",
+        title: "Settings Saved",
+        description: "Your preferences have been updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save settings. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsSavingNotifications(false);
+      setSaving(false);
     }
-  };
-  
-  const handleSavePrivacy = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSavingPrivacy(true);
-    
-    try {
-      const success = await updateSettings({
-        data_sharing: dataSharing,
-        anonymous_sharing: anonymousSharing,
-      });
-
-      if (success) {
-        toast({
-          title: "Privacy settings updated",
-          description: "Your privacy preferences have been saved.",
-        });
-      } else {
-        toast({
-          title: "Update failed",
-          description: "Failed to update privacy settings. Please try again.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Update failed",
-        description: "An error occurred while updating your privacy settings.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSavingPrivacy(false);
-    }
-  };
-  
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (newPassword !== confirmPassword) {
-      toast({
-        title: "Passwords do not match",
-        description: "Your new password and confirmation do not match.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsSavingPassword(true);
-    
-    // Simulate API call for now - implement with Supabase auth update
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast({
-      title: "Password updated",
-      description: "Your password has been changed successfully.",
-    });
-    
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setIsSavingPassword(false);
-  };
-  
-  const handleExportData = async () => {
-    toast({
-      title: "Data export initiated",
-      description: "Your data export is being prepared and will be emailed to you.",
-    });
   };
 
-  if (settingsLoading) {
+  const updateSetting = (key: keyof UserSettings, value: boolean | string) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  if (loading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="max-w-4xl mx-auto space-y-6">
+          <h1 className="text-3xl font-bold">Settings</h1>
+          <div className="animate-pulse space-y-6">
+            <div className="h-64 bg-muted rounded-lg"></div>
+            <div className="h-64 bg-muted rounded-lg"></div>
+          </div>
         </div>
       </AppLayout>
     );
   }
-  
+
   return (
     <AppLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Settings</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your account preferences and settings
-          </p>
-        </div>
+      <div className="max-w-4xl mx-auto space-y-6">
+        <h1 className="text-3xl font-bold">Settings</h1>
         
-        <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid grid-cols-4 w-full max-w-md">
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            <TabsTrigger value="privacy">Privacy</TabsTrigger>
-            <TabsTrigger value="security">Security</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="profile">
-            <Card>
-              <form onSubmit={handleSaveProfile}>
-                <CardHeader>
-                  <CardTitle>Personal Information</CardTitle>
-                  <CardDescription>
-                    Update your personal details
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Name</Label>
-                    <Input
-                      id="name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={user.email || ''}
-                      disabled
-                      className="bg-muted"
-                    />
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button type="submit" disabled={isSavingProfile}>
-                    {isSavingProfile ? "Saving..." : "Save Changes"}
-                  </Button>
-                </CardFooter>
-              </form>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="notifications">
-            <Card>
-              <form onSubmit={handleSaveNotifications}>
-                <CardHeader>
-                  <CardTitle>Notification Preferences</CardTitle>
-                  <CardDescription>
-                    Configure how and when you want to be notified
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <Label>Daily Logging Reminder</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Receive a daily reminder to log your symptoms
-                      </p>
-                    </div>
-                    <Switch
-                      checked={reminderEnabled}
-                      onCheckedChange={setReminderEnabled}
-                    />
-                  </div>
-                  
-                  {reminderEnabled && (
-                    <div className="space-y-2 ml-6">
-                      <Label htmlFor="reminderTime">Reminder Time</Label>
-                      <Input
-                        id="reminderTime"
-                        type="time"
-                        value={reminderTime}
-                        onChange={(e) => setReminderTime(e.target.value)}
-                        className="w-[150px]"
-                      />
-                    </div>
-                  )}
-                  
-                  <Separator />
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <Label>Weekly Summary Report</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Receive a weekly email with insights and statistics
-                      </p>
-                    </div>
-                    <Switch
-                      checked={weeklyReportEnabled}
-                      onCheckedChange={setWeeklyReportEnabled}
-                    />
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <Label>Trigger Alert Notifications</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Get alerts when known triggers are detected (e.g., weather changes)
-                      </p>
-                    </div>
-                    <Switch
-                      checked={triggerAlertsEnabled}
-                      onCheckedChange={setTriggerAlertsEnabled}
-                    />
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button type="submit" disabled={isSavingNotifications}>
-                    {isSavingNotifications ? "Saving..." : "Save Preferences"}
-                  </Button>
-                </CardFooter>
-              </form>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="privacy">
-            <Card>
-              <form onSubmit={handleSavePrivacy}>
-                <CardHeader>
-                  <CardTitle>Privacy Settings</CardTitle>
-                  <CardDescription>
-                    Control how your data is used and shared
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <Label>Share Data for Research</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Contribute your anonymized data to help improve hyperhidrosis research
-                      </p>
-                    </div>
-                    <Switch
-                      checked={dataSharing}
-                      onCheckedChange={setDataSharing}
-                    />
-                  </div>
-                  
-                  {dataSharing && (
-                    <div className="flex items-center justify-between ml-6">
-                      <div className="space-y-1">
-                        <Label>Anonymous Sharing Only</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Your personal information will never be shared
-                        </p>
-                      </div>
-                      <Switch
-                        checked={anonymousSharing}
-                        onCheckedChange={setAnonymousSharing}
-                      />
-                    </div>
-                  )}
-                  
-                  <Separator />
-                  
-                  <div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleExportData}
-                    >
-                      Export My Data
-                    </Button>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Request a copy of all your data in a downloadable format
+        <div className="grid gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                Notifications
+              </CardTitle>
+              <CardDescription>
+                Manage how and when you receive notifications
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="reminder-enabled">Daily Reminders</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Get reminded to log your daily episodes
+                  </p>
+                </div>
+                <Switch
+                  id="reminder-enabled"
+                  checked={settings.reminder_enabled}
+                  onCheckedChange={(checked) => updateSetting('reminder_enabled', checked)}
+                />
+              </div>
+              
+              {settings.reminder_enabled && (
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="reminder-time">Reminder Time</Label>
+                    <p className="text-sm text-muted-foreground">
+                      When should we remind you?
                     </p>
                   </div>
-                </CardContent>
-                <CardFooter>
-                  <Button type="submit" disabled={isSavingPrivacy}>
-                    {isSavingPrivacy ? "Saving..." : "Save Privacy Settings"}
-                  </Button>
-                </CardFooter>
-              </form>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="security">
-            <Card>
-              <form onSubmit={handleChangePassword}>
-                <CardHeader>
-                  <CardTitle>Security Settings</CardTitle>
-                  <CardDescription>
-                    Manage your password and account security
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="currentPassword">Current Password</Label>
-                    <Input
-                      id="currentPassword"
-                      type="password"
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="newPassword">New Password</Label>
-                    <Input
-                      id="newPassword"
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                </CardContent>
-                <CardFooter className="flex flex-col items-start space-y-4">
-                  <Button type="submit" disabled={isSavingPassword}>
-                    {isSavingPassword ? "Updating..." : "Change Password"}
-                  </Button>
-                  
-                  <Separator className="my-4 w-full" />
-                  
-                  <div>
-                    <Button variant="destructive" type="button">
-                      Delete Account
-                    </Button>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Permanently delete your account and all your data
-                    </p>
-                  </div>
-                </CardFooter>
-              </form>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                  <Input
+                    id="reminder-time"
+                    type="time"
+                    value={settings.reminder_time}
+                    onChange={(e) => updateSetting('reminder_time', e.target.value)}
+                    className="w-32"
+                  />
+                </div>
+              )}
+              
+              <Separator />
+              
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="weekly-report">Weekly Reports</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Receive weekly insights and trends
+                  </p>
+                </div>
+                <Switch
+                  id="weekly-report"
+                  checked={settings.weekly_report_enabled}
+                  onCheckedChange={(checked) => updateSetting('weekly_report_enabled', checked)}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="trigger-alerts">Trigger Alerts</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Get notified about potential triggers
+                  </p>
+                </div>
+                <Switch
+                  id="trigger-alerts"
+                  checked={settings.trigger_alerts_enabled}
+                  onCheckedChange={(checked) => updateSetting('trigger_alerts_enabled', checked)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Privacy & Data
+              </CardTitle>
+              <CardDescription>
+                Control how your data is used and shared
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="data-sharing">Data Sharing</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Help improve SweatSmart by sharing anonymous usage data
+                  </p>
+                </div>
+                <Switch
+                  id="data-sharing"
+                  checked={settings.data_sharing}
+                  onCheckedChange={(checked) => updateSetting('data_sharing', checked)}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="anonymous-sharing">Anonymous Community Sharing</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Share anonymous insights with the community
+                  </p>
+                </div>
+                <Switch
+                  id="anonymous-sharing"
+                  checked={settings.anonymous_sharing}
+                  onCheckedChange={(checked) => updateSetting('anonymous_sharing', checked)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <DataManagement />
+
+          <div className="flex justify-end">
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Saving..." : "Save Settings"}
+            </Button>
+          </div>
+        </div>
       </div>
     </AppLayout>
   );

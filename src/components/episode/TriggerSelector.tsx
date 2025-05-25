@@ -1,206 +1,209 @@
 
-import { useState, useCallback } from "react";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trigger, TriggerType } from "@/types";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, X } from "lucide-react";
+import { Trigger } from "@/types";
 
 interface TriggerSelectorProps {
-  selectedTriggers: Trigger[];
-  onChange: (triggers: Trigger[]) => void;
+  triggers: Trigger[];
+  onTriggersChange: (triggers: Trigger[]) => void;
 }
 
-// Clean, relevant trigger options without demo data
-const triggerOptions: Trigger[] = [
-  // Environmental triggers
-  { type: "environmental", value: "hotTemperature", label: "Hot Temperature" },
-  { type: "environmental", value: "coldTemperature", label: "Cold Temperature" },
-  { type: "environmental", value: "highHumidity", label: "High Humidity" },
-  { type: "environmental", value: "lowHumidity", label: "Low Humidity" },
-  { type: "environmental", value: "sunny", label: "Sunny Weather" },
-  { type: "environmental", value: "rainy", label: "Rainy Weather" },
-  
-  // Emotional triggers
-  { type: "emotional", value: "stress", label: "Stress" },
-  { type: "emotional", value: "anxiety", label: "Anxiety" },
-  { type: "emotional", value: "excitement", label: "Excitement" },
-  { type: "emotional", value: "anger", label: "Anger" },
-  { type: "emotional", value: "embarrassment", label: "Embarrassment" },
-  { type: "emotional", value: "nervousness", label: "Nervousness" },
-  
-  // Dietary triggers
-  { type: "dietary", value: "spicyFood", label: "Spicy Food" },
-  { type: "dietary", value: "caffeine", label: "Caffeine" },
-  { type: "dietary", value: "alcohol", label: "Alcohol" },
-  { type: "dietary", value: "sugar", label: "Sugar" },
-  { type: "dietary", value: "dairyProducts", label: "Dairy Products" },
-  
-  // Activity triggers
-  { type: "activity", value: "physicalExercise", label: "Physical Exercise" },
-  { type: "activity", value: "socialEvents", label: "Social Events" },
-  { type: "activity", value: "publicSpeaking", label: "Public Speaking" },
-  { type: "activity", value: "workTasks", label: "Work Tasks" },
-  { type: "activity", value: "certainClothing", label: "Certain Clothing" },
-];
-
-const TriggerSelector: React.FC<TriggerSelectorProps> = ({
-  selectedTriggers,
-  onChange,
+const TriggerSelector: React.FC<TriggerSelectorProps> = ({ 
+  triggers, 
+  onTriggersChange 
 }) => {
-  const [customTrigger, setCustomTrigger] = useState<{
-    type: TriggerType;
-    value: string;
-  } | null>(null);
-  
-  const handleTriggerToggle = useCallback((trigger: Trigger) => {
-    const isSelected = selectedTriggers.some(
-      (t) => t.type === trigger.type && t.value === trigger.value
-    );
-    
-    if (isSelected) {
-      onChange(
-        selectedTriggers.filter(
-          (t) => !(t.type === trigger.type && t.value === trigger.value)
-        )
-      );
-    } else {
-      onChange([...selectedTriggers, trigger]);
-    }
-  }, [selectedTriggers, onChange]);
-  
-  const addCustomTrigger = useCallback((type: TriggerType, value: string) => {
-    if (!value.trim()) return;
-    
-    const newTrigger: Trigger = {
-      type,
-      value: `custom-${type}-${value.toLowerCase().replace(/\s+/g, '-')}`,
-      label: value.trim(),
-    };
-    
-    onChange([...selectedTriggers, newTrigger]);
-    setCustomTrigger(null);
-  }, [selectedTriggers, onChange]);
-  
-  const renderTriggerList = (type: TriggerType) => {
-    const typeTriggers = triggerOptions.filter((t) => t.type === type);
-    
-    return (
-      <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
-          {typeTriggers.map((trigger) => {
-            const isSelected = selectedTriggers.some(
-              (t) => t.type === trigger.type && t.value === trigger.value
-            );
-            
-            return (
-              <div
-                key={trigger.value}
-                className={`flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 transition-colors ${
-                  isSelected ? "border-primary bg-primary/10" : ""
-                }`}
-              >
-                <Checkbox
-                  id={`trigger-${trigger.value}`}
-                  checked={isSelected}
-                  onCheckedChange={() => handleTriggerToggle(trigger)}
-                />
-                <Label
-                  htmlFor={`trigger-${trigger.value}`}
-                  className="text-sm font-normal cursor-pointer flex-grow"
-                  onClick={() => handleTriggerToggle(trigger)}
-                >
-                  {trigger.label}
-                </Label>
-              </div>
-            );
-          })}
-        </div>
-        
-        <div className="flex items-center space-x-2 mt-4">
-          <Input
-            placeholder={`Add custom ${type} trigger...`}
-            value={customTrigger?.type === type ? customTrigger.value : ""}
-            onChange={(e) =>
-              setCustomTrigger({ type, value: e.target.value })
-            }
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && customTrigger && customTrigger.type === type) {
-                e.preventDefault();
-                addCustomTrigger(customTrigger.type, customTrigger.value);
-              }
-            }}
-            className="flex-grow"
-          />
-          <button
-            type="button"
-            onClick={() => {
-              if (customTrigger && customTrigger.type === type) {
-                addCustomTrigger(customTrigger.type, customTrigger.value);
-              }
-            }}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 text-sm transition-colors"
-            disabled={!customTrigger || customTrigger.type !== type || !customTrigger.value.trim()}
-          >
-            Add
-          </button>
-        </div>
-      </div>
-    );
+  const [customTrigger, setCustomTrigger] = useState("");
+  const [activeTab, setActiveTab] = useState("environmental");
+
+  const predefinedTriggers = {
+    environmental: [
+      "Hot Temperature",
+      "High Humidity", 
+      "Crowded Spaces",
+      "Bright Lights",
+      "Loud Noises"
+    ],
+    emotional: [
+      "Stress/Anxiety",
+      "Excitement", 
+      "Nervousness",
+      "Embarrassment",
+      "Anger"
+    ],
+    dietary: [
+      "Spicy Food",
+      "Caffeine",
+      "Alcohol", 
+      "Hot Drinks",
+      "Heavy Meals"
+    ],
+    activity: [
+      "Physical Exercise",
+      "Social Events",
+      "Public Speaking", 
+      "Work Tasks",
+      "Certain Clothing"
+    ]
   };
-  
-  return (
-    <div className="space-y-3">
-      <Label className="text-base">Potential Triggers</Label>
-      
-      <Tabs defaultValue="environmental" className="w-full">
-        <TabsList className="grid grid-cols-4 mb-4 w-full">
-          <TabsTrigger value="environmental">Environmental</TabsTrigger>
-          <TabsTrigger value="emotional">Emotional</TabsTrigger>
-          <TabsTrigger value="dietary">Dietary</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="environmental" className="space-y-4">
-          {renderTriggerList("environmental")}
-        </TabsContent>
-        
-        <TabsContent value="emotional" className="space-y-4">
-          {renderTriggerList("emotional")}
-        </TabsContent>
-        
-        <TabsContent value="dietary" className="space-y-4">
-          {renderTriggerList("dietary")}
-        </TabsContent>
-        
-        <TabsContent value="activity" className="space-y-4">
-          {renderTriggerList("activity")}
-        </TabsContent>
-      </Tabs>
-      
-      {selectedTriggers.length > 0 && (
-        <div className="mt-4">
-          <Label className="text-sm mb-2 block">Selected Triggers:</Label>
-          <div className="flex flex-wrap gap-2">
-            {selectedTriggers.map((trigger) => (
-              <div
-                key={`${trigger.type}-${trigger.value}`}
-                className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm flex items-center"
-              >
-                {trigger.label}
-                <button
-                  type="button"
-                  onClick={() => handleTriggerToggle(trigger)}
-                  className="ml-2 text-primary hover:text-primary/80 text-lg leading-none"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
+
+  const handleTriggerToggle = (triggerLabel: string, type: string) => {
+    const existingIndex = triggers.findIndex(t => t.label === triggerLabel);
+    
+    if (existingIndex >= 0) {
+      const newTriggers = triggers.filter((_, index) => index !== existingIndex);
+      onTriggersChange(newTriggers);
+    } else {
+      const newTrigger: Trigger = {
+        type: type as "environmental" | "emotional" | "dietary" | "activity",
+        value: triggerLabel.toLowerCase().replace(/\s+/g, '_'),
+        label: triggerLabel
+      };
+      onTriggersChange([...triggers, newTrigger]);
+    }
+  };
+
+  const handleAddCustomTrigger = () => {
+    if (customTrigger.trim()) {
+      const newTrigger: Trigger = {
+        type: activeTab as "environmental" | "emotional" | "dietary" | "activity",
+        value: customTrigger.toLowerCase().replace(/\s+/g, '_'),
+        label: customTrigger.trim()
+      };
+      onTriggersChange([...triggers, newTrigger]);
+      setCustomTrigger("");
+    }
+  };
+
+  const handleRemoveTrigger = (triggerToRemove: Trigger) => {
+    const newTriggers = triggers.filter(t => t.label !== triggerToRemove.label);
+    onTriggersChange(newTriggers);
+  };
+
+  const isTriggerSelected = (triggerLabel: string) => {
+    return triggers.some(t => t.label === triggerLabel);
+  };
+
+  const renderTriggerGrid = (triggerList: string[], type: string) => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {triggerList.map((trigger) => (
+        <div
+          key={trigger}
+          className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+            isTriggerSelected(trigger)
+              ? "bg-primary/10 border-primary"
+              : "bg-background border-border hover:bg-muted"
+          }`}
+          onClick={() => handleTriggerToggle(trigger, type)}
+        >
+          <Checkbox
+            checked={isTriggerSelected(trigger)}
+            readOnly
+            className="pointer-events-none"
+          />
+          <span className="text-sm font-medium leading-tight break-words flex-1">
+            {trigger}
+          </span>
         </div>
-      )}
+      ))}
     </div>
+  );
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Potential Triggers</CardTitle>
+        <CardDescription>
+          What might have caused or contributed to this episode?
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="environmental" className="text-xs px-2">
+              Environment
+            </TabsTrigger>
+            <TabsTrigger value="emotional" className="text-xs px-2">
+              Emotional
+            </TabsTrigger>
+            <TabsTrigger value="dietary" className="text-xs px-2">
+              Dietary
+            </TabsTrigger>
+            <TabsTrigger value="activity" className="text-xs px-2">
+              Activity
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="environmental" className="space-y-4">
+            {renderTriggerGrid(predefinedTriggers.environmental, "environmental")}
+          </TabsContent>
+          
+          <TabsContent value="emotional" className="space-y-4">
+            {renderTriggerGrid(predefinedTriggers.emotional, "emotional")}
+          </TabsContent>
+          
+          <TabsContent value="dietary" className="space-y-4">
+            {renderTriggerGrid(predefinedTriggers.dietary, "dietary")}
+          </TabsContent>
+          
+          <TabsContent value="activity" className="space-y-4">
+            {renderTriggerGrid(predefinedTriggers.activity, "activity")}
+          </TabsContent>
+        </Tabs>
+
+        <div className="flex gap-2">
+          <Input
+            placeholder="Add custom trigger..."
+            value={customTrigger}
+            onChange={(e) => setCustomTrigger(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleAddCustomTrigger()}
+            className="flex-1"
+          />
+          <Button 
+            type="button" 
+            onClick={handleAddCustomTrigger}
+            size="sm"
+            disabled={!customTrigger.trim()}
+          >
+            <Plus className="h-4 w-4" />
+            Add
+          </Button>
+        </div>
+
+        {triggers.length > 0 && (
+          <div>
+            <h4 className="font-medium mb-2">Selected Triggers:</h4>
+            <div className="flex flex-wrap gap-2">
+              {triggers.map((trigger, index) => (
+                <Badge 
+                  key={index} 
+                  variant="secondary" 
+                  className="flex items-center gap-1"
+                >
+                  <span className="text-xs capitalize">{trigger.type}</span>
+                  <span className="text-xs">•</span>
+                  <span className="text-xs">{trigger.label}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto p-0 ml-1 hover:bg-transparent"
+                    onClick={() => handleRemoveTrigger(trigger)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

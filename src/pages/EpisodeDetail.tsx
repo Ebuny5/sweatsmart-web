@@ -5,10 +5,11 @@ import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Calendar, Clock, MapPin, AlertTriangle, FileText } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, MapPin, AlertTriangle, FileText, Lightbulb } from "lucide-react";
 import { format } from "date-fns";
 import { Episode, SeverityLevel, BodyArea } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
+import EpisodeInsights from "@/components/episode/EpisodeInsights";
 
 const EpisodeDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -240,6 +241,13 @@ const EpisodeDetail = () => {
             </Card>
           </div>
         </div>
+
+        {/* Show insights and recommendations for this episode */}
+        <EpisodeInsights 
+          severity={episode.severityLevel}
+          bodyAreas={episode.bodyAreas}
+          triggers={episode.triggers}
+        />
       </div>
     </AppLayout>
   );
