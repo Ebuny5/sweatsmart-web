@@ -61,12 +61,12 @@ const Sidebar = () => {
   
   return (
     <>
-      <SidebarTrigger className="fixed left-4 top-4 z-40 lg:hidden" />
+      <SidebarTrigger className="fixed left-4 top-4 z-50 lg:hidden" />
       <SidebarComponent>
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupLabel className="text-primary font-semibold px-2 mb-2">
-              SweatSense
+              SweatSmart
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>

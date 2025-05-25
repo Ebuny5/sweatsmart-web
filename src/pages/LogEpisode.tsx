@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import SeveritySelector from "@/components/episode/SeveritySelector";
 import BodyAreaSelector from "@/components/episode/BodyAreaSelector";
 import TriggerSelector from "@/components/episode/TriggerSelector";
+import EpisodeInsights from "@/components/episode/EpisodeInsights";
 import { SeverityLevel, BodyArea, Trigger } from "@/types";
 import { CalendarIcon, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +39,7 @@ const LogEpisode = () => {
   const [triggers, setTriggers] = useState<Trigger[]>([]);
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [showInsights, setShowInsights] = useState<boolean>(false);
   
   useEffect(() => {
     if (isNow) {
@@ -113,7 +115,8 @@ const LogEpisode = () => {
         description: "Your episode has been saved.",
       });
       
-      navigate("/dashboard");
+      // Show insights instead of immediately navigating
+      setShowInsights(true);
     } catch (error) {
       console.error('Error saving episode:', error);
       toast({
@@ -125,6 +128,48 @@ const LogEpisode = () => {
       setIsSubmitting(false);
     }
   };
+  
+  if (showInsights) {
+    return (
+      <AppLayout>
+        <div className="max-w-3xl mx-auto">
+          <h1 className="text-3xl font-bold mb-6">Episode Logged Successfully!</h1>
+          
+          <div className="space-y-6">
+            <EpisodeInsights 
+              severity={severity}
+              bodyAreas={bodyAreas}
+              triggers={triggers}
+            />
+            
+            <div className="flex justify-center space-x-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  // Reset form for new episode
+                  setDate(new Date());
+                  setTime(format(new Date(), "HH:mm"));
+                  setSeverity(3);
+                  setBodyAreas([]);
+                  setTriggers([]);
+                  setNotes("");
+                  setShowInsights(false);
+                }}
+              >
+                Log Another Episode
+              </Button>
+              <Button onClick={() => navigate("/dashboard")}>
+                Back to Dashboard
+              </Button>
+              <Button variant="outline" onClick={() => navigate("/insights")}>
+                View All Insights
+              </Button>
+            </div>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
   
   return (
     <AppLayout>

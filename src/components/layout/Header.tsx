@@ -41,13 +41,13 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated }) => {
     : '?';
     
   return (
-    <header className="w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
       <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate(user ? '/dashboard' : '/')}>
+        <div className="flex items-center gap-2 cursor-pointer ml-12 lg:ml-0" onClick={() => navigate(user ? '/dashboard' : '/')}>
           <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
             <span className="text-white text-lg font-bold">S</span>
           </div>
-          <h1 className="text-xl font-bold tracking-tight">SweatSense</h1>
+          <h1 className="text-xl font-bold tracking-tight">SweatSmart</h1>
         </div>
         
         <div className="flex items-center gap-4">
