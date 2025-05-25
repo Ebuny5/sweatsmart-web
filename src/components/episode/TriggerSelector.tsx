@@ -15,7 +15,7 @@ interface TriggerSelectorProps {
 }
 
 const TriggerSelector: React.FC<TriggerSelectorProps> = ({ 
-  triggers = [], // Default to empty array to prevent undefined errors
+  triggers = [], 
   onTriggersChange 
 }) => {
   const [customTrigger, setCustomTrigger] = useState("");
@@ -53,7 +53,7 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
   };
 
   const handleTriggerToggle = (triggerLabel: string, type: string) => {
-    if (!Array.isArray(triggers)) return; // Safety check
+    if (!Array.isArray(triggers)) return;
     
     const existingIndex = triggers.findIndex(t => t.label === triggerLabel);
     
@@ -83,13 +83,13 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
   };
 
   const handleRemoveTrigger = (triggerToRemove: Trigger) => {
-    if (!Array.isArray(triggers)) return; // Safety check
+    if (!Array.isArray(triggers)) return;
     const newTriggers = triggers.filter(t => t.label !== triggerToRemove.label);
     onTriggersChange(newTriggers);
   };
 
   const isTriggerSelected = (triggerLabel: string) => {
-    if (!Array.isArray(triggers)) return false; // Safety check
+    if (!Array.isArray(triggers)) return false;
     return triggers.some(t => t.label === triggerLabel);
   };
 
@@ -98,16 +98,15 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
       {triggerList.map((trigger) => (
         <div
           key={trigger}
-          className={`flex items-center space-x-2 p-2 rounded-lg border cursor-pointer transition-colors ${
+          className={`flex items-center space-x-2 p-2 rounded-lg border transition-colors ${
             isTriggerSelected(trigger)
               ? "bg-primary/10 border-primary"
               : "bg-background border-border hover:bg-muted"
           }`}
-          onClick={() => handleTriggerToggle(trigger, type)}
         >
           <Checkbox
             checked={isTriggerSelected(trigger)}
-            className="pointer-events-none"
+            onCheckedChange={() => handleTriggerToggle(trigger, type)}
           />
           <span className="text-xs font-medium leading-tight break-words flex-1">
             {trigger}
@@ -128,16 +127,16 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
       <CardContent className="space-y-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="environmental" className="text-xs px-1">
+            <TabsTrigger value="environmental" className="text-xs px-2">
               Environment
             </TabsTrigger>
-            <TabsTrigger value="emotional" className="text-xs px-1">
+            <TabsTrigger value="emotional" className="text-xs px-2">
               Emotional
             </TabsTrigger>
-            <TabsTrigger value="dietary" className="text-xs px-1">
+            <TabsTrigger value="dietary" className="text-xs px-2">
               Dietary
             </TabsTrigger>
-            <TabsTrigger value="activity" className="text-xs px-1">
+            <TabsTrigger value="activity" className="text-xs px-2">
               Activity
             </TabsTrigger>
           </TabsList>
