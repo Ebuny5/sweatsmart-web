@@ -53,7 +53,7 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
     value: string;
   } | null>(null);
   
-  const handleToggle = (trigger: Trigger) => {
+  const handleTriggerToggle = (trigger: Trigger) => {
     const isSelected = selectedTriggers.some(
       (t) => t.type === trigger.type && t.value === trigger.value
     );
@@ -96,19 +96,19 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
             return (
               <div
                 key={trigger.value}
-                className={`flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer ${
+                className={`flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer transition-colors ${
                   isSelected ? "border-primary bg-primary/10" : ""
                 }`}
-                onClick={() => handleToggle(trigger)}
+                onClick={() => handleTriggerToggle(trigger)}
               >
                 <Checkbox
                   id={`trigger-${trigger.value}`}
                   checked={isSelected}
-                  onCheckedChange={() => handleToggle(trigger)}
+                  onCheckedChange={() => handleTriggerToggle(trigger)}
                 />
                 <Label
                   htmlFor={`trigger-${trigger.value}`}
-                  className="text-sm font-normal cursor-pointer"
+                  className="text-sm font-normal cursor-pointer flex-grow"
                 >
                   {trigger.label}
                 </Label>
@@ -125,7 +125,7 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
               setCustomTrigger({ type, value: e.target.value })
             }
             onKeyDown={(e) => {
-              if (e.key === "Enter" && customTrigger) {
+              if (e.key === "Enter" && customTrigger && customTrigger.type === type) {
                 e.preventDefault();
                 addCustomTrigger(customTrigger.type, customTrigger.value);
               }
@@ -135,11 +135,11 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
           <button
             type="button"
             onClick={() => {
-              if (customTrigger) {
+              if (customTrigger && customTrigger.type === type) {
                 addCustomTrigger(customTrigger.type, customTrigger.value);
               }
             }}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 text-sm"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 text-sm transition-colors"
             disabled={!customTrigger || customTrigger.type !== type || !customTrigger.value.trim()}
           >
             Add
@@ -153,27 +153,27 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
     <div className="space-y-3">
       <Label className="text-base">Potential Triggers</Label>
       
-      <Tabs defaultValue="environmental">
-        <TabsList className="grid grid-cols-4 mb-4">
+      <Tabs defaultValue="environmental" className="w-full">
+        <TabsList className="grid grid-cols-4 mb-4 w-full">
           <TabsTrigger value="environmental">Environmental</TabsTrigger>
           <TabsTrigger value="emotional">Emotional</TabsTrigger>
           <TabsTrigger value="dietary">Dietary</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="environmental">
+        <TabsContent value="environmental" className="space-y-4">
           {renderTriggerList("environmental")}
         </TabsContent>
         
-        <TabsContent value="emotional">
+        <TabsContent value="emotional" className="space-y-4">
           {renderTriggerList("emotional")}
         </TabsContent>
         
-        <TabsContent value="dietary">
+        <TabsContent value="dietary" className="space-y-4">
           {renderTriggerList("dietary")}
         </TabsContent>
         
-        <TabsContent value="activity">
+        <TabsContent value="activity" className="space-y-4">
           {renderTriggerList("activity")}
         </TabsContent>
       </Tabs>
@@ -190,8 +190,11 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
                 {trigger.label}
                 <button
                   type="button"
-                  onClick={() => handleToggle(trigger)}
-                  className="ml-2 text-primary hover:text-primary/80"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleTriggerToggle(trigger);
+                  }}
+                  className="ml-2 text-primary hover:text-primary/80 text-lg leading-none"
                 >
                   ×
                 </button>
