@@ -15,7 +15,7 @@ interface TriggerSelectorProps {
 }
 
 const TriggerSelector: React.FC<TriggerSelectorProps> = ({ 
-  triggers, 
+  triggers = [], // Default to empty array to prevent undefined errors
   onTriggersChange 
 }) => {
   const [customTrigger, setCustomTrigger] = useState("");
@@ -53,6 +53,8 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
   };
 
   const handleTriggerToggle = (triggerLabel: string, type: string) => {
+    if (!Array.isArray(triggers)) return; // Safety check
+    
     const existingIndex = triggers.findIndex(t => t.label === triggerLabel);
     
     if (existingIndex >= 0) {
@@ -81,20 +83,22 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
   };
 
   const handleRemoveTrigger = (triggerToRemove: Trigger) => {
+    if (!Array.isArray(triggers)) return; // Safety check
     const newTriggers = triggers.filter(t => t.label !== triggerToRemove.label);
     onTriggersChange(newTriggers);
   };
 
   const isTriggerSelected = (triggerLabel: string) => {
+    if (!Array.isArray(triggers)) return false; // Safety check
     return triggers.some(t => t.label === triggerLabel);
   };
 
   const renderTriggerGrid = (triggerList: string[], type: string) => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
       {triggerList.map((trigger) => (
         <div
           key={trigger}
-          className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+          className={`flex items-center space-x-2 p-2 rounded-lg border cursor-pointer transition-colors ${
             isTriggerSelected(trigger)
               ? "bg-primary/10 border-primary"
               : "bg-background border-border hover:bg-muted"
@@ -103,10 +107,9 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
         >
           <Checkbox
             checked={isTriggerSelected(trigger)}
-            readOnly
             className="pointer-events-none"
           />
-          <span className="text-sm font-medium leading-tight break-words flex-1">
+          <span className="text-xs font-medium leading-tight break-words flex-1">
             {trigger}
           </span>
         </div>
@@ -125,16 +128,16 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
       <CardContent className="space-y-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="environmental" className="text-xs px-2">
+            <TabsTrigger value="environmental" className="text-xs px-1">
               Environment
             </TabsTrigger>
-            <TabsTrigger value="emotional" className="text-xs px-2">
+            <TabsTrigger value="emotional" className="text-xs px-1">
               Emotional
             </TabsTrigger>
-            <TabsTrigger value="dietary" className="text-xs px-2">
+            <TabsTrigger value="dietary" className="text-xs px-1">
               Dietary
             </TabsTrigger>
-            <TabsTrigger value="activity" className="text-xs px-2">
+            <TabsTrigger value="activity" className="text-xs px-1">
               Activity
             </TabsTrigger>
           </TabsList>
@@ -175,7 +178,7 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
           </Button>
         </div>
 
-        {triggers.length > 0 && (
+        {Array.isArray(triggers) && triggers.length > 0 && (
           <div>
             <h4 className="font-medium mb-2">Selected Triggers:</h4>
             <div className="flex flex-wrap gap-2">
@@ -183,11 +186,11 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
                 <Badge 
                   key={index} 
                   variant="secondary" 
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-1 text-xs"
                 >
-                  <span className="text-xs capitalize">{trigger.type}</span>
-                  <span className="text-xs">•</span>
-                  <span className="text-xs">{trigger.label}</span>
+                  <span className="capitalize">{trigger.type}</span>
+                  <span>•</span>
+                  <span>{trigger.label}</span>
                   <Button
                     type="button"
                     variant="ghost"

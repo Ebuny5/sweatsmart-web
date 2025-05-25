@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -261,20 +260,10 @@ const LogEpisode = () => {
               </CardContent>
             </Card>
             
-            <Card>
-              <CardHeader>
-                <CardTitle>Potential Triggers</CardTitle>
-                <CardDescription>
-                  What might have caused or contributed to this episode?
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <TriggerSelector
-                  selectedTriggers={triggers}
-                  onChange={setTriggers}
-                />
-              </CardContent>
-            </Card>
+            <TriggerSelector
+              triggers={triggers}
+              onTriggersChange={setTriggers}
+            />
             
             <div className="flex justify-end space-x-4">
               <Button
