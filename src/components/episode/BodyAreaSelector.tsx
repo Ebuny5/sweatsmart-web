@@ -39,18 +39,17 @@ const BodyAreaSelector: React.FC<BodyAreaSelectorProps> = ({
         {bodyAreaOptions.map((option) => (
           <div
             key={option.area}
-            className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer"
-            onClick={() => handleToggle(option.area)}
+            className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50"
           >
             <Checkbox
               id={`area-${option.area}`}
               checked={selectedAreas.includes(option.area)}
-              // Remove the onCheckedChange handler to prevent double triggering
-              // since we're already handling the click on the parent div
+              onCheckedChange={() => handleToggle(option.area)}
             />
             <Label
               htmlFor={`area-${option.area}`}
               className="text-sm font-normal cursor-pointer"
+              onClick={() => handleToggle(option.area)}
             >
               {option.label}
             </Label>

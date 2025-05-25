@@ -39,11 +39,20 @@ const EpisodeDetail = () => {
             datetime: new Date(data.date),
             severityLevel: data.severity as SeverityLevel,
             bodyAreas: (data.body_areas || []) as BodyArea[],
-            triggers: Array.isArray(data.triggers) ? data.triggers.map(t => ({
-              type: t.type || 'environmental',
-              value: t.value || '',
-              label: t.label || ''
-            })) : [],
+            triggers: Array.isArray(data.triggers) ? data.triggers.map(t => {
+              if (typeof t === 'object' && t !== null) {
+                return {
+                  type: t.type || 'environmental',
+                  value: t.value || '',
+                  label: t.label || ''
+                };
+              }
+              return {
+                type: 'environmental',
+                value: '',
+                label: typeof t === 'string' ? t : ''
+              };
+            }) : [],
             notes: data.notes,
             createdAt: new Date(data.created_at),
           };
