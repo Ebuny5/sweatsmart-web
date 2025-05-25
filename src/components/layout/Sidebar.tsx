@@ -65,7 +65,7 @@ const Sidebar = () => {
       <SidebarComponent>
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel className="text-primary font-semibold px-2">
+            <SidebarGroupLabel className="text-primary font-semibold px-2 mb-2">
               SweatSense
             </SidebarGroupLabel>
             <SidebarGroupContent>

@@ -49,7 +49,11 @@ const History = () => {
             datetime: new Date(ep.date),
             severityLevel: ep.severity as SeverityLevel,
             bodyAreas: (ep.body_areas || []) as BodyArea[],
-            triggers: JSON.parse(ep.triggers || '[]'),
+            triggers: Array.isArray(ep.triggers) ? ep.triggers.map(t => ({
+              type: t.type || 'environmental',
+              value: t.value || '',
+              label: t.label || ''
+            })) : [],
             notes: ep.notes,
             createdAt: new Date(ep.created_at),
           }));

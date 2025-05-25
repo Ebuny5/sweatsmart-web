@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -92,7 +91,7 @@ const LogEpisode = () => {
           title: `Episode - ${format(datetime, 'MMM d, yyyy')}`,
           severity: severity,
           body_areas: bodyAreas,
-          triggers: JSON.stringify(triggers),
+          triggers: triggers,
           notes: notes || null,
           date: datetime.toISOString(),
         });
