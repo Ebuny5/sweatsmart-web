@@ -2,6 +2,7 @@
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { BodyArea, BodyAreaDetail } from "@/types";
+import { useCallback } from "react";
 
 interface BodyAreaSelectorProps {
   selectedAreas: BodyArea[];
@@ -24,13 +25,13 @@ const BodyAreaSelector: React.FC<BodyAreaSelectorProps> = ({
   selectedAreas,
   onChange,
 }) => {
-  const handleAreaToggle = (area: BodyArea) => {
+  const handleAreaToggle = useCallback((area: BodyArea) => {
     if (selectedAreas.includes(area)) {
       onChange(selectedAreas.filter((a) => a !== area));
     } else {
       onChange([...selectedAreas, area]);
     }
-  };
+  }, [selectedAreas, onChange]);
 
   return (
     <div className="space-y-3">
@@ -39,8 +40,7 @@ const BodyAreaSelector: React.FC<BodyAreaSelectorProps> = ({
         {bodyAreaOptions.map((option) => (
           <div
             key={option.area}
-            className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer"
-            onClick={() => handleAreaToggle(option.area)}
+            className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50"
           >
             <Checkbox
               id={`area-${option.area}`}
@@ -50,6 +50,7 @@ const BodyAreaSelector: React.FC<BodyAreaSelectorProps> = ({
             <Label
               htmlFor={`area-${option.area}`}
               className="text-sm font-normal cursor-pointer"
+              onClick={() => handleAreaToggle(option.area)}
             >
               {option.label}
             </Label>

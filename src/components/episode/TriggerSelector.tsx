@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -53,7 +53,7 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
     value: string;
   } | null>(null);
   
-  const handleTriggerToggle = (trigger: Trigger) => {
+  const handleTriggerToggle = useCallback((trigger: Trigger) => {
     const isSelected = selectedTriggers.some(
       (t) => t.type === trigger.type && t.value === trigger.value
     );
@@ -67,9 +67,9 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
     } else {
       onChange([...selectedTriggers, trigger]);
     }
-  };
+  }, [selectedTriggers, onChange]);
   
-  const addCustomTrigger = (type: TriggerType, value: string) => {
+  const addCustomTrigger = useCallback((type: TriggerType, value: string) => {
     if (!value.trim()) return;
     
     const newTrigger: Trigger = {
@@ -80,7 +80,7 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
     
     onChange([...selectedTriggers, newTrigger]);
     setCustomTrigger(null);
-  };
+  }, [selectedTriggers, onChange]);
   
   const renderTriggerList = (type: TriggerType) => {
     const typeTriggers = triggerOptions.filter((t) => t.type === type);
@@ -96,10 +96,9 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
             return (
               <div
                 key={trigger.value}
-                className={`flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer transition-colors ${
+                className={`flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 transition-colors ${
                   isSelected ? "border-primary bg-primary/10" : ""
                 }`}
-                onClick={() => handleTriggerToggle(trigger)}
               >
                 <Checkbox
                   id={`trigger-${trigger.value}`}
@@ -109,6 +108,7 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
                 <Label
                   htmlFor={`trigger-${trigger.value}`}
                   className="text-sm font-normal cursor-pointer flex-grow"
+                  onClick={() => handleTriggerToggle(trigger)}
                 >
                   {trigger.label}
                 </Label>
@@ -190,10 +190,7 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
                 {trigger.label}
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleTriggerToggle(trigger);
-                  }}
+                  onClick={() => handleTriggerToggle(trigger)}
                   className="ml-2 text-primary hover:text-primary/80 text-lg leading-none"
                 >
                   ×
