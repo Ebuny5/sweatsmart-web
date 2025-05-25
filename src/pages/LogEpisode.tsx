@@ -92,7 +92,11 @@ const LogEpisode = () => {
           title: `Episode - ${format(datetime, 'MMM d, yyyy')}`,
           severity: severity,
           body_areas: bodyAreas,
-          triggers: triggers,
+          triggers: triggers.map(trigger => ({
+            type: trigger.type,
+            value: trigger.value,
+            label: trigger.label
+          })),
           notes: notes || null,
           date: datetime.toISOString(),
         });

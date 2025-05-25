@@ -52,11 +52,11 @@ const Dashboard = () => {
             severityLevel: ep.severity as SeverityLevel,
             bodyAreas: (ep.body_areas || []) as BodyArea[],
             triggers: Array.isArray(ep.triggers) ? ep.triggers.map(t => {
-              if (typeof t === 'object' && t !== null) {
+              if (typeof t === 'object' && t !== null && t !== undefined) {
                 return {
-                  type: t.type || 'environmental',
-                  value: t.value || '',
-                  label: t.label || ''
+                  type: (t as any).type || 'environmental',
+                  value: (t as any).value || '',
+                  label: (t as any).label || ''
                 };
               }
               return {

@@ -49,7 +49,6 @@ const BodyAreaSelector: React.FC<BodyAreaSelectorProps> = ({
             <Label
               htmlFor={`area-${option.area}`}
               className="text-sm font-normal cursor-pointer"
-              onClick={() => handleToggle(option.area)}
             >
               {option.label}
             </Label>
