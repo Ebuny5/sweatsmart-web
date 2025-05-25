@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
@@ -6,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Episode, BodyArea, Trigger } from "@/types";
+import { Episode, BodyArea, SeverityLevel } from "@/types";
 import { Calendar, MapPin, Thermometer, Clock, ArrowLeft, Edit3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -38,8 +37,8 @@ const EpisodeDetail = () => {
             id: data.id,
             userId: data.user_id,
             datetime: new Date(data.date),
-            severityLevel: data.severity,
-            bodyAreas: data.body_areas || [],
+            severityLevel: data.severity as SeverityLevel,
+            bodyAreas: (data.body_areas || []) as BodyArea[],
             triggers: JSON.parse(data.triggers || '[]'),
             notes: data.notes,
             createdAt: new Date(data.created_at),

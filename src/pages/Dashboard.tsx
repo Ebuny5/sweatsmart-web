@@ -6,7 +6,7 @@ import RecentEpisodes from "@/components/dashboard/RecentEpisodes";
 import TriggerSummary from "@/components/dashboard/TriggerSummary";
 import BodyAreaHeatmap from "@/components/dashboard/BodyAreaHeatmap";
 import QuickActions from "@/components/dashboard/QuickActions";
-import { TrendData, Episode, TriggerFrequency, BodyAreaFrequency } from "@/types";
+import { TrendData, Episode, TriggerFrequency, BodyAreaFrequency, SeverityLevel, BodyArea } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -37,7 +37,6 @@ const Dashboard = () => {
 
         if (error) {
           console.error('Error fetching episodes:', error);
-          // Initialize with empty data if no episodes found
           setData({
             weeklyData: [],
             monthlyData: [],
@@ -51,8 +50,8 @@ const Dashboard = () => {
             id: ep.id,
             userId: ep.user_id,
             datetime: new Date(ep.date),
-            severityLevel: ep.severity,
-            bodyAreas: ep.body_areas || [],
+            severityLevel: ep.severity as SeverityLevel,
+            bodyAreas: (ep.body_areas || []) as BodyArea[],
             triggers: JSON.parse(ep.triggers || '[]'),
             notes: ep.notes,
             createdAt: new Date(ep.created_at),

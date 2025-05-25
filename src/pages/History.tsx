@@ -6,56 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format, subDays } from "date-fns";
-import { Episode, BodyArea, Trigger } from "@/types";
+import { format } from "date-fns";
+import { Episode, BodyArea, SeverityLevel } from "@/types";
 import { Search, Calendar, Filter } from "lucide-react";
-
-// Generate mock episodes for demo
-const generateMockEpisodes = (): Episode[] => {
-  return Array.from({ length: 20 }).map((_, i) => {
-    const date = subDays(new Date(), i);
-    date.setHours(Math.floor(Math.random() * 24));
-    date.setMinutes(Math.floor(Math.random() * 60));
-    
-    const severity = Math.floor(Math.random() * 5) + 1;
-    
-    const bodyAreaOptions: BodyArea[] = ["palms", "soles", "face", "armpits", "head", "back", "groin", "entireBody"];
-    const bodyAreaCount = Math.floor(Math.random() * 3) + 1;
-    const bodyAreas = bodyAreaOptions
-      .sort(() => 0.5 - Math.random())
-      .slice(0, bodyAreaCount);
-    
-    const triggerOptions: Trigger[] = [
-      { type: "environmental", value: "hotTemperature", label: "Hot Temperature" },
-      { type: "environmental", value: "highHumidity", label: "High Humidity" },
-      { type: "emotional", value: "stress", label: "Stress" },
-      { type: "emotional", value: "anxiety", label: "Anxiety" },
-      { type: "dietary", value: "caffeine", label: "Caffeine" },
-      { type: "dietary", value: "spicyFood", label: "Spicy Food" },
-      { type: "activity", value: "physicalExercise", label: "Physical Exercise" },
-      { type: "activity", value: "socialEvents", label: "Social Events" },
-    ];
-    
-    const triggerCount = Math.floor(Math.random() * 3);
-    const triggers = triggerOptions
-      .sort(() => 0.5 - Math.random())
-      .slice(0, triggerCount);
-    
-    return {
-      id: `episode-${i}`,
-      userId: "user-1",
-      datetime: date,
-      severityLevel: severity as any,
-      bodyAreas,
-      triggers,
-      notes: i % 3 === 0 ? "This happened after my morning coffee." : undefined,
-      createdAt: date,
-    };
-  });
-};
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const History = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [filteredEpisodes, setFilteredEpisodes] = useState<Episode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,14 +25,49 @@ const History = () => {
   const [bodyAreaFilter, setBodyAreaFilter] = useState<string>("");
   
   useEffect(() => {
-    // Simulate API fetch
-    setTimeout(() => {
-      const mockEpisodes = generateMockEpisodes();
-      setEpisodes(mockEpisodes);
-      setFilteredEpisodes(mockEpisodes);
-      setIsLoading(false);
-    }, 1000);
-  }, []);
+    const fetchEpisodes = async () => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        const { data: episodesData, error } = await supabase
+          .from('episodes')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('date', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching episodes:', error);
+          setEpisodes([]);
+          setFilteredEpisodes([]);
+        } else {
+          const processedEpisodes: Episode[] = (episodesData || []).map(ep => ({
+            id: ep.id,
+            userId: ep.user_id,
+            datetime: new Date(ep.date),
+            severityLevel: ep.severity as SeverityLevel,
+            bodyAreas: (ep.body_areas || []) as BodyArea[],
+            triggers: JSON.parse(ep.triggers || '[]'),
+            notes: ep.notes,
+            createdAt: new Date(ep.created_at),
+          }));
+          
+          setEpisodes(processedEpisodes);
+          setFilteredEpisodes(processedEpisodes);
+        }
+      } catch (error) {
+        console.error('Error fetching episodes:', error);
+        setEpisodes([]);
+        setFilteredEpisodes([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEpisodes();
+  }, [user]);
   
   useEffect(() => {
     let result = episodes;
@@ -137,7 +131,7 @@ const History = () => {
   };
   
   return (
-    <AppLayout isAuthenticated={true} userName="John Doe">
+    <AppLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Episode History</h1>
