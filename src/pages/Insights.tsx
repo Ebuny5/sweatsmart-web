@@ -3,90 +3,46 @@ import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TriggerFrequency, BodyAreaFrequency } from "@/types";
 import { Thermometer, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import PersonalizedInsights from "@/components/insights/PersonalizedInsights";
 
 const Insights = () => {
   const { user } = useAuth();
-  const [data, setData] = useState<{
-    topTriggers: TriggerFrequency[];
-    bodyAreaFrequencies: BodyAreaFrequency[];
-    recommendations: any[];
-    treatments: any[];
-  } | null>(null);
-  
+  const [episodes, setEpisodes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    const fetchRealInsights = async () => {
+    const fetchEpisodes = async () => {
       if (!user) return;
       
       try {
-        // Fetch real episodes from database
-        const { data: episodes, error } = await supabase
+        const { data, error } = await supabase
           .from('episodes')
           .select('*')
-          .eq('user_id', user.id);
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
 
         if (error) {
           console.error('Error fetching episodes:', error);
+          setEpisodes([]);
+        } else {
+          setEpisodes(data || []);
         }
-        
-        // Initialize with empty data - will be populated as user logs episodes
-        const treatments = [
-          {
-            id: 1,
-            name: "Clinical-strength antiperspirants",
-            description: "Over-the-counter or prescription antiperspirants containing higher concentrations of aluminum chloride can help block sweat ducts.",
-            suitability: "Mild to moderate hyperhidrosis",
-          },
-          {
-            id: 2,
-            name: "Iontophoresis",
-            description: "A medical device delivers a low-level electrical current through water to temporarily block sweat glands.",
-            suitability: "Moderate to severe hyperhidrosis affecting hands, feet",
-          },
-          {
-            id: 3,
-            name: "Botulinum toxin (Botox) injections",
-            description: "Botox injections temporarily block the nerves that stimulate sweat glands.",
-            suitability: "Severe hyperhidrosis, particularly underarms",
-          },
-          {
-            id: 4,
-            name: "Anticholinergic medications",
-            description: "Oral medications that block the chemical messenger that activates sweat glands.",
-            suitability: "Widespread or severe hyperhidrosis",
-          },
-        ];
-        
-        setData({
-          topTriggers: [],
-          bodyAreaFrequencies: [],
-          recommendations: [],
-          treatments,
-        });
       } catch (error) {
-        console.error('Error fetching insights:', error);
-        setData({
-          topTriggers: [],
-          bodyAreaFrequencies: [],
-          recommendations: [],
-          treatments: [],
-        });
+        console.error('Error fetching episodes:', error);
+        setEpisodes([]);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchRealInsights();
+    fetchEpisodes();
   }, [user]);
   
-  if (isLoading || !data) {
+  if (isLoading) {
     return (
       <AppLayout>
         <div className="space-y-6">
@@ -108,85 +64,26 @@ const Insights = () => {
           <h1 className="text-3xl font-bold">Insights & Recommendations</h1>
         </div>
         
-        <Alert className="bg-primary/10 border-primary/20">
-          <Thermometer className="h-4 w-4 text-primary" />
-          <AlertTitle>Personalized Insights</AlertTitle>
-          <AlertDescription>
-            Start logging episodes to see personalized insights and trigger patterns. Your data will help identify what may be affecting your hyperhidrosis.
-          </AlertDescription>
-        </Alert>
-        
-        {data.topTriggers.length === 0 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>No Data Yet</CardTitle>
-              <CardDescription>
-                Log some episodes to start seeing your personal triggers and patterns
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Once you've logged a few episodes, you'll see insights about your most common triggers and affected body areas.
-              </p>
-            </CardContent>
-          </Card>
+        {episodes.length === 0 ? (
+          <Alert className="bg-primary/10 border-primary/20">
+            <Thermometer className="h-4 w-4 text-primary" />
+            <AlertTitle>Start Your Journey</AlertTitle>
+            <AlertDescription>
+              Log your first episode to begin seeing personalized insights and trigger patterns. Your data will help identify what may be affecting your hyperhidrosis.
+            </AlertDescription>
+          </Alert>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Top Triggers</CardTitle>
-                <CardDescription>
-                  These factors appear most frequently in your episodes
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {data.topTriggers.map((item, index) => (
-                    <div key={index} className="flex justify-between items-center border-b pb-3 last:border-0 last:pb-0">
-                      <div>
-                        <p className="font-medium">{item.trigger.label}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {item.count} episodes • Avg. severity: {item.averageSeverity.toFixed(1)}
-                        </p>
-                      </div>
-                      <Badge variant="outline" className="bg-primary/10">
-                        {item.trigger.type}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+          <>
+            <Alert className="bg-green-50 border-green-200">
+              <Thermometer className="h-4 w-4 text-green-600" />
+              <AlertTitle>Your Personal Insights</AlertTitle>
+              <AlertDescription>
+                Based on your {episodes.length} logged episode{episodes.length !== 1 ? 's' : ''}, here are your personalized insights and recommendations.
+              </AlertDescription>
+            </Alert>
             
-            <Card>
-              <CardHeader>
-                <CardTitle>Most Affected Areas</CardTitle>
-                <CardDescription>
-                  Body areas most frequently impacted by sweating
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {data.bodyAreaFrequencies.map((item, index) => (
-                    <div key={index} className="flex justify-between items-center border-b pb-3 last:border-0 last:pb-0">
-                      <div>
-                        <p className="font-medium capitalize">{item.area}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {item.count} episodes • Avg. severity: {item.averageSeverity.toFixed(1)}
-                        </p>
-                      </div>
-                      <div className="w-16 h-4 rounded-full overflow-hidden bg-muted">
-                        <div 
-                          className="h-full bg-primary" 
-                          style={{ width: `${(item.averageSeverity / 5) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+            <PersonalizedInsights episodes={episodes} />
+          </>
         )}
         
         <Card>
@@ -213,17 +110,26 @@ const Insights = () => {
               
               <TabsContent value="clinical">
                 <div className="space-y-4">
-                  {data.treatments.map((treatment) => (
-                    <div key={treatment.id} className="p-4 border rounded-lg">
-                      <h3 className="font-medium">{treatment.name}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {treatment.description}
-                      </p>
-                      <Badge variant="outline" className="mt-2">
-                        Best for: {treatment.suitability}
-                      </Badge>
-                    </div>
-                  ))}
+                  <div className="p-4 border rounded-lg">
+                    <h3 className="font-medium">Clinical-strength antiperspirants</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Over-the-counter or prescription antiperspirants containing higher concentrations of aluminum chloride can help block sweat ducts.
+                    </p>
+                  </div>
+                  
+                  <div className="p-4 border rounded-lg">
+                    <h3 className="font-medium">Iontophoresis</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      A medical device delivers a low-level electrical current through water to temporarily block sweat glands.
+                    </p>
+                  </div>
+                  
+                  <div className="p-4 border rounded-lg">
+                    <h3 className="font-medium">Botulinum toxin (Botox) injections</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Botox injections temporarily block the nerves that stimulate sweat glands.
+                    </p>
+                  </div>
                 </div>
               </TabsContent>
               

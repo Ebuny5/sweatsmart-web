@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -101,8 +100,40 @@ const Settings = () => {
     }
   };
 
-  const updateSetting = (key: keyof UserSettings, value: boolean | string) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+  const updateSetting = async (key: keyof UserSettings, value: boolean | string) => {
+    const newSettings = { ...settings, [key]: value };
+    setSettings(newSettings);
+    
+    // Auto-save when settings change
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: user.id,
+          ...newSettings,
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      // Only show toast for certain settings
+      if (key === 'reminder_time') {
+        toast({
+          title: "Reminder Time Updated",
+          description: `Daily reminders will now be sent at ${value}`,
+        });
+      }
+    } catch (error) {
+      console.error('Error updating setting:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update setting. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
