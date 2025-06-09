@@ -12,6 +12,7 @@ const DataManagement = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isClearing, setIsClearing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const handleClearAllData = async () => {
     if (!user) return;
@@ -43,9 +44,50 @@ const DataManagement = () => {
     }
   };
 
+  const convertToCSV = (data: any[]) => {
+    if (data.length === 0) return '';
+
+    const headers = ['Date', 'Time', 'Severity', 'Body Areas', 'Triggers', 'Notes'];
+    const csvContent = [
+      headers.join(','),
+      ...data.map(episode => {
+        const date = new Date(episode.date).toLocaleDateString();
+        const time = new Date(episode.date).toLocaleTimeString();
+        const severity = episode.severity || 'Not specified';
+        const bodyAreas = Array.isArray(episode.body_areas) ? episode.body_areas.join('; ') : 'Not specified';
+        const triggers = Array.isArray(episode.triggers) ? 
+          episode.triggers.map((t: any) => {
+            if (typeof t === 'string') {
+              try {
+                const parsed = JSON.parse(t);
+                return parsed.label || parsed.value || t;
+              } catch {
+                return t;
+              }
+            }
+            return t.label || t.value || 'Unknown trigger';
+          }).join('; ') : 'Not specified';
+        const notes = episode.notes || '';
+
+        // Escape commas and quotes in CSV
+        const escapeCSV = (field: string) => {
+          if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+            return `"${field.replace(/"/g, '""')}"`;
+          }
+          return field;
+        };
+
+        return [date, time, severity, escapeCSV(bodyAreas), escapeCSV(triggers), escapeCSV(notes)].join(',');
+      })
+    ].join('\n');
+
+    return csvContent;
+  };
+
   const handleExportData = async () => {
     if (!user) return;
     
+    setIsExporting(true);
     try {
       const { data, error } = await supabase
         .from('episodes')
@@ -57,12 +99,48 @@ const DataManagement = () => {
         throw error;
       }
 
-      const dataStr = JSON.stringify(data, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(dataBlob);
+      if (!data || data.length === 0) {
+        toast({
+          title: "No Data",
+          description: "You don't have any episodes to export yet.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const csvContent = convertToCSV(data);
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const fileName = `sweatsmart-episodes-${new Date().toISOString().split('T')[0]}.csv`;
+
+      // Check if we're on mobile and can use native sharing
+      if (navigator.share && navigator.canShare) {
+        const file = new File([blob], fileName, { type: 'text/csv' });
+        
+        if (navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              title: 'SweatSmart Episode Data',
+              text: 'Your exported SweatSmart episode data',
+              files: [file]
+            });
+            
+            toast({
+              title: "Data Exported",
+              description: "Your data has been shared successfully.",
+            });
+            return;
+          } catch (shareError) {
+            console.log('Share was cancelled or failed:', shareError);
+            // Fall back to download if share is cancelled
+          }
+        }
+      }
+
+      // Fallback to traditional download for desktop or if sharing fails
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `sweatsmart-data-${new Date().toISOString().split('T')[0]}.json`;
+      link.download = fileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -70,8 +148,9 @@ const DataManagement = () => {
 
       toast({
         title: "Data Exported",
-        description: "Your data has been successfully exported.",
+        description: "Your data has been downloaded as a CSV file.",
       });
+
     } catch (error) {
       console.error('Error exporting data:', error);
       toast({
@@ -79,6 +158,8 @@ const DataManagement = () => {
         description: "Failed to export data. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -98,10 +179,11 @@ const DataManagement = () => {
           <Button
             variant="outline"
             onClick={handleExportData}
+            disabled={isExporting}
             className="flex items-center gap-2"
           >
             <Download className="h-4 w-4" />
-            Export My Data
+            {isExporting ? "Exporting..." : "Export My Data"}
           </Button>
           
           <AlertDialog>
