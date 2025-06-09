@@ -83,11 +83,37 @@ const Dashboard = () => {
           // Get recent episodes (last 5)
           const recentEpisodes = allEpisodes.slice(0, 5);
           
+          // Generate body area data from episodes
+          const bodyAreaCounts = new Map();
+          const bodyAreaSeverities = new Map();
+          
+          allEpisodes.forEach(episode => {
+            episode.bodyAreas.forEach(area => {
+              if (!bodyAreaCounts.has(area)) {
+                bodyAreaCounts.set(area, 0);
+                bodyAreaSeverities.set(area, []);
+              }
+              bodyAreaCounts.set(area, bodyAreaCounts.get(area) + 1);
+              bodyAreaSeverities.get(area).push(episode.severityLevel);
+            });
+          });
+
+          const bodyAreas: BodyAreaFrequency[] = Array.from(bodyAreaCounts.entries()).map(([area, count]) => {
+            const severities = bodyAreaSeverities.get(area);
+            const averageSeverity = severities.reduce((a: number, b: number) => a + b, 0) / severities.length;
+            
+            return {
+              area,
+              count,
+              averageSeverity
+            };
+          });
+          
           setData({
             weeklyData: [],
             monthlyData: [],
             triggerFrequencies: [],
-            bodyAreas: [],
+            bodyAreas,
             recentEpisodes,
             allEpisodes,
           });
@@ -153,7 +179,6 @@ const Dashboard = () => {
           
           <BodyAreaHeatmap 
             bodyAreas={data.bodyAreas}
-            allEpisodes={data.allEpisodes}
           />
           
           <RecentEpisodes episodes={data.recentEpisodes} />
