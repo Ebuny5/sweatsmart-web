@@ -35,7 +35,7 @@ const Login = () => {
       } else {
         toast({
           title: "Login successful",
-          description: "Welcome back to SweatSense!",
+          description: "Welcome back to SweatSmart!",
         });
         navigate("/dashboard");
       }

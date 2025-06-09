@@ -18,6 +18,7 @@ const Dashboard = () => {
     triggerFrequencies: TriggerFrequency[];
     bodyAreas: BodyAreaFrequency[];
     recentEpisodes: Episode[];
+    allEpisodes: Episode[];
   } | null>(null);
   
   const [isLoading, setIsLoading] = useState(true);
@@ -27,13 +28,12 @@ const Dashboard = () => {
       if (!user) return;
       
       try {
-        // Fetch real episodes from database
+        // Fetch ALL episodes from database for analytics
         const { data: episodes, error } = await supabase
           .from('episodes')
           .select('*')
           .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(5);
+          .order('created_at', { ascending: false });
 
         if (error) {
           console.error('Error fetching episodes:', error);
@@ -43,10 +43,11 @@ const Dashboard = () => {
             triggerFrequencies: [],
             bodyAreas: [],
             recentEpisodes: [],
+            allEpisodes: [],
           });
         } else {
-          // Process real data
-          const recentEpisodes: Episode[] = (episodes || []).map(ep => ({
+          // Process all episodes
+          const allEpisodes: Episode[] = (episodes || []).map(ep => ({
             id: ep.id,
             userId: ep.user_id,
             datetime: new Date(ep.date),
@@ -79,12 +80,16 @@ const Dashboard = () => {
             createdAt: new Date(ep.created_at),
           }));
           
+          // Get recent episodes (last 5)
+          const recentEpisodes = allEpisodes.slice(0, 5);
+          
           setData({
             weeklyData: [],
             monthlyData: [],
             triggerFrequencies: [],
             bodyAreas: [],
             recentEpisodes,
+            allEpisodes,
           });
         }
       } catch (error) {
@@ -95,6 +100,7 @@ const Dashboard = () => {
           triggerFrequencies: [],
           bodyAreas: [],
           recentEpisodes: [],
+          allEpisodes: [],
         });
       } finally {
         setIsLoading(false);
@@ -122,22 +128,47 @@ const Dashboard = () => {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          {data.allEpisodes.length > 0 && (
+            <div className="text-sm text-muted-foreground">
+              Total episodes: {data.allEpisodes.length}
+            </div>
+          )}
+        </div>
         
         <QuickActions />
         
         <div className="grid gap-6 md:grid-cols-3">
           <DashboardSummary 
             weeklyData={data.weeklyData} 
-            monthlyData={data.monthlyData} 
+            monthlyData={data.monthlyData}
+            allEpisodes={data.allEpisodes}
           />
           
-          <TriggerSummary triggers={data.triggerFrequencies} />
+          <TriggerSummary 
+            triggers={data.triggerFrequencies}
+            allEpisodes={data.allEpisodes}
+          />
           
-          <BodyAreaHeatmap bodyAreas={data.bodyAreas} />
+          <BodyAreaHeatmap 
+            bodyAreas={data.bodyAreas}
+            allEpisodes={data.allEpisodes}
+          />
           
           <RecentEpisodes episodes={data.recentEpisodes} />
         </div>
+        
+        {data.allEpisodes.length === 0 && (
+          <div className="text-center py-12">
+            <div className="space-y-4">
+              <h3 className="text-xl font-medium">Welcome to SweatSmart!</h3>
+              <p className="text-muted-foreground max-w-md mx-auto">
+                Start tracking your hyperhidrosis episodes to unlock personalized insights and patterns.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </AppLayout>
   );
