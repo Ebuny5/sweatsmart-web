@@ -6,19 +6,21 @@ import RecentEpisodes from "@/components/dashboard/RecentEpisodes";
 import TriggerSummary from "@/components/dashboard/TriggerSummary";
 import BodyAreaHeatmap from "@/components/dashboard/BodyAreaHeatmap";
 import QuickActions from "@/components/dashboard/QuickActions";
-import { TrendData, Episode, TriggerFrequency, BodyAreaFrequency, SeverityLevel, BodyArea } from "@/types";
+import { TrendData, Episode, ProcessedEpisode, TriggerFrequency, BodyAreaFrequency, SeverityLevel, BodyArea } from "@/types";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [data, setData] = useState<{
     weeklyData: TrendData[];
     monthlyData: TrendData[];
     triggerFrequencies: TriggerFrequency[];
     bodyAreas: BodyAreaFrequency[];
-    recentEpisodes: Episode[];
-    allEpisodes: Episode[];
+    recentEpisodes: ProcessedEpisode[];
+    allEpisodes: ProcessedEpisode[];
   } | null>(null);
   
   const [isLoading, setIsLoading] = useState(true);
@@ -37,6 +39,11 @@ const Dashboard = () => {
 
         if (error) {
           console.error('Error fetching episodes:', error);
+          toast({
+            title: "Error loading dashboard",
+            description: "Failed to load your dashboard data. Please try again.",
+            variant: "destructive",
+          });
           setData({
             weeklyData: [],
             monthlyData: [],
@@ -47,7 +54,7 @@ const Dashboard = () => {
           });
         } else {
           // Process all episodes
-          const allEpisodes: Episode[] = (episodes || []).map(ep => ({
+          const allEpisodes: ProcessedEpisode[] = (episodes || []).map(ep => ({
             id: ep.id,
             userId: ep.user_id,
             datetime: new Date(ep.date),
@@ -71,12 +78,12 @@ const Dashboard = () => {
                 }
               }
               return {
-                type: 'environmental',
-                value: '',
-                label: typeof t === 'string' ? t : ''
+                type: (t as any)?.type || 'environmental',
+                value: (t as any)?.value || '',
+                label: (t as any)?.label || ''
               };
             }) : [],
-            notes: ep.notes,
+            notes: ep.notes || undefined,
             createdAt: new Date(ep.created_at),
           }));
           
@@ -121,6 +128,11 @@ const Dashboard = () => {
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
+        toast({
+          title: "Error",
+          description: "An unexpected error occurred while loading the dashboard.",
+          variant: "destructive",
+        });
         setData({
           weeklyData: [],
           monthlyData: [],
@@ -135,7 +147,7 @@ const Dashboard = () => {
     };
 
     fetchRealData();
-  }, [user]);
+  }, [user, toast]);
   
   if (isLoading || !data) {
     return (

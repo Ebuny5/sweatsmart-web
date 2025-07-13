@@ -7,16 +7,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Thermometer, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import PersonalizedInsights from "@/components/insights/PersonalizedInsights";
 
 const Insights = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [episodes, setEpisodes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
     const fetchEpisodes = async () => {
-      if (!user) return;
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
       
       try {
         const { data, error } = await supabase
@@ -27,12 +32,22 @@ const Insights = () => {
 
         if (error) {
           console.error('Error fetching episodes:', error);
+          toast({
+            title: "Error loading insights",
+            description: "Failed to load your episodes for insights. Please try again.",
+            variant: "destructive",
+          });
           setEpisodes([]);
         } else {
           setEpisodes(data || []);
         }
       } catch (error) {
         console.error('Error fetching episodes:', error);
+        toast({
+          title: "Error",
+          description: "An unexpected error occurred while loading insights.",
+          variant: "destructive",
+        });
         setEpisodes([]);
       } finally {
         setIsLoading(false);
@@ -40,7 +55,7 @@ const Insights = () => {
     };
 
     fetchEpisodes();
-  }, [user]);
+  }, [user, toast]);
   
   if (isLoading) {
     return (

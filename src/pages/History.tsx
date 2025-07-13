@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
@@ -9,14 +8,16 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, Search, Filter, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
-import { Episode, SeverityLevel, BodyArea } from "@/types";
+import { Episode, ProcessedEpisode, SeverityLevel, BodyArea } from "@/types";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 const History = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [episodes, setEpisodes] = useState<Episode[]>([]);
+  const { toast } = useToast();
+  const [episodes, setEpisodes] = useState<ProcessedEpisode[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [severityFilter, setSeverityFilter] = useState<string>("all");
@@ -24,7 +25,10 @@ const History = () => {
 
   useEffect(() => {
     const fetchEpisodes = async () => {
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
       
       try {
         const { data, error } = await supabase
@@ -35,8 +39,14 @@ const History = () => {
 
         if (error) {
           console.error('Error fetching episodes:', error);
+          toast({
+            title: "Error loading episodes",
+            description: "Failed to load your episode history. Please try again.",
+            variant: "destructive",
+          });
+          setEpisodes([]);
         } else {
-          const processedEpisodes: Episode[] = (data || []).map(ep => ({
+          const processedEpisodes: ProcessedEpisode[] = (data || []).map(ep => ({
             id: ep.id,
             userId: ep.user_id,
             datetime: new Date(ep.date),
@@ -60,25 +70,31 @@ const History = () => {
                 }
               }
               return {
-                type: 'environmental',
-                value: '',
-                label: typeof t === 'string' ? t : ''
+                type: (t as any)?.type || 'environmental',
+                value: (t as any)?.value || '',
+                label: (t as any)?.label || ''
               };
             }) : [],
-            notes: ep.notes,
+            notes: ep.notes || undefined,
             createdAt: new Date(ep.created_at),
           }));
           setEpisodes(processedEpisodes);
         }
       } catch (error) {
         console.error('Error fetching episodes:', error);
+        toast({
+          title: "Error",
+          description: "An unexpected error occurred while loading episodes.",
+          variant: "destructive",
+        });
+        setEpisodes([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchEpisodes();
-  }, [user]);
+  }, [user, toast]);
 
   const getSeverityColor = (level: SeverityLevel) => {
     const colors = {

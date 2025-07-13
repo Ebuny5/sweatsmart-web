@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
@@ -7,31 +6,41 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Calendar, Clock, MapPin, AlertTriangle, FileText, Lightbulb } from "lucide-react";
 import { format } from "date-fns";
-import { Episode, SeverityLevel, BodyArea } from "@/types";
+import { Episode, ProcessedEpisode, SeverityLevel, BodyArea } from "@/types";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import EpisodeInsights from "@/components/episode/EpisodeInsights";
 
 const EpisodeDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [episode, setEpisode] = useState<Episode | null>(null);
+  const { toast } = useToast();
+  const [episode, setEpisode] = useState<ProcessedEpisode | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchEpisode = async () => {
-      if (!id) return;
+      if (!id) {
+        setLoading(false);
+        return;
+      }
       
       try {
         const { data, error } = await supabase
           .from('episodes')
           .select('*')
           .eq('id', id)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error('Error fetching episode:', error);
+          toast({
+            title: "Error loading episode",
+            description: "Failed to load episode details. Please try again.",
+            variant: "destructive",
+          });
         } else if (data) {
-          const processedEpisode: Episode = {
+          const processedEpisode: ProcessedEpisode = {
             id: data.id,
             userId: data.user_id,
             datetime: new Date(data.date),
@@ -55,25 +64,30 @@ const EpisodeDetail = () => {
                 }
               }
               return {
-                type: 'environmental',
-                value: '',
-                label: typeof t === 'string' ? t : ''
+                type: (t as any)?.type || 'environmental',
+                value: (t as any)?.value || '',
+                label: (t as any)?.label || ''
               };
             }) : [],
-            notes: data.notes,
+            notes: data.notes || undefined,
             createdAt: new Date(data.created_at),
           };
           setEpisode(processedEpisode);
         }
       } catch (error) {
         console.error('Error fetching episode:', error);
+        toast({
+          title: "Error",
+          description: "An unexpected error occurred while loading the episode.",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
     };
 
     fetchEpisode();
-  }, [id]);
+  }, [id, toast]);
 
   if (loading) {
     return (

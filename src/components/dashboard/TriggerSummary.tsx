@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TriggerFrequency, Episode } from "@/types";
+import { TriggerFrequency, ProcessedEpisode } from "@/types";
 import { 
   ResponsiveContainer, 
   BarChart, 
@@ -14,7 +14,7 @@ import {
 
 interface TriggerSummaryProps {
   triggers: TriggerFrequency[];
-  allEpisodes?: Episode[];
+  allEpisodes?: ProcessedEpisode[];
 }
 
 const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes = [] }) => {

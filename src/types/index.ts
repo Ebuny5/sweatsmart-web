@@ -93,8 +93,21 @@ export interface Trigger {
   label: string;
 }
 
-// Episode logging
+// Episode logging - Database schema type
 export interface Episode {
+  id: string;
+  user_id: string;
+  date: string;
+  severity: number;
+  body_areas: string[];
+  triggers: any[] | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Episode logging - Processed/Client type
+export interface ProcessedEpisode {
   id: string;
   userId: string;
   datetime: Date;

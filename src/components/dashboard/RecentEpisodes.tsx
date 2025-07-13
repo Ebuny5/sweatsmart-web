@@ -1,5 +1,4 @@
-
-import { Episode } from "@/types";
+import { ProcessedEpisode } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,7 @@ import { Calendar, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface RecentEpisodesProps {
-  episodes: Episode[];
+  episodes: ProcessedEpisode[];
 }
 
 const RecentEpisodes: React.FC<RecentEpisodesProps> = ({ episodes }) => {
@@ -65,7 +64,7 @@ const RecentEpisodes: React.FC<RecentEpisodesProps> = ({ episodes }) => {
                   <div className="flex items-center space-x-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">
-                      {format(new Date(episode.datetime), "MMM d, yyyy • h:mm a")}
+                      {format(episode.datetime, "MMM d, yyyy • h:mm a")}
                     </span>
                   </div>
                   <Badge className={getSeverityColor(episode.severityLevel)}>

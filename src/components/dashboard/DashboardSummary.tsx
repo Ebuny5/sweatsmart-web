@@ -12,13 +12,13 @@ import {
   Bar, 
   CartesianGrid 
 } from "recharts";
-import { TrendData, Episode } from "@/types";
+import { TrendData, ProcessedEpisode } from "@/types";
 import { format, startOfWeek, startOfMonth, eachWeekOfInterval, eachMonthOfInterval } from "date-fns";
 
 interface DashboardSummaryProps {
   weeklyData: TrendData[];
   monthlyData: TrendData[];
-  allEpisodes?: Episode[];
+  allEpisodes?: ProcessedEpisode[];
 }
 
 const DashboardSummary: React.FC<DashboardSummaryProps> = ({
