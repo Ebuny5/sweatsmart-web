@@ -57,6 +57,7 @@ const LogEpisode = () => {
         description: "Please log in to save episodes.",
         variant: "destructive",
       });
+      navigate("/login");
       return;
     }
     
@@ -97,7 +98,6 @@ const LogEpisode = () => {
         .from('episodes')
         .insert({
           user_id: user.id,
-          title: `Episode - ${format(datetime, 'MMM d, yyyy')}`,
           severity: severity,
           body_areas: bodyAreas,
           triggers: triggerStrings,
