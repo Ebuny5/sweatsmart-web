@@ -35,7 +35,7 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated }) => {
     navigate('/');
   };
   
-  const userName = profile?.full_name || user?.email || '';
+  const userName = profile?.display_name || user?.email || '';
   const userInitials = userName
     ? userName.split(' ').map(name => name[0]).join('').toUpperCase()
     : '?';
@@ -56,7 +56,7 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated }) => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                   <Avatar>
-                    <AvatarImage src={profile?.avatar_url || ''} alt={userName} />
+                    <AvatarImage src="" alt={userName} />
                     <AvatarFallback>{userInitials}</AvatarFallback>
                   </Avatar>
                 </Button>

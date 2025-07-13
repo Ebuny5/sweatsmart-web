@@ -105,7 +105,8 @@ const Dashboard = () => {
             return {
               area,
               count,
-              averageSeverity
+              averageSeverity,
+              percentage: Math.round((count / allEpisodes.length) * 100)
             };
           });
           

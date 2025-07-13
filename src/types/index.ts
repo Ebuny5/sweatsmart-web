@@ -8,6 +8,25 @@ export interface User {
   createdAt: Date;
 }
 
+export interface Profile {
+  id: string;
+  user_id: string;
+  display_name?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserSettings {
+  id: string;
+  user_id: string;
+  daily_reminders: boolean;
+  reminder_time: string;
+  trigger_alerts: boolean;
+  data_sharing: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // Symptom logging types
 export type SeverityLevel = 1 | 2 | 3 | 4 | 5;
 
@@ -95,13 +114,15 @@ export interface TrendData {
 }
 
 export interface BodyAreaFrequency {
-  area: BodyArea;
+  area: string;
   count: number;
   averageSeverity: number;
+  percentage: number;
 }
 
 export interface TriggerFrequency {
-  trigger: Trigger;
+  trigger: string | { type: string; label: string; value: string };
   count: number;
   averageSeverity: number;
+  percentage: number;
 }

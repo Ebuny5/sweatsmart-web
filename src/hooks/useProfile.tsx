@@ -2,15 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-
-interface Profile {
-  id: string;
-  full_name: string | null;
-  email: string | null;
-  bio: string | null;
-  location: string | null;
-  avatar_url: string | null;
-}
+import { Profile } from '@/types';
 
 export const useProfile = () => {
   const { user } = useAuth();
@@ -27,7 +19,7 @@ export const useProfile = () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.id)
+        .eq('user_id', user.id)
         .single();
 
       if (error) {
@@ -49,7 +41,7 @@ export const useProfile = () => {
       const { error } = await supabase
         .from('profiles')
         .update(updates)
-        .eq('id', user.id);
+        .eq('user_id', user.id);
 
       if (error) {
         throw error;

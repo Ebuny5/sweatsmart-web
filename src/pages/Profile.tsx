@@ -23,20 +23,14 @@ const Profile = () => {
   const [isSaving, setIsSaving] = useState(false);
   
   const [profileData, setProfileData] = useState({
-    full_name: "",
-    email: "",
-    bio: "",
-    location: "",
+    display_name: "",
   });
 
   // Update local state when profile loads
   useEffect(() => {
     if (profile) {
       setProfileData({
-        full_name: profile.full_name || "",
-        email: profile.email || "",
-        bio: profile.bio || "",
-        location: profile.location || "",
+        display_name: profile.display_name || "",
       });
     }
   }, [profile]);
@@ -75,10 +69,7 @@ const Profile = () => {
     setIsEditing(false);
     if (profile) {
       setProfileData({
-        full_name: profile.full_name || "",
-        email: profile.email || "",
-        bio: profile.bio || "",
-        location: profile.location || "",
+        display_name: profile.display_name || "",
       });
     }
   };
@@ -98,7 +89,7 @@ const Profile = () => {
     return null;
   }
 
-  const displayName = profileData.full_name || user.email || 'User';
+  const displayName = profileData.display_name || user.email || 'User';
   const userInitials = displayName.split(' ').map(n => n[0]).join('').toUpperCase();
   const joinDate = new Date(user.created_at).toLocaleDateString('en-US', { 
     year: 'numeric', 
@@ -124,12 +115,12 @@ const Profile = () => {
               <CardHeader className="text-center">
                 <div className="flex justify-center mb-4">
                   <div className="relative">
-                    <Avatar className="h-24 w-24">
-                      <AvatarImage src={profile?.avatar_url || ''} alt={displayName} />
-                      <AvatarFallback className="text-lg">
-                        {userInitials}
-                      </AvatarFallback>
-                    </Avatar>
+                     <Avatar className="h-24 w-24">
+                       <AvatarImage src="" alt={displayName} />
+                       <AvatarFallback className="text-lg">
+                         {userInitials}
+                       </AvatarFallback>
+                     </Avatar>
                     {isEditing && (
                       <Button
                         size="sm"
@@ -152,12 +143,6 @@ const Profile = () => {
                   <Calendar className="mr-2 h-4 w-4" />
                   Joined {joinDate}
                 </div>
-                {profileData.location && (
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <MapPin className="mr-2 h-4 w-4" />
-                    {profileData.location}
-                  </div>
-                )}
               </CardContent>
             </Card>
 
@@ -189,43 +174,22 @@ const Profile = () => {
               <CardContent className="space-y-4">
                 {isEditing ? (
                   <>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Name</Label>
-                        <Input
-                          id="name"
-                          value={profileData.full_name}
-                          onChange={(e) => setProfileData({...profileData, full_name: e.target.value})}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={user.email || ''}
-                          disabled
-                          className="bg-muted"
-                        />
-                      </div>
-                    </div>
                     <div className="space-y-2">
-                      <Label htmlFor="location">Location</Label>
+                      <Label htmlFor="name">Display Name</Label>
                       <Input
-                        id="location"
-                        value={profileData.location}
-                        onChange={(e) => setProfileData({...profileData, location: e.target.value})}
-                        placeholder="City, State/Country"
+                        id="name"
+                        value={profileData.display_name}
+                        onChange={(e) => setProfileData({...profileData, display_name: e.target.value})}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="bio">Bio</Label>
-                      <Textarea
-                        id="bio"
-                        value={profileData.bio}
-                        onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
-                        placeholder="Tell us about yourself..."
-                        className="min-h-[100px]"
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={user.email || ''}
+                        disabled
+                        className="bg-muted"
                       />
                     </div>
                     <div className="flex gap-2 pt-4">
@@ -241,21 +205,13 @@ const Profile = () => {
                   <>
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Name</Label>
-                        <p className="mt-1">{profileData.full_name || 'Not set'}</p>
+                        <Label className="text-sm font-medium text-muted-foreground">Display Name</Label>
+                        <p className="mt-1">{profileData.display_name || 'Not set'}</p>
                       </div>
                       <div>
                         <Label className="text-sm font-medium text-muted-foreground">Email</Label>
                         <p className="mt-1">{user.email}</p>
                       </div>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Location</Label>
-                      <p className="mt-1">{profileData.location || 'Not set'}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Bio</Label>
-                      <p className="mt-1 text-muted-foreground">{profileData.bio || 'No bio added yet.'}</p>
                     </div>
                   </>
                 )}

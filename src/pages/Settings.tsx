@@ -11,26 +11,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import DataManagement from "@/components/settings/DataManagement";
+import { UserSettings } from "@/types";
 
-interface UserSettings {
-  reminder_enabled: boolean;
-  reminder_time: string;
-  weekly_report_enabled: boolean;
-  trigger_alerts_enabled: boolean;
-  data_sharing: boolean;
-  anonymous_sharing: boolean;
-}
 
 const Settings = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [settings, setSettings] = useState<UserSettings>({
-    reminder_enabled: true,
+    id: '',
+    user_id: '',
+    daily_reminders: true,
     reminder_time: "20:00",
-    weekly_report_enabled: true,
-    trigger_alerts_enabled: false,
+    trigger_alerts: false,
     data_sharing: false,
-    anonymous_sharing: true,
+    created_at: '',
+    updated_at: '',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -49,14 +44,7 @@ const Settings = () => {
         if (error && error.code !== 'PGRST116') {
           console.error('Error fetching settings:', error);
         } else if (data) {
-          setSettings({
-            reminder_enabled: data.reminder_enabled ?? true,
-            reminder_time: data.reminder_time ?? "20:00",
-            weekly_report_enabled: data.weekly_report_enabled ?? true,
-            trigger_alerts_enabled: data.trigger_alerts_enabled ?? false,
-            data_sharing: data.data_sharing ?? false,
-            anonymous_sharing: data.anonymous_sharing ?? true,
-          });
+          setSettings(data);
         }
       } catch (error) {
         console.error('Error fetching settings:', error);
@@ -176,12 +164,12 @@ const Settings = () => {
                 </div>
                 <Switch
                   id="reminder-enabled"
-                  checked={settings.reminder_enabled}
-                  onCheckedChange={(checked) => updateSetting('reminder_enabled', checked)}
+                  checked={settings.daily_reminders}
+                  onCheckedChange={(checked) => updateSetting('daily_reminders', checked)}
                 />
               </div>
               
-              {settings.reminder_enabled && (
+              {settings.daily_reminders && (
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label htmlFor="reminder-time">Reminder Time</Label>
@@ -203,20 +191,6 @@ const Settings = () => {
               
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label htmlFor="weekly-report">Weekly Reports</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Receive weekly insights and trends
-                  </p>
-                </div>
-                <Switch
-                  id="weekly-report"
-                  checked={settings.weekly_report_enabled}
-                  onCheckedChange={(checked) => updateSetting('weekly_report_enabled', checked)}
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
                   <Label htmlFor="trigger-alerts">Trigger Alerts</Label>
                   <p className="text-sm text-muted-foreground">
                     Get notified about potential triggers
@@ -224,8 +198,8 @@ const Settings = () => {
                 </div>
                 <Switch
                   id="trigger-alerts"
-                  checked={settings.trigger_alerts_enabled}
-                  onCheckedChange={(checked) => updateSetting('trigger_alerts_enabled', checked)}
+                  checked={settings.trigger_alerts}
+                  onCheckedChange={(checked) => updateSetting('trigger_alerts', checked)}
                 />
               </div>
             </CardContent>
@@ -256,19 +230,6 @@ const Settings = () => {
                 />
               </div>
               
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="anonymous-sharing">Anonymous Community Sharing</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Share anonymous insights with the community
-                  </p>
-                </div>
-                <Switch
-                  id="anonymous-sharing"
-                  checked={settings.anonymous_sharing}
-                  onCheckedChange={(checked) => updateSetting('anonymous_sharing', checked)}
-                />
-              </div>
             </CardContent>
           </Card>
 

@@ -2,15 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-
-interface UserSettings {
-  reminder_enabled: boolean;
-  reminder_time: string;
-  weekly_report_enabled: boolean;
-  trigger_alerts_enabled: boolean;
-  data_sharing: boolean;
-  anonymous_sharing: boolean;
-}
+import { UserSettings } from '@/types';
 
 export const useSettings = () => {
   const { user } = useAuth();

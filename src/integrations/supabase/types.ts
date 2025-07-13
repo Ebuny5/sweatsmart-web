@@ -14,7 +14,99 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      episodes: {
+        Row: {
+          body_areas: string[]
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          severity: number
+          triggers: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body_areas: string[]
+          created_at?: string
+          date: string
+          id?: string
+          notes?: string | null
+          severity: number
+          triggers?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body_areas?: string[]
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          severity?: number
+          triggers?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          created_at: string
+          daily_reminders: boolean | null
+          data_sharing: boolean | null
+          id: string
+          reminder_time: string | null
+          trigger_alerts: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          daily_reminders?: boolean | null
+          data_sharing?: boolean | null
+          id?: string
+          reminder_time?: string | null
+          trigger_alerts?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          daily_reminders?: boolean | null
+          data_sharing?: boolean | null
+          id?: string
+          reminder_time?: string | null
+          trigger_alerts?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
