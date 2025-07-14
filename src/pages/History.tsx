@@ -31,6 +31,9 @@ const History = () => {
       }
       
       try {
+        // Add a small delay to prevent rapid successive calls
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         const { data, error } = await supabase
           .from('episodes')
           .select('*')
@@ -59,20 +62,20 @@ const History = () => {
                   return {
                     type: parsed.type || 'environmental',
                     value: parsed.value || '',
-                    label: parsed.label || ''
+                    label: parsed.label || parsed.value || 'Unknown'
                   };
                 } catch {
                   return {
                     type: 'environmental',
-                    value: '',
-                    label: t
+                    value: t,
+                    label: t || 'Unknown'
                   };
                 }
               }
               return {
                 type: (t as any)?.type || 'environmental',
                 value: (t as any)?.value || '',
-                label: (t as any)?.label || ''
+                label: (t as any)?.label || (t as any)?.value || 'Unknown'
               };
             }) : [],
             notes: ep.notes || undefined,

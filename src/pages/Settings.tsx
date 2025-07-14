@@ -32,29 +32,42 @@ const Settings = () => {
 
   useEffect(() => {
     const fetchSettings = async () => {
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
       
       try {
         const { data, error } = await supabase
           .from('user_settings')
           .select('*')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (error && error.code !== 'PGRST116') {
+        if (error) {
           console.error('Error fetching settings:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load settings. Please refresh the page.",
+            variant: "destructive",
+          });
         } else if (data) {
           setSettings(data);
         }
       } catch (error) {
         console.error('Error fetching settings:', error);
+        toast({
+          title: "Error", 
+          description: "Failed to load settings. Please refresh the page.",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
     };
 
     fetchSettings();
-  }, [user]);
+  }, [user, toast]);
 
   const handleSave = async () => {
     if (!user) return;
@@ -116,6 +129,8 @@ const Settings = () => {
       }
     } catch (error) {
       console.error('Error updating setting:', error);
+      // Revert the setting on error
+      setSettings(settings);
       toast({
         title: "Error",
         description: "Failed to update setting. Please try again.",
