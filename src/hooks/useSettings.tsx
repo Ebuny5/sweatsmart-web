@@ -20,15 +20,17 @@ export const useSettings = () => {
         .from('user_settings')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching settings:', error);
+        setSettings(null);
       } else {
         setSettings(data);
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
+      setSettings(null);
     } finally {
       setLoading(false);
     }

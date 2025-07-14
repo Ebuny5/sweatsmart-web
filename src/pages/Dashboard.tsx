@@ -67,20 +67,20 @@ const Dashboard = () => {
                   return {
                     type: parsed.type || 'environmental',
                     value: parsed.value || '',
-                    label: parsed.label || ''
+                    label: parsed.label || parsed.value || 'Unknown'
                   };
                 } catch {
                   return {
                     type: 'environmental',
-                    value: '',
-                    label: t
+                    value: t,
+                    label: t || 'Unknown'
                   };
                 }
               }
               return {
                 type: (t as any)?.type || 'environmental',
                 value: (t as any)?.value || '',
-                label: (t as any)?.label || ''
+                label: (t as any)?.label || (t as any)?.value || 'Unknown'
               };
             }) : [],
             notes: ep.notes || undefined,
@@ -89,6 +89,36 @@ const Dashboard = () => {
           
           // Get recent episodes (last 5)
           const recentEpisodes = allEpisodes.slice(0, 5);
+          
+          // Generate trigger frequency data from episodes
+          const triggerCounts = new Map();
+          const triggerSeverities = new Map();
+          
+          allEpisodes.forEach(episode => {
+            episode.triggers.forEach(trigger => {
+              const triggerKey = trigger.label || trigger.value || 'Unknown';
+              
+              if (!triggerCounts.has(triggerKey)) {
+                triggerCounts.set(triggerKey, 0);
+                triggerSeverities.set(triggerKey, []);
+              }
+              
+              triggerCounts.set(triggerKey, triggerCounts.get(triggerKey) + 1);
+              triggerSeverities.get(triggerKey).push(episode.severityLevel);
+            });
+          });
+
+          const triggerFrequencies: TriggerFrequency[] = Array.from(triggerCounts.entries()).map(([triggerLabel, count]) => {
+            const severities = triggerSeverities.get(triggerLabel);
+            const averageSeverity = severities.reduce((a: number, b: number) => a + b, 0) / severities.length;
+            
+            return {
+              trigger: { label: triggerLabel, type: 'environmental', value: triggerLabel },
+              count,
+              averageSeverity,
+              percentage: Math.round((count / allEpisodes.length) * 100)
+            };
+          }).sort((a, b) => b.count - a.count);
           
           // Generate body area data from episodes
           const bodyAreaCounts = new Map();
@@ -120,7 +150,7 @@ const Dashboard = () => {
           setData({
             weeklyData: [],
             monthlyData: [],
-            triggerFrequencies: [],
+            triggerFrequencies,
             bodyAreas,
             recentEpisodes,
             allEpisodes,
