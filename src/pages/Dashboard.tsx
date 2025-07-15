@@ -101,13 +101,13 @@ const Dashboard = () => {
         setError(null);
         console.log('Fetching dashboard data for user:', user.id);
         
-        const { data: episodes, error: episodesError } = await withRetry(() =>
-          supabase
+        const { data: episodes, error: episodesError } = await withRetry(async () => {
+          return await supabase
             .from('episodes')
             .select('*')
             .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-        );
+            .order('created_at', { ascending: false });
+        });
 
         if (episodesError) {
           console.error('Error fetching episodes:', episodesError);

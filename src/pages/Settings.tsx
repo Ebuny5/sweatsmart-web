@@ -40,21 +40,21 @@ const Settings = () => {
       try {
         console.log('Fetching settings for user:', user.id);
         
-        const { data, error } = await withRetry(() =>
-          supabase
+        const { data, error } = await withRetry(async () => {
+          return await supabase
             .from('user_settings')
             .select('*')
             .eq('user_id', user.id)
-            .maybeSingle()
-        );
+            .maybeSingle();
+        });
 
         if (error) {
           console.error('Error fetching settings:', error);
           // Create default settings if they don't exist
           if (error.code === 'PGRST116') {
             console.log('Settings not found, creating default settings...');
-            const { data: newSettings, error: createError } = await withRetry(() =>
-              supabase
+            const { data: newSettings, error: createError } = await withRetry(async () => {
+              return await supabase
                 .from('user_settings')
                 .insert({
                   user_id: user.id,
@@ -64,8 +64,8 @@ const Settings = () => {
                   data_sharing: false,
                 })
                 .select()
-                .single()
-            );
+                .single();
+            });
 
             if (createError) {
               console.error('Error creating settings:', createError);
@@ -106,16 +106,16 @@ const Settings = () => {
     try {
       console.log('Updating setting:', key, value);
       
-      const { error } = await withRetry(() =>
-        supabase
+      const { error } = await withRetry(async () => {
+        return await supabase
           .from('user_settings')
           .upsert({
             user_id: user.id,
             ...newSettings,
           })
           .select()
-          .single()
-      );
+          .single();
+      });
 
       if (error) {
         console.error('Error updating setting:', error);
@@ -153,16 +153,16 @@ const Settings = () => {
     
     setSaving(true);
     try {
-      const { error } = await withRetry(() =>
-        supabase
+      const { error } = await withRetry(async () => {
+        return await supabase
           .from('user_settings')
           .upsert({
             user_id: user.id,
             ...settings,
           })
           .select()
-          .single()
-      );
+          .single();
+      });
 
       if (error) {
         throw error;

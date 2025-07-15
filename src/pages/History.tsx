@@ -34,13 +34,13 @@ const History = () => {
       try {
         console.log('Fetching episodes for history...');
         
-        const { data, error } = await withRetry(() =>
-          supabase
+        const { data, error } = await withRetry(async () => {
+          return await supabase
             .from('episodes')
             .select('*')
             .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-        );
+            .order('created_at', { ascending: false });
+        });
 
         if (error) {
           console.error('Error fetching episodes:', error);
