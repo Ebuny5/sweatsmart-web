@@ -1,6 +1,5 @@
 
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { 
   Sidebar as SidebarComponent,
   SidebarContent, 
@@ -59,26 +58,38 @@ const Sidebar = () => {
     },
   ];
   
+  const handleNavigation = (url: string) => {
+    try {
+      navigate(url);
+    } catch (error) {
+      console.error('Navigation error:', error);
+      window.location.href = url;
+    }
+  };
+  
   return (
     <>
       <SidebarTrigger className="fixed left-4 top-4 z-50 lg:hidden" />
-      <SidebarComponent>
+      <SidebarComponent className="border-r bg-background">
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel className="text-primary font-semibold px-2 mb-2">
+            <SidebarGroupLabel className="text-primary font-bold px-2 mb-4 text-lg">
               SweatSmart
             </SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>
+              <SidebarMenu className="space-y-1">
                 {menuItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       className={cn(
-                        location.pathname === item.url ? "bg-sidebar-accent" : ""
+                        "w-full justify-start transition-colors duration-200",
+                        location.pathname === item.url 
+                          ? "bg-primary text-primary-foreground font-medium" 
+                          : "hover:bg-muted hover:text-foreground"
                       )}
-                      onClick={() => navigate(item.url)}
+                      onClick={() => handleNavigation(item.url)}
                     >
-                      <item.icon className="h-5 w-5" />
+                      <item.icon className="h-5 w-5 mr-3" />
                       <span>{item.title}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

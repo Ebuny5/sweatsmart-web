@@ -13,7 +13,8 @@ import {
   CartesianGrid 
 } from "recharts";
 import { TrendData, ProcessedEpisode } from "@/types";
-import { format, startOfWeek, startOfMonth, eachWeekOfInterval, eachMonthOfInterval } from "date-fns";
+import { format, startOfWeek, startOfMonth } from "date-fns";
+import { useMemo } from "react";
 
 interface DashboardSummaryProps {
   weeklyData: TrendData[];
@@ -26,65 +27,88 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   monthlyData,
   allEpisodes = [],
 }) => {
-  // Generate chart data from episodes if weeklyData/monthlyData are empty
-  const generateWeeklyData = () => {
-    if (weeklyData.length > 0) return weeklyData;
-    if (allEpisodes.length === 0) return [];
+  
+  const { processedWeeklyData, processedMonthlyData } = useMemo(() => {
+    // Generate chart data from episodes if provided data is empty
+    const generateWeeklyData = () => {
+      if (weeklyData.length > 0) return weeklyData;
+      if (allEpisodes.length === 0) return [];
 
-    const episodesByWeek = new Map();
-    
-    allEpisodes.forEach(episode => {
-      const weekStart = startOfWeek(episode.datetime);
-      const weekKey = format(weekStart, 'MMM dd');
+      const episodesByWeek = new Map();
       
-      if (!episodesByWeek.has(weekKey)) {
-        episodesByWeek.set(weekKey, { episodes: [], severities: [] });
-      }
+      allEpisodes.forEach(episode => {
+        try {
+          const weekStart = startOfWeek(episode.datetime);
+          const weekKey = format(weekStart, 'MMM dd');
+          
+          if (!episodesByWeek.has(weekKey)) {
+            episodesByWeek.set(weekKey, { episodes: [], severities: [] });
+          }
+          
+          const weekData = episodesByWeek.get(weekKey);
+          weekData.episodes.push(episode);
+          weekData.severities.push(episode.severityLevel);
+        } catch (error) {
+          console.error('Error processing episode for weekly data:', error);
+        }
+      });
+
+      return Array.from(episodesByWeek.entries())
+        .map(([date, data]) => ({
+          date,
+          episodeCount: data.episodes.length,
+          averageSeverity: data.severities.length > 0 
+            ? data.severities.reduce((a: number, b: number) => a + b, 0) / data.severities.length
+            : 0
+        }))
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    };
+
+    const generateMonthlyData = () => {
+      if (monthlyData.length > 0) return monthlyData;
+      if (allEpisodes.length === 0) return [];
+
+      const episodesByMonth = new Map();
       
-      episodesByWeek.get(weekKey).episodes.push(episode);
-      episodesByWeek.get(weekKey).severities.push(episode.severityLevel);
-    });
+      allEpisodes.forEach(episode => {
+        try {
+          const monthStart = startOfMonth(episode.datetime);
+          const monthKey = format(monthStart, 'MMM yyyy');
+          
+          if (!episodesByMonth.has(monthKey)) {
+            episodesByMonth.set(monthKey, { episodes: [], severities: [] });
+          }
+          
+          const monthData = episodesByMonth.get(monthKey);
+          monthData.episodes.push(episode);
+          monthData.severities.push(episode.severityLevel);
+        } catch (error) {
+          console.error('Error processing episode for monthly data:', error);
+        }
+      });
 
-    return Array.from(episodesByWeek.entries()).map(([date, data]) => ({
-      date,
-      episodeCount: data.episodes.length,
-      averageSeverity: data.severities.reduce((a, b) => a + b, 0) / data.severities.length
-    }));
-  };
+      return Array.from(episodesByMonth.entries())
+        .map(([date, data]) => ({
+          date,
+          episodeCount: data.episodes.length,
+          averageSeverity: data.severities.length > 0
+            ? data.severities.reduce((a: number, b: number) => a + b, 0) / data.severities.length
+            : 0
+        }))
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    };
 
-  const generateMonthlyData = () => {
-    if (monthlyData.length > 0) return monthlyData;
-    if (allEpisodes.length === 0) return [];
-
-    const episodesByMonth = new Map();
-    
-    allEpisodes.forEach(episode => {
-      const monthStart = startOfMonth(episode.datetime);
-      const monthKey = format(monthStart, 'MMM yyyy');
-      
-      if (!episodesByMonth.has(monthKey)) {
-        episodesByMonth.set(monthKey, { episodes: [], severities: [] });
-      }
-      
-      episodesByMonth.get(monthKey).episodes.push(episode);
-      episodesByMonth.get(monthKey).severities.push(episode.severityLevel);
-    });
-
-    return Array.from(episodesByMonth.entries()).map(([date, data]) => ({
-      date,
-      episodeCount: data.episodes.length,
-      averageSeverity: data.severities.reduce((a, b) => a + b, 0) / data.severities.length
-    }));
-  };
-
-  const processedWeeklyData = generateWeeklyData();
-  const processedMonthlyData = generateMonthlyData();
+    return {
+      processedWeeklyData: generateWeeklyData(),
+      processedMonthlyData: generateMonthlyData()
+    };
+  }, [weeklyData, monthlyData, allEpisodes]);
 
   const EmptyState = ({ message }: { message: string }) => (
     <div className="flex items-center justify-center h-full text-muted-foreground text-center p-8">
       <div className="space-y-2">
-        <p>{message}</p>
-        <p className="text-sm">Start logging episodes to see your trends!</p>
+        <p className="font-medium">{message}</p>
+        <p className="text-sm opacity-75">Start logging episodes to see your trends!</p>
       </div>
     </div>
   );
@@ -100,29 +124,44 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         )}
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="frequency">
-          <TabsList className="mb-4">
-            <TabsTrigger value="frequency">Episode Frequency</TabsTrigger>
-            <TabsTrigger value="severity">Severity Trends</TabsTrigger>
+        <Tabs defaultValue="frequency" className="w-full">
+          <TabsList className="mb-4 w-full">
+            <TabsTrigger value="frequency" className="flex-1">Episode Frequency</TabsTrigger>
+            <TabsTrigger value="severity" className="flex-1">Severity Trends</TabsTrigger>
           </TabsList>
           
           <TabsContent value="frequency">
-            <Tabs defaultValue="weekly">
-              <TabsList className="mb-4">
-                <TabsTrigger value="weekly">Weekly</TabsTrigger>
-                <TabsTrigger value="monthly">Monthly</TabsTrigger>
+            <Tabs defaultValue="weekly" className="w-full">
+              <TabsList className="mb-4 w-full">
+                <TabsTrigger value="weekly" className="flex-1">Weekly</TabsTrigger>
+                <TabsTrigger value="monthly" className="flex-1">Monthly</TabsTrigger>
               </TabsList>
+              
               <TabsContent value="weekly">
-                <div className="h-[300px]">
+                <div className="h-[300px] w-full">
                   {processedWeeklyData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={processedWeeklyData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="date" />
-                        <YAxis />
+                      <BarChart data={processedWeeklyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                        <XAxis 
+                          dataKey="date" 
+                          fontSize={12}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis 
+                          fontSize={12}
+                          tickLine={false}
+                          axisLine={false}
+                        />
                         <Tooltip 
-                          formatter={(value) => [value, "Episodes"]}
+                          formatter={(value: any) => [value, "Episodes"]}
                           labelFormatter={(label) => `Week of ${label}`}
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--background))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '6px'
+                          }}
                         />
                         <Bar
                           dataKey="episodeCount"
@@ -137,17 +176,32 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                   )}
                 </div>
               </TabsContent>
+              
               <TabsContent value="monthly">
-                <div className="h-[300px]">
+                <div className="h-[300px] w-full">
                   {processedMonthlyData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={processedMonthlyData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="date" />
-                        <YAxis />
+                      <BarChart data={processedMonthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                        <XAxis 
+                          dataKey="date" 
+                          fontSize={12}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis 
+                          fontSize={12}
+                          tickLine={false}
+                          axisLine={false}
+                        />
                         <Tooltip 
-                          formatter={(value) => [value, "Episodes"]}
+                          formatter={(value: any) => [value, "Episodes"]}
                           labelFormatter={(label) => `Month of ${label}`}
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--background))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '6px'
+                          }}
                         />
                         <Bar
                           dataKey="episodeCount"
@@ -166,29 +220,46 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
           </TabsContent>
           
           <TabsContent value="severity">
-            <Tabs defaultValue="weekly">
-              <TabsList className="mb-4">
-                <TabsTrigger value="weekly">Weekly</TabsTrigger>
-                <TabsTrigger value="monthly">Monthly</TabsTrigger>
+            <Tabs defaultValue="weekly" className="w-full">
+              <TabsList className="mb-4 w-full">
+                <TabsTrigger value="weekly" className="flex-1">Weekly</TabsTrigger>
+                <TabsTrigger value="monthly" className="flex-1">Monthly</TabsTrigger>
               </TabsList>
+              
               <TabsContent value="weekly">
-                <div className="h-[300px]">
+                <div className="h-[300px] w-full">
                   {processedWeeklyData.length >= 2 ? (
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={processedWeeklyData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="date" />
-                        <YAxis domain={[1, 5]} />
+                      <LineChart data={processedWeeklyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                        <XAxis 
+                          dataKey="date" 
+                          fontSize={12}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis 
+                          domain={[1, 5]} 
+                          fontSize={12}
+                          tickLine={false}
+                          axisLine={false}
+                        />
                         <Tooltip 
-                          formatter={(value) => [Number(value).toFixed(1), "Average Severity"]}
+                          formatter={(value: any) => [Number(value).toFixed(1), "Average Severity"]}
                           labelFormatter={(label) => `Week of ${label}`}
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--background))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '6px'
+                          }}
                         />
                         <Line
                           type="monotone"
                           dataKey="averageSeverity"
                           stroke="hsl(var(--primary))"
-                          strokeWidth={2}
-                          dot={{ fill: "hsl(var(--primary))" }}
+                          strokeWidth={3}
+                          dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 4 }}
+                          activeDot={{ r: 6, stroke: "hsl(var(--primary))", strokeWidth: 2 }}
                           name="Average Severity"
                         />
                       </LineChart>
@@ -198,24 +269,41 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                   )}
                 </div>
               </TabsContent>
+              
               <TabsContent value="monthly">
-                <div className="h-[300px]">
+                <div className="h-[300px] w-full">
                   {processedMonthlyData.length >= 2 ? (
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={processedMonthlyData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="date" />
-                        <YAxis domain={[1, 5]} />
+                      <LineChart data={processedMonthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                        <XAxis 
+                          dataKey="date" 
+                          fontSize={12}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis 
+                          domain={[1, 5]} 
+                          fontSize={12}
+                          tickLine={false}
+                          axisLine={false}
+                        />
                         <Tooltip 
-                          formatter={(value) => [Number(value).toFixed(1), "Average Severity"]}
+                          formatter={(value: any) => [Number(value).toFixed(1), "Average Severity"]}
                           labelFormatter={(label) => `Month of ${label}`}
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--background))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '6px'
+                          }}
                         />
                         <Line
                           type="monotone"
                           dataKey="averageSeverity"
                           stroke="hsl(var(--primary))"
-                          strokeWidth={2}
-                          dot={{ fill: "hsl(var(--primary))" }}
+                          strokeWidth={3}
+                          dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 4 }}
+                          activeDot={{ r: 6, stroke: "hsl(var(--primary))", strokeWidth: 2 }}
                           name="Average Severity"
                         />
                       </LineChart>
