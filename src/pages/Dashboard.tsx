@@ -1,135 +1,22 @@
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useMemo } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import DashboardSummary from "@/components/dashboard/DashboardSummary";
 import RecentEpisodes from "@/components/dashboard/RecentEpisodes";
 import TriggerSummary from "@/components/dashboard/TriggerSummary";
 import BodyAreaHeatmap from "@/components/dashboard/BodyAreaHeatmap";
 import QuickActions from "@/components/dashboard/QuickActions";
-import { TrendData, ProcessedEpisode, TriggerFrequency, BodyAreaFrequency, SeverityLevel, BodyArea } from "@/types";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { TriggerFrequency, BodyAreaFrequency } from "@/types";
+import { useEpisodes } from "@/hooks/useEpisodes";
 
 const Dashboard = () => {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [allEpisodes, setAllEpisodes] = useState<ProcessedEpisode[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { episodes: allEpisodes, loading: isLoading, error, refetch } = useEpisodes();
   
-  const fetchDashboardData = useCallback(async () => {
-    if (!user) {
-      setIsLoading(false);
-      return;
-    }
-    
-    try {
-      setError(null);
-      console.log('Fetching dashboard data for user:', user.id);
-      
-      const { data: episodes, error: episodesError } = await supabase
-        .from('episodes')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (episodesError) {
-        console.error('Error fetching episodes:', episodesError);
-        throw new Error('Failed to load episodes');
-      }
-
-      console.log('Fetched episodes:', episodes?.length || 0);
-
-      // Process episodes with better error handling
-      const processedEpisodes: ProcessedEpisode[] = (episodes || []).map(ep => {
-        try {
-          // Parse triggers safely
-          let parsedTriggers = [];
-          if (ep.triggers && Array.isArray(ep.triggers)) {
-            parsedTriggers = ep.triggers.map((t: any) => {
-              // Handle different formats of trigger data
-              if (typeof t === 'string') {
-                try {
-                  const parsed = JSON.parse(t);
-                  return {
-                    type: parsed.type || 'environmental',
-                    value: parsed.value || t,
-                    label: parsed.label || parsed.value || t
-                  };
-                } catch {
-                  return {
-                    type: 'environmental',
-                    value: t,
-                    label: t
-                  };
-                }
-              } else if (t && typeof t === 'object') {
-                return {
-                  type: t.type || 'environmental',
-                  value: t.value || t.label || 'Unknown',
-                  label: t.label || t.value || 'Unknown'
-                };
-              }
-              return {
-                type: 'environmental',
-                value: 'Unknown',
-                label: 'Unknown'
-              };
-            });
-          }
-
-          return {
-            id: ep.id,
-            userId: ep.user_id,
-            datetime: new Date(ep.date),
-            severityLevel: ep.severity as SeverityLevel,
-            bodyAreas: (ep.body_areas || []) as BodyArea[],
-            triggers: parsedTriggers,
-            notes: ep.notes || undefined,
-            createdAt: new Date(ep.created_at),
-          };
-        } catch (error) {
-          console.error('Error processing episode:', ep.id, error);
-          return {
-            id: ep.id,
-            userId: ep.user_id,
-            datetime: new Date(ep.date),
-            severityLevel: ep.severity as SeverityLevel,
-            bodyAreas: (ep.body_areas || []) as BodyArea[],
-            triggers: [],
-            notes: ep.notes || undefined,
-            createdAt: new Date(ep.created_at),
-          };
-        }
-      });
-      
-      setAllEpisodes(processedEpisodes);
-      console.log('Dashboard data processed successfully');
-    } catch (error) {
-      console.error('Dashboard fetch error:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load dashboard');
-      toast({
-        title: "Error loading dashboard",
-        description: "Please refresh the page to try again.",
-        variant: "destructive",
-      });
-      
-      // Set empty state to prevent crashes
-      setAllEpisodes([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user?.id, toast]);
-  
-  // Memoize processed data to prevent recalculation
   const dashboardData = useMemo(() => {
     console.log('Processing dashboard data for', allEpisodes.length, 'episodes');
     
-    // Get recent episodes
     const recentEpisodes = allEpisodes.slice(0, 5);
     
-    // Generate trigger frequencies
     const triggerCounts = new Map<string, { count: number; severities: number[] }>();
     
     allEpisodes.forEach(episode => {
@@ -159,7 +46,6 @@ const Dashboard = () => {
       };
     }).sort((a, b) => b.count - a.count);
     
-    // Generate body area frequencies
     const bodyAreaCounts = new Map<string, { count: number; severities: number[] }>();
     
     allEpisodes.forEach(episode => {
@@ -185,18 +71,12 @@ const Dashboard = () => {
     });
     
     return {
-      weeklyData: [] as TrendData[],
-      monthlyData: [] as TrendData[],
       triggerFrequencies,
       bodyAreas,
       recentEpisodes,
       allEpisodes,
     };
   }, [allEpisodes]);
-  
-  useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
   
   if (isLoading) {
     return (
@@ -221,15 +101,9 @@ const Dashboard = () => {
           <div className="text-center py-12">
             <div className="space-y-4">
               <h3 className="text-xl font-medium text-destructive">Unable to load dashboard</h3>
-              <p className="text-muted-foreground">
-                {error}
-              </p>
+              <p className="text-muted-foreground">{error}</p>
               <button 
-                onClick={() => {
-                  setError(null);
-                  setIsLoading(true);
-                  fetchDashboardData();
-                }} 
+                onClick={refetch} 
                 className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
               >
                 Try Again
@@ -257,8 +131,8 @@ const Dashboard = () => {
         
         <div className="grid gap-6 md:grid-cols-3">
           <DashboardSummary 
-            weeklyData={dashboardData.weeklyData} 
-            monthlyData={dashboardData.monthlyData}
+            weeklyData={[]} 
+            monthlyData={[]}
             allEpisodes={dashboardData.allEpisodes}
           />
           

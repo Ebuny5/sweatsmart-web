@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,85 +10,31 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Calendar, Mail, User, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useProfile } from "@/hooks/useProfile";
+import { useEpisodes } from "@/hooks/useEpisodes";
 
 const Profile = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { profile, loading: profileLoading, updateProfile } = useProfile();
+  const { episodes } = useEpisodes();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [loading, setLoading] = useState(true);
   
   const [profileData, setProfileData] = useState({
-    display_name: "",
+    display_name: profile?.display_name || "",
   });
 
-  // Fetch profile data on load
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        console.log('Fetching profile for user:', user.id);
-        
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Error fetching profile:', error);
-          // Create profile if it doesn't exist
-          if (error.code === 'PGRST116') {
-            console.log('Profile not found, creating one...');
-            const { data: newProfile, error: createError } = await supabase
-              .from('profiles')
-              .insert({
-                user_id: user.id,
-                display_name: user.email?.split('@')[0] || ''
-              })
-              .select()
-              .single();
-
-            if (createError) {
-              console.error('Error creating profile:', createError);
-              toast({
-                title: "Error",
-                description: "Failed to create profile. Please refresh the page.",
-                variant: "destructive",
-              });
-            } else {
-              setProfileData({
-                display_name: newProfile.display_name || "",
-              });
-            }
-          }
-        } else if (data) {
-          console.log('Profile loaded:', data);
-          setProfileData({
-            display_name: data.display_name || "",
-          });
-        }
-      } catch (error) {
-        console.error('Profile fetch error:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load profile. Please refresh the page.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProfile();
-  }, [user, toast]);
+  // Update local state when profile loads
+  React.useEffect(() => {
+    if (profile) {
+      setProfileData({
+        display_name: profile.display_name || "",
+      });
+    }
+  }, [profile]);
 
   const handleSave = async () => {
     if (!user) return;
@@ -98,27 +44,19 @@ const Profile = () => {
     try {
       console.log('Saving profile data:', profileData);
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .upsert({
-          user_id: user.id,
-          display_name: profileData.display_name,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error saving profile:', error);
-        throw error;
-      }
-
-      console.log('Profile saved successfully:', data);
-      
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully.",
+      const success = await updateProfile({
+        display_name: profileData.display_name,
       });
-      setIsEditing(false);
+
+      if (success) {
+        toast({
+          title: "Profile updated",
+          description: "Your profile has been updated successfully.",
+        });
+        setIsEditing(false);
+      } else {
+        throw new Error('Failed to update profile');
+      }
     } catch (error) {
       console.error('Save error:', error);
       toast({
@@ -133,33 +71,13 @@ const Profile = () => {
 
   const handleCancel = () => {
     setIsEditing(false);
-    // Reset to original data - we'll fetch fresh data
-    if (user) {
-      fetchProfile();
-    }
+    // Reset to profile data
+    setProfileData({
+      display_name: profile?.display_name || "",
+    });
   };
 
-  const fetchProfile = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (!error && data) {
-        setProfileData({
-          display_name: data.display_name || "",
-        });
-      }
-    } catch (error) {
-      console.error('Error refetching profile:', error);
-    }
-  };
-
-  if (loading) {
+  if (profileLoading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-[400px]">
@@ -180,6 +98,33 @@ const Profile = () => {
     year: 'numeric', 
     month: 'long' 
   });
+
+  // Calculate streak (consecutive days with episodes)
+  const calculateStreak = () => {
+    if (episodes.length === 0) return 0;
+    
+    const today = new Date();
+    const sortedEpisodes = [...episodes].sort((a, b) => b.datetime.getTime() - a.datetime.getTime());
+    
+    let streak = 0;
+    let currentDate = new Date(today);
+    
+    for (const episode of sortedEpisodes) {
+      const episodeDate = new Date(episode.datetime);
+      const daysDiff = Math.floor((currentDate.getTime() - episodeDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysDiff <= streak + 1) {
+        streak = daysDiff + 1;
+        currentDate = episodeDate;
+      } else {
+        break;
+      }
+    }
+    
+    return streak;
+  };
+
+  const currentStreak = calculateStreak();
 
   return (
     <AppLayout>
@@ -238,11 +183,11 @@ const Profile = () => {
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Episodes Logged</span>
-                  <Badge variant="secondary">0</Badge>
+                  <Badge variant="secondary">{episodes.length}</Badge>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Current Streak</span>
-                  <Badge variant="outline">0 days</Badge>
+                  <Badge variant="outline">{currentStreak} days</Badge>
                 </div>
               </CardContent>
             </Card>

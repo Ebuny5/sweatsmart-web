@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,121 +9,15 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, Search, Filter, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
-import { ProcessedEpisode, SeverityLevel, BodyArea } from "@/types";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { SeverityLevel } from "@/types";
+import { useEpisodes } from "@/hooks/useEpisodes";
 
 const History = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [episodes, setEpisodes] = useState<ProcessedEpisode[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { episodes, loading, error, refetch } = useEpisodes();
   const [searchTerm, setSearchTerm] = useState("");
   const [severityFilter, setSeverityFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("newest");
-
-  useEffect(() => {
-    const fetchEpisodes = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-      
-      try {
-        console.log('Fetching episodes for history...');
-        
-        const { data, error } = await supabase
-          .from('episodes')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          console.error('Error fetching episodes:', error);
-          toast({
-            title: "Error loading episodes",
-            description: "Failed to load your episode history. Please try again.",
-            variant: "destructive",
-          });
-          setEpisodes([]);
-        } else {
-          console.log('Episodes fetched:', data?.length || 0);
-          
-          const processedEpisodes: ProcessedEpisode[] = (data || []).map(ep => {
-            try {
-              // Parse triggers safely
-              let parsedTriggers = [];
-              if (ep.triggers && Array.isArray(ep.triggers)) {
-                parsedTriggers = ep.triggers.map((t: any) => {
-                  if (typeof t === 'string') {
-                    try {
-                      const parsed = JSON.parse(t);
-                      return {
-                        type: parsed.type || 'environmental',
-                        value: parsed.value || t,
-                        label: parsed.label || parsed.value || t
-                      };
-                    } catch {
-                      return {
-                        type: 'environmental',
-                        value: t,
-                        label: t || 'Unknown'
-                      };
-                    }
-                  }
-                  return {
-                    type: (t as any)?.type || 'environmental',
-                    value: (t as any)?.value || 'Unknown',
-                    label: (t as any)?.label || (t as any)?.value || 'Unknown'
-                  };
-                });
-              }
-
-              return {
-                id: ep.id,
-                userId: ep.user_id,
-                datetime: new Date(ep.date),
-                severityLevel: ep.severity as SeverityLevel,
-                bodyAreas: (ep.body_areas || []) as BodyArea[],
-                triggers: parsedTriggers,
-                notes: ep.notes || undefined,
-                createdAt: new Date(ep.created_at),
-              };
-            } catch (error) {
-              console.error('Error processing episode:', ep.id, error);
-              return {
-                id: ep.id,
-                userId: ep.user_id,
-                datetime: new Date(ep.date),
-                severityLevel: ep.severity as SeverityLevel,
-                bodyAreas: (ep.body_areas || []) as BodyArea[],
-                triggers: [],
-                notes: ep.notes || undefined,
-                createdAt: new Date(ep.created_at),
-              };
-            }
-          });
-          
-          setEpisodes(processedEpisodes);
-          console.log('Episodes processed successfully');
-        }
-      } catch (error) {
-        console.error('Error fetching episodes:', error);
-        toast({
-          title: "Error",
-          description: "An unexpected error occurred while loading episodes.",
-          variant: "destructive",
-        });
-        setEpisodes([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEpisodes();
-  }, [user, toast]);
 
   const getSeverityColor = (level: SeverityLevel) => {
     const colors = {
@@ -179,6 +73,28 @@ const History = () => {
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="h-32 animate-pulse bg-muted rounded-lg" />
             ))}
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AppLayout>
+        <div className="space-y-6">
+          <h1 className="text-3xl font-bold">Episode History</h1>
+          <div className="text-center py-12">
+            <div className="space-y-4">
+              <h3 className="text-xl font-medium text-destructive">Unable to load episodes</h3>
+              <p className="text-muted-foreground">{error}</p>
+              <button 
+                onClick={refetch} 
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+              >
+                Try Again
+              </button>
+            </div>
           </div>
         </div>
       </AppLayout>
