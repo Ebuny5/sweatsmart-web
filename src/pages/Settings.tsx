@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,13 +7,12 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Bell, Clock, BarChart3, Shield, User } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Bell, Shield } from "lucide-react";
+import { supabase, withRetry } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import DataManagement from "@/components/settings/DataManagement";
 import { UserSettings } from "@/types";
-
 
 const Settings = () => {
   const { user } = useAuth();
@@ -38,24 +38,52 @@ const Settings = () => {
       }
       
       try {
-        const { data, error } = await supabase
-          .from('user_settings')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
+        console.log('Fetching settings for user:', user.id);
+        
+        const { data, error } = await withRetry(() =>
+          supabase
+            .from('user_settings')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle()
+        );
 
         if (error) {
           console.error('Error fetching settings:', error);
-          toast({
-            title: "Error",
-            description: "Failed to load settings. Please refresh the page.",
-            variant: "destructive",
-          });
+          // Create default settings if they don't exist
+          if (error.code === 'PGRST116') {
+            console.log('Settings not found, creating default settings...');
+            const { data: newSettings, error: createError } = await withRetry(() =>
+              supabase
+                .from('user_settings')
+                .insert({
+                  user_id: user.id,
+                  daily_reminders: true,
+                  reminder_time: "20:00",
+                  trigger_alerts: false,
+                  data_sharing: false,
+                })
+                .select()
+                .single()
+            );
+
+            if (createError) {
+              console.error('Error creating settings:', createError);
+              toast({
+                title: "Error",
+                description: "Failed to create settings. Please refresh the page.",
+                variant: "destructive",
+              });
+            } else {
+              setSettings(newSettings);
+            }
+          }
         } else if (data) {
+          console.log('Settings loaded:', data);
           setSettings(data);
         }
       } catch (error) {
-        console.error('Error fetching settings:', error);
+        console.error('Settings fetch error:', error);
         toast({
           title: "Error", 
           description: "Failed to load settings. Please refresh the page.",
@@ -69,17 +97,72 @@ const Settings = () => {
     fetchSettings();
   }, [user, toast]);
 
+  const updateSetting = async (key: keyof UserSettings, value: boolean | string) => {
+    if (!user) return;
+    
+    const newSettings = { ...settings, [key]: value };
+    setSettings(newSettings);
+    
+    try {
+      console.log('Updating setting:', key, value);
+      
+      const { error } = await withRetry(() =>
+        supabase
+          .from('user_settings')
+          .upsert({
+            user_id: user.id,
+            ...newSettings,
+          })
+          .select()
+          .single()
+      );
+
+      if (error) {
+        console.error('Error updating setting:', error);
+        throw error;
+      }
+
+      console.log('Setting updated successfully');
+
+      // Show success message for certain settings
+      if (key === 'reminder_time') {
+        toast({
+          title: "Reminder Time Updated",
+          description: `Daily reminders will now be sent at ${value}`,
+        });
+      } else if (key === 'daily_reminders') {
+        toast({
+          title: "Daily Reminders",
+          description: value ? "Daily reminders enabled" : "Daily reminders disabled",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating setting:', error);
+      // Revert the setting on error
+      setSettings(settings);
+      toast({
+        title: "Error",
+        description: "Failed to update setting. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSave = async () => {
     if (!user) return;
     
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('user_settings')
-        .upsert({
-          user_id: user.id,
-          ...settings,
-        });
+      const { error } = await withRetry(() =>
+        supabase
+          .from('user_settings')
+          .upsert({
+            user_id: user.id,
+            ...settings,
+          })
+          .select()
+          .single()
+      );
 
       if (error) {
         throw error;
@@ -98,44 +181,6 @@ const Settings = () => {
       });
     } finally {
       setSaving(false);
-    }
-  };
-
-  const updateSetting = async (key: keyof UserSettings, value: boolean | string) => {
-    const newSettings = { ...settings, [key]: value };
-    setSettings(newSettings);
-    
-    // Auto-save when settings change
-    if (!user) return;
-    
-    try {
-      const { error } = await supabase
-        .from('user_settings')
-        .upsert({
-          user_id: user.id,
-          ...newSettings,
-        });
-
-      if (error) {
-        throw error;
-      }
-
-      // Only show toast for certain settings
-      if (key === 'reminder_time') {
-        toast({
-          title: "Reminder Time Updated",
-          description: `Daily reminders will now be sent at ${value}`,
-        });
-      }
-    } catch (error) {
-      console.error('Error updating setting:', error);
-      // Revert the setting on error
-      setSettings(settings);
-      toast({
-        title: "Error",
-        description: "Failed to update setting. Please try again.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -244,7 +289,6 @@ const Settings = () => {
                   onCheckedChange={(checked) => updateSetting('data_sharing', checked)}
                 />
               </div>
-              
             </CardContent>
           </Card>
 

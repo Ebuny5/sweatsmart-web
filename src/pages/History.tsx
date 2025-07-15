@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
@@ -8,9 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, Search, Filter, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
-import { Episode, ProcessedEpisode, SeverityLevel, BodyArea } from "@/types";
+import { ProcessedEpisode, SeverityLevel, BodyArea } from "@/types";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, withRetry } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 const History = () => {
@@ -31,14 +32,15 @@ const History = () => {
       }
       
       try {
-        // Add a small delay to prevent rapid successive calls
-        await new Promise(resolve => setTimeout(resolve, 100));
+        console.log('Fetching episodes for history...');
         
-        const { data, error } = await supabase
-          .from('episodes')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+        const { data, error } = await withRetry(() =>
+          supabase
+            .from('episodes')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+        );
 
         if (error) {
           console.error('Error fetching episodes:', error);
@@ -49,39 +51,65 @@ const History = () => {
           });
           setEpisodes([]);
         } else {
-          const processedEpisodes: ProcessedEpisode[] = (data || []).map(ep => ({
-            id: ep.id,
-            userId: ep.user_id,
-            datetime: new Date(ep.date),
-            severityLevel: ep.severity as SeverityLevel,
-            bodyAreas: (ep.body_areas || []) as BodyArea[],
-            triggers: Array.isArray(ep.triggers) ? ep.triggers.map(t => {
-              if (typeof t === 'string') {
-                try {
-                  const parsed = JSON.parse(t);
+          console.log('Episodes fetched:', data?.length || 0);
+          
+          const processedEpisodes: ProcessedEpisode[] = (data || []).map(ep => {
+            try {
+              // Parse triggers safely
+              let parsedTriggers = [];
+              if (ep.triggers && Array.isArray(ep.triggers)) {
+                parsedTriggers = ep.triggers.map((t: any) => {
+                  if (typeof t === 'string') {
+                    try {
+                      const parsed = JSON.parse(t);
+                      return {
+                        type: parsed.type || 'environmental',
+                        value: parsed.value || t,
+                        label: parsed.label || parsed.value || t
+                      };
+                    } catch {
+                      return {
+                        type: 'environmental',
+                        value: t,
+                        label: t || 'Unknown'
+                      };
+                    }
+                  }
                   return {
-                    type: parsed.type || 'environmental',
-                    value: parsed.value || '',
-                    label: parsed.label || parsed.value || 'Unknown'
+                    type: (t as any)?.type || 'environmental',
+                    value: (t as any)?.value || 'Unknown',
+                    label: (t as any)?.label || (t as any)?.value || 'Unknown'
                   };
-                } catch {
-                  return {
-                    type: 'environmental',
-                    value: t,
-                    label: t || 'Unknown'
-                  };
-                }
+                });
               }
+
               return {
-                type: (t as any)?.type || 'environmental',
-                value: (t as any)?.value || '',
-                label: (t as any)?.label || (t as any)?.value || 'Unknown'
+                id: ep.id,
+                userId: ep.user_id,
+                datetime: new Date(ep.date),
+                severityLevel: ep.severity as SeverityLevel,
+                bodyAreas: (ep.body_areas || []) as BodyArea[],
+                triggers: parsedTriggers,
+                notes: ep.notes || undefined,
+                createdAt: new Date(ep.created_at),
               };
-            }) : [],
-            notes: ep.notes || undefined,
-            createdAt: new Date(ep.created_at),
-          }));
+            } catch (error) {
+              console.error('Error processing episode:', ep.id, error);
+              return {
+                id: ep.id,
+                userId: ep.user_id,
+                datetime: new Date(ep.date),
+                severityLevel: ep.severity as SeverityLevel,
+                bodyAreas: (ep.body_areas || []) as BodyArea[],
+                triggers: [],
+                notes: ep.notes || undefined,
+                createdAt: new Date(ep.created_at),
+              };
+            }
+          });
+          
           setEpisodes(processedEpisodes);
+          console.log('Episodes processed successfully');
         }
       } catch (error) {
         console.error('Error fetching episodes:', error);

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import DashboardSummary from "@/components/dashboard/DashboardSummary";
 import RecentEpisodes from "@/components/dashboard/RecentEpisodes";
@@ -8,23 +8,87 @@ import BodyAreaHeatmap from "@/components/dashboard/BodyAreaHeatmap";
 import QuickActions from "@/components/dashboard/QuickActions";
 import { TrendData, ProcessedEpisode, TriggerFrequency, BodyAreaFrequency, SeverityLevel, BodyArea } from "@/types";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, withRetry } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [data, setData] = useState<{
-    weeklyData: TrendData[];
-    monthlyData: TrendData[];
-    triggerFrequencies: TriggerFrequency[];
-    bodyAreas: BodyAreaFrequency[];
-    recentEpisodes: ProcessedEpisode[];
-    allEpisodes: ProcessedEpisode[];
-  } | null>(null);
-  
+  const [allEpisodes, setAllEpisodes] = useState<ProcessedEpisode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Memoize processed data to prevent recalculation
+  const dashboardData = useMemo(() => {
+    console.log('Processing dashboard data for', allEpisodes.length, 'episodes');
+    
+    // Get recent episodes
+    const recentEpisodes = allEpisodes.slice(0, 5);
+    
+    // Generate trigger frequencies
+    const triggerCounts = new Map<string, { count: number; severities: number[] }>();
+    
+    allEpisodes.forEach(episode => {
+      episode.triggers.forEach(trigger => {
+        const key = trigger.label || trigger.value || 'Unknown';
+        const existing = triggerCounts.get(key) || { count: 0, severities: [] };
+        existing.count += 1;
+        existing.severities.push(episode.severityLevel);
+        triggerCounts.set(key, existing);
+      });
+    });
+
+    const triggerFrequencies: TriggerFrequency[] = Array.from(triggerCounts.entries()).map(([label, data]) => {
+      const averageSeverity = data.severities.length > 0 
+        ? data.severities.reduce((a, b) => a + b, 0) / data.severities.length
+        : 0;
+      
+      return {
+        trigger: { 
+          label, 
+          type: 'environmental' as const, 
+          value: label 
+        },
+        count: data.count,
+        averageSeverity,
+        percentage: allEpisodes.length > 0 ? Math.round((data.count / allEpisodes.length) * 100) : 0
+      };
+    }).sort((a, b) => b.count - a.count);
+    
+    // Generate body area frequencies
+    const bodyAreaCounts = new Map<string, { count: number; severities: number[] }>();
+    
+    allEpisodes.forEach(episode => {
+      episode.bodyAreas.forEach(area => {
+        const existing = bodyAreaCounts.get(area) || { count: 0, severities: [] };
+        existing.count += 1;
+        existing.severities.push(episode.severityLevel);
+        bodyAreaCounts.set(area, existing);
+      });
+    });
+
+    const bodyAreas: BodyAreaFrequency[] = Array.from(bodyAreaCounts.entries()).map(([area, data]) => {
+      const averageSeverity = data.severities.length > 0
+        ? data.severities.reduce((a, b) => a + b, 0) / data.severities.length
+        : 0;
+        
+      return {
+        area,
+        count: data.count,
+        averageSeverity,
+        percentage: allEpisodes.length > 0 ? Math.round((data.count / allEpisodes.length) * 100) : 0
+      };
+    });
+    
+    return {
+      weeklyData: [] as TrendData[],
+      monthlyData: [] as TrendData[],
+      triggerFrequencies,
+      bodyAreas,
+      recentEpisodes,
+      allEpisodes,
+    };
+  }, [allEpisodes]);
   
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -37,11 +101,13 @@ const Dashboard = () => {
         setError(null);
         console.log('Fetching dashboard data for user:', user.id);
         
-        const { data: episodes, error: episodesError } = await supabase
-          .from('episodes')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+        const { data: episodes, error: episodesError } = await withRetry(() =>
+          supabase
+            .from('episodes')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+        );
 
         if (episodesError) {
           console.error('Error fetching episodes:', episodesError);
@@ -51,7 +117,7 @@ const Dashboard = () => {
         console.log('Fetched episodes:', episodes?.length || 0);
 
         // Process episodes with better error handling
-        const allEpisodes: ProcessedEpisode[] = (episodes || []).map(ep => {
+        const processedEpisodes: ProcessedEpisode[] = (episodes || []).map(ep => {
           try {
             // Parse triggers safely
             let parsedTriggers = [];
@@ -113,73 +179,7 @@ const Dashboard = () => {
           }
         });
         
-        // Get recent episodes
-        const recentEpisodes = allEpisodes.slice(0, 5);
-        
-        // Generate trigger frequencies
-        const triggerCounts = new Map<string, { count: number; severities: number[] }>();
-        
-        allEpisodes.forEach(episode => {
-          episode.triggers.forEach(trigger => {
-            const key = trigger.label || trigger.value || 'Unknown';
-            const existing = triggerCounts.get(key) || { count: 0, severities: [] };
-            existing.count += 1;
-            existing.severities.push(episode.severityLevel);
-            triggerCounts.set(key, existing);
-          });
-        });
-
-        const triggerFrequencies: TriggerFrequency[] = Array.from(triggerCounts.entries()).map(([label, data]) => {
-          const averageSeverity = data.severities.length > 0 
-            ? data.severities.reduce((a, b) => a + b, 0) / data.severities.length
-            : 0;
-          
-          return {
-            trigger: { 
-              label, 
-              type: 'environmental' as const, 
-              value: label 
-            },
-            count: data.count,
-            averageSeverity,
-            percentage: allEpisodes.length > 0 ? Math.round((data.count / allEpisodes.length) * 100) : 0
-          };
-        }).sort((a, b) => b.count - a.count);
-        
-        // Generate body area frequencies
-        const bodyAreaCounts = new Map<string, { count: number; severities: number[] }>();
-        
-        allEpisodes.forEach(episode => {
-          episode.bodyAreas.forEach(area => {
-            const existing = bodyAreaCounts.get(area) || { count: 0, severities: [] };
-            existing.count += 1;
-            existing.severities.push(episode.severityLevel);
-            bodyAreaCounts.set(area, existing);
-          });
-        });
-
-        const bodyAreas: BodyAreaFrequency[] = Array.from(bodyAreaCounts.entries()).map(([area, data]) => {
-          const averageSeverity = data.severities.length > 0
-            ? data.severities.reduce((a, b) => a + b, 0) / data.severities.length
-            : 0;
-            
-          return {
-            area,
-            count: data.count,
-            averageSeverity,
-            percentage: allEpisodes.length > 0 ? Math.round((data.count / allEpisodes.length) * 100) : 0
-          };
-        });
-        
-        setData({
-          weeklyData: [],
-          monthlyData: [],
-          triggerFrequencies,
-          bodyAreas,
-          recentEpisodes,
-          allEpisodes,
-        });
-        
+        setAllEpisodes(processedEpisodes);
         console.log('Dashboard data processed successfully');
       } catch (error) {
         console.error('Dashboard fetch error:', error);
@@ -191,14 +191,7 @@ const Dashboard = () => {
         });
         
         // Set empty state to prevent crashes
-        setData({
-          weeklyData: [],
-          monthlyData: [],
-          triggerFrequencies: [],
-          bodyAreas: [],
-          recentEpisodes: [],
-          allEpisodes: [],
-        });
+        setAllEpisodes([]);
       } finally {
         setIsLoading(false);
       }
@@ -222,7 +215,7 @@ const Dashboard = () => {
     );
   }
 
-  if (error || !data) {
+  if (error) {
     return (
       <AppLayout>
         <div className="space-y-6">
@@ -231,7 +224,7 @@ const Dashboard = () => {
             <div className="space-y-4">
               <h3 className="text-xl font-medium text-destructive">Unable to load dashboard</h3>
               <p className="text-muted-foreground">
-                {error || "Something went wrong. Please refresh the page."}
+                {error}
               </p>
               <button 
                 onClick={() => window.location.reload()} 
@@ -251,9 +244,9 @@ const Dashboard = () => {
       <div className="space-y-6 animate-fade-in">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">SweatSmart Dashboard</h1>
-          {data.allEpisodes.length > 0 && (
+          {dashboardData.allEpisodes.length > 0 && (
             <div className="text-sm text-muted-foreground">
-              Total episodes: {data.allEpisodes.length}
+              Total episodes: {dashboardData.allEpisodes.length}
             </div>
           )}
         </div>
@@ -262,24 +255,24 @@ const Dashboard = () => {
         
         <div className="grid gap-6 md:grid-cols-3">
           <DashboardSummary 
-            weeklyData={data.weeklyData} 
-            monthlyData={data.monthlyData}
-            allEpisodes={data.allEpisodes}
+            weeklyData={dashboardData.weeklyData} 
+            monthlyData={dashboardData.monthlyData}
+            allEpisodes={dashboardData.allEpisodes}
           />
           
           <TriggerSummary 
-            triggers={data.triggerFrequencies}
-            allEpisodes={data.allEpisodes}
+            triggers={dashboardData.triggerFrequencies}
+            allEpisodes={dashboardData.allEpisodes}
           />
           
           <BodyAreaHeatmap 
-            bodyAreas={data.bodyAreas}
+            bodyAreas={dashboardData.bodyAreas}
           />
           
-          <RecentEpisodes episodes={data.recentEpisodes} />
+          <RecentEpisodes episodes={dashboardData.recentEpisodes} />
         </div>
         
-        {data.allEpisodes.length === 0 && (
+        {dashboardData.allEpisodes.length === 0 && (
           <div className="text-center py-12">
             <div className="space-y-4 animate-fade-in">
               <h3 className="text-xl font-medium">Welcome to SweatSmart!</h3>

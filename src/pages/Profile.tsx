@@ -6,58 +6,130 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Calendar, MapPin, Mail, User, Settings } from "lucide-react";
+import { Camera, Calendar, Mail, User, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useProfile } from "@/hooks/useProfile";
+import { supabase, withRetry } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { profile, loading, updateProfile } = useProfile();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   const [profileData, setProfileData] = useState({
     display_name: "",
   });
 
-  // Update local state when profile loads
+  // Fetch profile data on load
   useEffect(() => {
-    if (profile) {
-      setProfileData({
-        display_name: profile.display_name || "",
-      });
-    }
-  }, [profile]);
+    const fetchProfile = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        console.log('Fetching profile for user:', user.id);
+        
+        const { data, error } = await withRetry(() =>
+          supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle()
+        );
+
+        if (error) {
+          console.error('Error fetching profile:', error);
+          // Create profile if it doesn't exist
+          if (error.code === 'PGRST116') {
+            console.log('Profile not found, creating one...');
+            const { data: newProfile, error: createError } = await withRetry(() =>
+              supabase
+                .from('profiles')
+                .insert({
+                  user_id: user.id,
+                  display_name: user.email?.split('@')[0] || ''
+                })
+                .select()
+                .single()
+            );
+
+            if (createError) {
+              console.error('Error creating profile:', createError);
+              toast({
+                title: "Error",
+                description: "Failed to create profile. Please refresh the page.",
+                variant: "destructive",
+              });
+            } else {
+              setProfileData({
+                display_name: newProfile.display_name || "",
+              });
+            }
+          }
+        } else if (data) {
+          console.log('Profile loaded:', data);
+          setProfileData({
+            display_name: data.display_name || "",
+          });
+        }
+      } catch (error) {
+        console.error('Profile fetch error:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load profile. Please refresh the page.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [user, toast]);
 
   const handleSave = async () => {
+    if (!user) return;
+    
     setIsSaving(true);
     
     try {
-      const success = await updateProfile(profileData);
+      console.log('Saving profile data:', profileData);
       
-      if (success) {
-        toast({
-          title: "Profile updated",
-          description: "Your profile has been updated successfully.",
-        });
-        setIsEditing(false);
-      } else {
-        toast({
-          title: "Update failed",
-          description: "Failed to update profile. Please try again.",
-          variant: "destructive",
-        });
+      const { data, error } = await withRetry(() =>
+        supabase
+          .from('profiles')
+          .upsert({
+            user_id: user.id,
+            display_name: profileData.display_name,
+          })
+          .select()
+          .single()
+      );
+
+      if (error) {
+        console.error('Error saving profile:', error);
+        throw error;
       }
+
+      console.log('Profile saved successfully:', data);
+      
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully.",
+      });
+      setIsEditing(false);
     } catch (error) {
+      console.error('Save error:', error);
       toast({
         title: "Update failed",
-        description: "An error occurred while updating your profile.",
+        description: "Failed to update profile. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -67,10 +139,31 @@ const Profile = () => {
 
   const handleCancel = () => {
     setIsEditing(false);
-    if (profile) {
-      setProfileData({
-        display_name: profile.display_name || "",
-      });
+    // Reset to original data - we'll fetch fresh data
+    if (user) {
+      fetchProfile();
+    }
+  };
+
+  const fetchProfile = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await withRetry(() =>
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle()
+      );
+
+      if (!error && data) {
+        setProfileData({
+          display_name: data.display_name || "",
+        });
+      }
+    } catch (error) {
+      console.error('Error refetching profile:', error);
     }
   };
 
@@ -180,6 +273,7 @@ const Profile = () => {
                         id="name"
                         value={profileData.display_name}
                         onChange={(e) => setProfileData({...profileData, display_name: e.target.value})}
+                        placeholder="Enter your display name"
                       />
                     </div>
                     <div className="space-y-2">
@@ -196,7 +290,7 @@ const Profile = () => {
                       <Button onClick={handleSave} disabled={isSaving}>
                         {isSaving ? "Saving..." : "Save Changes"}
                       </Button>
-                      <Button variant="outline" onClick={handleCancel}>
+                      <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
                         Cancel
                       </Button>
                     </div>
