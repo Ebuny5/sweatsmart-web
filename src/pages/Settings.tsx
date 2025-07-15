@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Bell, Shield } from "lucide-react";
-import { supabase, withRetry } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import DataManagement from "@/components/settings/DataManagement";
@@ -40,32 +40,28 @@ const Settings = () => {
       try {
         console.log('Fetching settings for user:', user.id);
         
-        const { data, error } = await withRetry(async () => {
-          return await supabase
-            .from('user_settings')
-            .select('*')
-            .eq('user_id', user.id)
-            .maybeSingle();
-        });
+        const { data, error } = await supabase
+          .from('user_settings')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
 
         if (error) {
           console.error('Error fetching settings:', error);
           // Create default settings if they don't exist
           if (error.code === 'PGRST116') {
             console.log('Settings not found, creating default settings...');
-            const { data: newSettings, error: createError } = await withRetry(async () => {
-              return await supabase
-                .from('user_settings')
-                .insert({
-                  user_id: user.id,
-                  daily_reminders: true,
-                  reminder_time: "20:00",
-                  trigger_alerts: false,
-                  data_sharing: false,
-                })
-                .select()
-                .single();
-            });
+            const { data: newSettings, error: createError } = await supabase
+              .from('user_settings')
+              .insert({
+                user_id: user.id,
+                daily_reminders: true,
+                reminder_time: "20:00",
+                trigger_alerts: false,
+                data_sharing: false,
+              })
+              .select()
+              .single();
 
             if (createError) {
               console.error('Error creating settings:', createError);
@@ -106,16 +102,14 @@ const Settings = () => {
     try {
       console.log('Updating setting:', key, value);
       
-      const { error } = await withRetry(async () => {
-        return await supabase
-          .from('user_settings')
-          .upsert({
-            user_id: user.id,
-            ...newSettings,
-          })
-          .select()
-          .single();
-      });
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: user.id,
+          ...newSettings,
+        })
+        .select()
+        .single();
 
       if (error) {
         console.error('Error updating setting:', error);
@@ -153,16 +147,14 @@ const Settings = () => {
     
     setSaving(true);
     try {
-      const { error } = await withRetry(async () => {
-        return await supabase
-          .from('user_settings')
-          .upsert({
-            user_id: user.id,
-            ...settings,
-          })
-          .select()
-          .single();
-      });
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: user.id,
+          ...settings,
+        })
+        .select()
+        .single();
 
       if (error) {
         throw error;

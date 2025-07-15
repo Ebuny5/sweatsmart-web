@@ -11,7 +11,7 @@ import { Calendar, Search, Filter, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { ProcessedEpisode, SeverityLevel, BodyArea } from "@/types";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, withRetry } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 const History = () => {
@@ -34,13 +34,11 @@ const History = () => {
       try {
         console.log('Fetching episodes for history...');
         
-        const { data, error } = await withRetry(async () => {
-          return await supabase
-            .from('episodes')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
-        });
+        const { data, error } = await supabase
+          .from('episodes')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
 
         if (error) {
           console.error('Error fetching episodes:', error);

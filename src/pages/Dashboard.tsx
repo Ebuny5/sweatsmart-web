@@ -195,12 +195,8 @@ const Dashboard = () => {
   }, [allEpisodes]);
   
   useEffect(() => {
-    if (user) {
-      fetchDashboardData();
-    } else {
-      setIsLoading(false);
-    }
-  }, [fetchDashboardData, user]);
+    fetchDashboardData();
+  }, [fetchDashboardData]);
   
   if (isLoading) {
     return (

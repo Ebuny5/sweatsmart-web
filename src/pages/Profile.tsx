@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Calendar, Mail, User, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase, withRetry } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
@@ -36,29 +36,25 @@ const Profile = () => {
       try {
         console.log('Fetching profile for user:', user.id);
         
-        const { data, error } = await withRetry(async () => {
-          return await supabase
-            .from('profiles')
-            .select('*')
-            .eq('user_id', user.id)
-            .maybeSingle();
-        });
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
 
         if (error) {
           console.error('Error fetching profile:', error);
           // Create profile if it doesn't exist
           if (error.code === 'PGRST116') {
             console.log('Profile not found, creating one...');
-            const { data: newProfile, error: createError } = await withRetry(async () => {
-              return await supabase
-                .from('profiles')
-                .insert({
-                  user_id: user.id,
-                  display_name: user.email?.split('@')[0] || ''
-                })
-                .select()
-                .single();
-            });
+            const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert({
+                user_id: user.id,
+                display_name: user.email?.split('@')[0] || ''
+              })
+              .select()
+              .single();
 
             if (createError) {
               console.error('Error creating profile:', createError);
@@ -102,16 +98,14 @@ const Profile = () => {
     try {
       console.log('Saving profile data:', profileData);
       
-      const { data, error } = await withRetry(async () => {
-        return await supabase
-          .from('profiles')
-          .upsert({
-            user_id: user.id,
-            display_name: profileData.display_name,
-          })
-          .select()
-          .single();
-      });
+      const { data, error } = await supabase
+        .from('profiles')
+        .upsert({
+          user_id: user.id,
+          display_name: profileData.display_name,
+        })
+        .select()
+        .single();
 
       if (error) {
         console.error('Error saving profile:', error);
@@ -149,13 +143,11 @@ const Profile = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await withRetry(async () => {
-        return await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
-      });
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
       if (!error && data) {
         setProfileData({
