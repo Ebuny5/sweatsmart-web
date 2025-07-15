@@ -55,32 +55,37 @@ const Dashboard = () => {
           try {
             // Parse triggers safely
             let parsedTriggers = [];
-            if (ep.triggers) {
-              if (Array.isArray(ep.triggers)) {
-                parsedTriggers = ep.triggers.map(t => {
-                  if (typeof t === 'string') {
-                    try {
-                      const parsed = JSON.parse(t);
-                      return {
-                        type: parsed.type || 'environmental',
-                        value: parsed.value || t,
-                        label: parsed.label || parsed.value || t
-                      };
-                    } catch {
-                      return {
-                        type: 'environmental',
-                        value: t,
-                        label: t
-                      };
-                    }
+            if (ep.triggers && Array.isArray(ep.triggers)) {
+              parsedTriggers = ep.triggers.map((t: any) => {
+                // Handle different formats of trigger data
+                if (typeof t === 'string') {
+                  try {
+                    const parsed = JSON.parse(t);
+                    return {
+                      type: parsed.type || 'environmental',
+                      value: parsed.value || t,
+                      label: parsed.label || parsed.value || t
+                    };
+                  } catch {
+                    return {
+                      type: 'environmental',
+                      value: t,
+                      label: t
+                    };
                   }
+                } else if (t && typeof t === 'object') {
                   return {
-                    type: t?.type || 'environmental',
-                    value: t?.value || 'Unknown',
-                    label: t?.label || t?.value || 'Unknown'
+                    type: t.type || 'environmental',
+                    value: t.value || t.label || 'Unknown',
+                    label: t.label || t.value || 'Unknown'
                   };
-                });
-              }
+                }
+                return {
+                  type: 'environmental',
+                  value: 'Unknown',
+                  label: 'Unknown'
+                };
+              });
             }
 
             return {
@@ -130,7 +135,11 @@ const Dashboard = () => {
             : 0;
           
           return {
-            trigger: { label, type: 'environmental', value: label },
+            trigger: { 
+              label, 
+              type: 'environmental' as const, 
+              value: label 
+            },
             count: data.count,
             averageSeverity,
             percentage: allEpisodes.length > 0 ? Math.round((data.count / allEpisodes.length) * 100) : 0

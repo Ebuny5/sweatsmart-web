@@ -1,4 +1,3 @@
-
 // User types
 export interface User {
   id: string;
@@ -134,7 +133,7 @@ export interface BodyAreaFrequency {
 }
 
 export interface TriggerFrequency {
-  trigger: string | { type: string; label: string; value: string };
+  trigger: Trigger;
   count: number;
   averageSeverity: number;
   percentage: number;

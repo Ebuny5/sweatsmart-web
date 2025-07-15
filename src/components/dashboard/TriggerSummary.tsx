@@ -43,7 +43,11 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
         : 0;
       
       return {
-        trigger: { label, type: 'environmental' as const, value: label },
+        trigger: { 
+          label, 
+          type: 'environmental' as const, 
+          value: label 
+        },
         count: data.count,
         averageSeverity,
         percentage: allEpisodes.length > 0 ? Math.round((data.count / allEpisodes.length) * 100) : 0
@@ -59,14 +63,17 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
     : processedTriggers;
 
   const chartData = useMemo(() => {
-    return displayTriggers.map(trigger => ({
-      name: trigger.trigger.label.length > 15 
-        ? trigger.trigger.label.substring(0, 15) + '...' 
-        : trigger.trigger.label,
-      fullName: trigger.trigger.label,
-      count: trigger.count,
-      severity: Number(trigger.averageSeverity.toFixed(1))
-    }));
+    return displayTriggers.map(triggerFreq => {
+      const triggerLabel = triggerFreq.trigger.label || triggerFreq.trigger.value || 'Unknown';
+      return {
+        name: triggerLabel.length > 15 
+          ? triggerLabel.substring(0, 15) + '...' 
+          : triggerLabel,
+        fullName: triggerLabel,
+        count: triggerFreq.count,
+        severity: Number(triggerFreq.averageSeverity.toFixed(1))
+      };
+    });
   }, [displayTriggers]);
 
   const cardTitle = isInsightState ? "Your Top Triggers" : "Trigger Summary";
