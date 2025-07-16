@@ -2,7 +2,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
   user: User | null;
@@ -32,48 +31,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for session validity on app resume
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible' && session) {
-        try {
-          const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-          
-          if (error || !currentSession) {
-            console.log('Session expired or invalid, signing out gracefully');
-            setSession(null);
-            setUser(null);
-            // Don't redirect here, let the route protection handle it
-          } else if (currentSession.access_token !== session.access_token) {
-            console.log('Session refreshed');
-            setSession(currentSession);
-            setUser(currentSession.user);
-          }
-        } catch (error) {
-          console.error('Error checking session:', error);
-          setSession(null);
-          setUser(null);
+    // Clear any old project storage keys on initialization
+    const clearOldProjectData = () => {
+      const oldProjectKeys = [
+        'sb-legjisflxarazydqnztr-auth-token',
+        'supabase.auth.token'
+      ];
+      
+      oldProjectKeys.forEach(key => {
+        if (localStorage.getItem(key)) {
+          localStorage.removeItem(key);
+          console.log('Cleared old project storage:', key);
         }
-      }
+      });
     };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    clearOldProjectData();
 
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.id);
-        
-        if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-          setSession(session);
-          setUser(session?.user ?? null);
-        } else if (event === 'SIGNED_IN') {
-          setSession(session);
-          setUser(session?.user ?? null);
-        } else {
-          setSession(session);
-          setUser(session?.user ?? null);
-        }
-        
+        setSession(session);
+        setUser(session?.user ?? null);
         setLoading(false);
       }
     );
@@ -104,13 +84,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       subscription.unsubscribe();
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [session]);
+  }, []);
 
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
+      // Clear all auth-related storage
+      localStorage.removeItem('sb-ujbcolxawpzfjkjviwqw-auth-token');
     } catch (error) {
       console.error('Error signing out:', error);
     }

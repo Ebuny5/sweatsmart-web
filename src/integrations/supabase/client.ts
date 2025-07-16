@@ -15,6 +15,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+    storageKey: 'sb-ujbcolxawpzfjkjviwqw-auth-token', // Ensure unique storage key
   },
   global: {
     headers: {

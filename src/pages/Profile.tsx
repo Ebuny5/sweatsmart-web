@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -28,7 +28,7 @@ const Profile = () => {
   });
 
   // Update local state when profile loads
-  React.useEffect(() => {
+  useEffect(() => {
     if (profile) {
       setProfileData({
         display_name: profile.display_name || "",
