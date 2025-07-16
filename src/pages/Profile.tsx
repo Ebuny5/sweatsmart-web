@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,7 +26,6 @@ const Profile = () => {
     display_name: profile?.display_name || "",
   });
 
-  // Update local state when profile loads
   useEffect(() => {
     if (profile) {
       setProfileData({
