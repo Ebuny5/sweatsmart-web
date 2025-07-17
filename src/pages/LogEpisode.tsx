@@ -15,7 +15,7 @@ import SeveritySelector from "@/components/episode/SeveritySelector";
 import BodyAreaSelector from "@/components/episode/BodyAreaSelector";
 import TriggerSelector from "@/components/episode/TriggerSelector";
 import EpisodeInsights from "@/components/episode/EpisodeInsights";
-import { SeverityLevel, BodyArea, Trigger } from "@/types";
+import { SeverityLevel, BodyArea, Trigger, ProcessedEpisode } from "@/types";
 import { CalendarIcon, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
