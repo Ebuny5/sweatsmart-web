@@ -129,17 +129,25 @@ const LogEpisode = () => {
   };
   
   if (showInsights) {
+    // Create a temporary episode object for insights
+    const tempEpisode: ProcessedEpisode = {
+      id: 'temp-' + Date.now(), // temporary ID
+      userId: user?.id || '',
+      datetime: date ? new Date(date.getFullYear(), date.getMonth(), date.getDate(), ...time.split(':').map(Number)) : new Date(),
+      severityLevel: severity,
+      bodyAreas: bodyAreas,
+      triggers: triggers,
+      notes: notes || undefined,
+      createdAt: new Date(),
+    };
+
     return (
       <AppLayout>
         <div className="max-w-3xl mx-auto">
           <h1 className="text-3xl font-bold mb-6">Episode Logged Successfully!</h1>
           
           <div className="space-y-6">
-            <EpisodeInsights 
-              severity={severity}
-              bodyAreas={bodyAreas}
-              triggers={triggers}
-            />
+            <EpisodeInsights episode={tempEpisode} />
             
             <div className="flex justify-center space-x-4">
               <Button

@@ -257,11 +257,7 @@ const EpisodeDetail = () => {
         </div>
 
         {/* Show insights and recommendations for this episode */}
-        <EpisodeInsights 
-          severity={episode.severityLevel}
-          bodyAreas={episode.bodyAreas}
-          triggers={episode.triggers}
-        />
+        <EpisodeInsights episode={episode} />
       </div>
     </AppLayout>
   );
