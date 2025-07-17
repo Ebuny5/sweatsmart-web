@@ -2,7 +2,19 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { UserSettings } from '@/types';
+
+export interface UserSettings {
+  id?: string;
+  user_id: string;
+  daily_reminders: boolean;
+  reminder_time: string;
+  trigger_alerts: boolean;
+  data_sharing: boolean;
+  youtube_url?: string;
+  website_url?: string;
+  created_at?: string;
+  updated_at?: string;
+}
 
 export const useSettings = () => {
   const { user } = useAuth();
@@ -45,7 +57,10 @@ export const useSettings = () => {
     try {
       const { error } = await supabase
         .from('user_settings')
-        .update(updates)
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
         .eq('user_id', user.id);
 
       if (error) {

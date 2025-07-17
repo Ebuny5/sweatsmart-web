@@ -9,30 +9,14 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { useSettings } from "@/hooks/useSettings";
 import { Loader2, Bell, Clock, Youtube, Globe, AlertTriangle } from "lucide-react";
 
-interface UserSettings {
-  id?: string;
-  user_id: string;
-  daily_reminders: boolean;
-  reminder_time: string;
-  trigger_alerts: boolean;
-  data_sharing: boolean;
-  youtube_url?: string;
-  website_url?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
 const Settings = () => {
-  const { user } = useAuth();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(true);
+  const { settings, loading, updateSettings } = useSettings();
   const [saving, setSaving] = useState(false);
-  const [settings, setSettings] = useState<UserSettings>({
-    user_id: user?.id || '',
+  const [localSettings, setLocalSettings] = useState({
     daily_reminders: true,
     reminder_time: '08:00',
     trigger_alerts: true,
@@ -42,123 +26,37 @@ const Settings = () => {
   });
 
   useEffect(() => {
-    if (user) {
-      fetchSettings();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
-
-  const fetchSettings = async () => {
-    if (!user) return;
-
-    try {
-      setLoading(true);
-      
-      const { data, error } = await supabase
-        .from('user_settings')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching settings:', error);
-        // Create default settings if none exist
-        await createDefaultSettings();
-      } else if (data) {
-        setSettings({
-          ...data,
-          youtube_url: data.youtube_url || '',
-          website_url: data.website_url || ''
-        });
-      } else {
-        // No settings found, create default
-        await createDefaultSettings();
-      }
-    } catch (error) {
-      console.error('Error in fetchSettings:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load settings. Please try again.",
-        variant: "destructive",
+    if (settings) {
+      setLocalSettings({
+        daily_reminders: settings.daily_reminders ?? true,
+        reminder_time: settings.reminder_time ?? '08:00',
+        trigger_alerts: settings.trigger_alerts ?? true,
+        data_sharing: settings.data_sharing ?? false,
+        youtube_url: settings.youtube_url ?? '',
+        website_url: settings.website_url ?? ''
       });
-    } finally {
-      setLoading(false);
     }
-  };
-
-  const createDefaultSettings = async () => {
-    if (!user) return;
-
-    try {
-      const defaultSettings = {
-        user_id: user.id,
-        daily_reminders: true,
-        reminder_time: '08:00',
-        trigger_alerts: true,
-        data_sharing: false,
-        youtube_url: '',
-        website_url: ''
-      };
-
-      const { data, error } = await supabase
-        .from('user_settings')
-        .insert(defaultSettings)
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      setSettings(data);
-    } catch (error) {
-      console.error('Error creating default settings:', error);
-    }
-  };
+  }, [settings]);
 
   const handleSave = async () => {
-    if (!user) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to save settings.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       setSaving(true);
 
-      const updateData = {
-        daily_reminders: settings.daily_reminders,
-        reminder_time: settings.reminder_time,
-        trigger_alerts: settings.trigger_alerts,
-        data_sharing: settings.data_sharing,
-        youtube_url: settings.youtube_url || null,
-        website_url: settings.website_url || null,
-        updated_at: new Date().toISOString()
-      };
+      const success = await updateSettings(localSettings);
 
-      const { error } = await supabase
-        .from('user_settings')
-        .update(updateData)
-        .eq('user_id', user.id);
+      if (success) {
+        toast({
+          title: "Settings saved",
+          description: "Your preferences have been updated successfully.",
+        });
 
-      if (error) {
-        throw error;
+        // Schedule notifications if enabled
+        if (localSettings.daily_reminders || localSettings.trigger_alerts) {
+          scheduleNotifications();
+        }
+      } else {
+        throw new Error('Failed to update settings');
       }
-
-      toast({
-        title: "Settings saved",
-        description: "Your preferences have been updated successfully.",
-      });
-
-      // Schedule notifications if enabled
-      if (settings.daily_reminders || settings.trigger_alerts) {
-        scheduleNotifications();
-      }
-
     } catch (error) {
       console.error('Error saving settings:', error);
       toast({
@@ -185,8 +83,8 @@ const Settings = () => {
     }
 
     // Set up daily reminder if enabled
-    if (settings.daily_reminders) {
-      const [hours, minutes] = settings.reminder_time.split(':');
+    if (localSettings.daily_reminders) {
+      const [hours, minutes] = localSettings.reminder_time.split(':');
       const now = new Date();
       const reminderTime = new Date();
       reminderTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
@@ -269,14 +167,14 @@ const Settings = () => {
                   </div>
                 </div>
                 <Switch
-                  checked={settings.daily_reminders}
+                  checked={localSettings.daily_reminders}
                   onCheckedChange={(checked) =>
-                    setSettings(prev => ({ ...prev, daily_reminders: checked }))
+                    setLocalSettings(prev => ({ ...prev, daily_reminders: checked }))
                   }
                 />
               </div>
 
-              {settings.daily_reminders && (
+              {localSettings.daily_reminders && (
                 <div className="space-y-2">
                   <Label htmlFor="reminder-time" className="flex items-center gap-2">
                     <Clock className="h-4 w-4" />
@@ -285,9 +183,9 @@ const Settings = () => {
                   <Input
                     id="reminder-time"
                     type="time"
-                    value={settings.reminder_time}
+                    value={localSettings.reminder_time}
                     onChange={(e) =>
-                      setSettings(prev => ({ ...prev, reminder_time: e.target.value }))
+                      setLocalSettings(prev => ({ ...prev, reminder_time: e.target.value }))
                     }
                     className="w-40"
                   />
@@ -304,9 +202,9 @@ const Settings = () => {
                   </div>
                 </div>
                 <Switch
-                  checked={settings.trigger_alerts}
+                  checked={localSettings.trigger_alerts}
                   onCheckedChange={(checked) =>
-                    setSettings(prev => ({ ...prev, trigger_alerts: checked }))
+                    setLocalSettings(prev => ({ ...prev, trigger_alerts: checked }))
                   }
                 />
               </div>
@@ -321,7 +219,7 @@ const Settings = () => {
                 Share Your Story
               </CardTitle>
               <CardDescription>
-                Add links to help others learn about hyperhidrosis
+                Help the hyperhidrosis community by sharing your experience and resources
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -334,13 +232,13 @@ const Settings = () => {
                   id="youtube-url"
                   type="url"
                   placeholder="https://youtube.com/watch?v=..."
-                  value={settings.youtube_url}
+                  value={localSettings.youtube_url}
                   onChange={(e) =>
-                    setSettings(prev => ({ ...prev, youtube_url: e.target.value }))
+                    setLocalSettings(prev => ({ ...prev, youtube_url: e.target.value }))
                   }
                 />
                 <div className="text-[0.8rem] text-muted-foreground">
-                  Share your personal story or educational content
+                  Share your personal hyperhidrosis story or educational content to help others
                 </div>
               </div>
 
@@ -353,13 +251,13 @@ const Settings = () => {
                   id="website-url"
                   type="url"
                   placeholder="https://yourwebsite.com"
-                  value={settings.website_url}
+                  value={localSettings.website_url}
                   onChange={(e) =>
-                    setSettings(prev => ({ ...prev, website_url: e.target.value }))
+                    setLocalSettings(prev => ({ ...prev, website_url: e.target.value }))
                   }
                 />
                 <div className="text-[0.8rem] text-muted-foreground">
-                  Link to your website with hyperhidrosis resources
+                  Link to your website with hyperhidrosis resources, treatments, or support information
                 </div>
               </div>
             </CardContent>
@@ -370,7 +268,7 @@ const Settings = () => {
             <CardHeader>
               <CardTitle>Privacy</CardTitle>
               <CardDescription>
-                Control how your data is used
+                Control how your data is used to help the hyperhidrosis community
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -382,9 +280,9 @@ const Settings = () => {
                   </div>
                 </div>
                 <Switch
-                  checked={settings.data_sharing}
+                  checked={localSettings.data_sharing}
                   onCheckedChange={(checked) =>
-                    setSettings(prev => ({ ...prev, data_sharing: checked }))
+                    setLocalSettings(prev => ({ ...prev, data_sharing: checked }))
                   }
                 />
               </div>

@@ -22,6 +22,8 @@ export interface UserSettings {
   reminder_time: string;
   trigger_alerts: boolean;
   data_sharing: boolean;
+  youtube_url?: string;
+  website_url?: string;
   created_at: string;
   updated_at: string;
 }
