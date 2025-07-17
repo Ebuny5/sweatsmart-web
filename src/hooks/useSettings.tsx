@@ -28,8 +28,7 @@ export const useSettings = () => {
     }
 
     try {
-      // Add a small delay to prevent rapid successive calls
-      await new Promise(resolve => setTimeout(resolve, 100));
+      console.log('Fetching settings for user:', user.id);
       
       const { data, error } = await supabase
         .from('user_settings')
@@ -39,8 +38,15 @@ export const useSettings = () => {
 
       if (error) {
         console.error('Error fetching settings:', error);
-        setSettings(null);
+        // If no settings exist, create default ones
+        if (error.code === 'PGRST116') {
+          console.log('No settings found, creating defaults');
+          await createDefaultSettings();
+        } else {
+          setSettings(null);
+        }
       } else {
+        console.log('Settings fetched successfully:', data);
         setSettings(data);
       }
     } catch (error) {
@@ -51,23 +57,89 @@ export const useSettings = () => {
     }
   };
 
-  const updateSettings = async (updates: Partial<UserSettings>) => {
-    if (!user) return false;
+  const createDefaultSettings = async () => {
+    if (!user) return;
 
     try {
-      const { error } = await supabase
+      const defaultSettings = {
+        user_id: user.id,
+        daily_reminders: true,
+        reminder_time: '08:00',
+        trigger_alerts: true,
+        data_sharing: false,
+        youtube_url: null,
+        website_url: null
+      };
+
+      const { data, error } = await supabase
         .from('user_settings')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id);
+        .insert(defaultSettings)
+        .select()
+        .single();
 
       if (error) {
-        throw error;
+        console.error('Error creating default settings:', error);
+      } else {
+        console.log('Default settings created:', data);
+        setSettings(data);
+      }
+    } catch (error) {
+      console.error('Error creating default settings:', error);
+    }
+  };
+
+  const updateSettings = async (updates: Partial<UserSettings>) => {
+    if (!user) {
+      console.error('No user found for settings update');
+      return false;
+    }
+
+    try {
+      console.log('Updating settings with:', updates);
+
+      // First check if settings exist
+      const { data: existingSettings } = await supabase
+        .from('user_settings')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      let result;
+
+      if (existingSettings) {
+        // Update existing settings
+        result = await supabase
+          .from('user_settings')
+          .update({
+            ...updates,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', user.id)
+          .select()
+          .single();
+      } else {
+        // Create new settings
+        result = await supabase
+          .from('user_settings')
+          .insert({
+            user_id: user.id,
+            daily_reminders: true,
+            reminder_time: '08:00',
+            trigger_alerts: true,
+            data_sharing: false,
+            ...updates
+          })
+          .select()
+          .single();
       }
 
-      setSettings(prev => prev ? { ...prev, ...updates } : null);
+      if (result.error) {
+        console.error('Error updating settings:', result.error);
+        throw result.error;
+      }
+
+      console.log('Settings updated successfully:', result.data);
+      setSettings(result.data);
       return true;
     } catch (error) {
       console.error('Error updating settings:', error);

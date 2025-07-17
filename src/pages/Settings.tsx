@@ -10,10 +10,12 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useSettings } from "@/hooks/useSettings";
-import { Loader2, Bell, Clock, Youtube, Globe, AlertTriangle } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Loader2, Bell, Clock, Youtube, Globe, AlertTriangle, CheckCircle } from "lucide-react";
 
 const Settings = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { settings, loading, updateSettings } = useSettings();
   const [saving, setSaving] = useState(false);
   const [localSettings, setLocalSettings] = useState({
@@ -24,6 +26,9 @@ const Settings = () => {
     youtube_url: '',
     website_url: ''
   });
+
+  // Check if user is admin (you can modify this logic based on your auth system)
+  const isAdmin = user?.email === 'admin@sweatsmart.com' || user?.user_metadata?.role === 'admin';
 
   useEffect(() => {
     if (settings) {
@@ -46,9 +51,15 @@ const Settings = () => {
 
       if (success) {
         toast({
-          title: "Settings saved",
-          description: "Your preferences have been updated successfully.",
+          title: "Settings saved successfully",
+          description: "Your preferences have been updated and are now active.",
+          action: <CheckCircle className="h-4 w-4 text-green-500" />
         });
+
+        // Clear any existing notification timeouts
+        if (typeof window !== 'undefined' && window.notificationTimeout) {
+          clearTimeout(window.notificationTimeout);
+        }
 
         // Schedule notifications if enabled
         if (localSettings.daily_reminders || localSettings.trigger_alerts) {
@@ -61,7 +72,7 @@ const Settings = () => {
       console.error('Error saving settings:', error);
       toast({
         title: "Error saving settings",
-        description: "Please try again in a moment.",
+        description: "Please check your connection and try again.",
         variant: "destructive",
       });
     } finally {
@@ -70,7 +81,7 @@ const Settings = () => {
   };
 
   const scheduleNotifications = () => {
-    // Request notification permission
+    // Request notification permission if not already granted
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission().then(permission => {
         if (permission === 'granted') {
@@ -82,37 +93,57 @@ const Settings = () => {
       });
     }
 
-    // Set up daily reminder if enabled
-    if (localSettings.daily_reminders) {
-      const [hours, minutes] = localSettings.reminder_time.split(':');
+    // Set up daily reminder with proper scheduling
+    if (localSettings.daily_reminders && localSettings.reminder_time) {
+      const [hours, minutes] = localSettings.reminder_time.split(':').map(Number);
       const now = new Date();
       const reminderTime = new Date();
-      reminderTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      reminderTime.setHours(hours, minutes, 0, 0);
 
+      // If the time has already passed today, schedule for tomorrow
       if (reminderTime <= now) {
         reminderTime.setDate(reminderTime.getDate() + 1);
       }
 
       const timeUntilReminder = reminderTime.getTime() - now.getTime();
+      
+      console.log(`Daily reminder scheduled for ${reminderTime.toLocaleString()}`);
 
-      setTimeout(() => {
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('SweatSmart Reminder', {
-            body: 'Time to log your hyperhidrosis episode!',
-            icon: '/favicon.ico'
-          });
-        }
-        
-        // Set up daily recurring notification
-        setInterval(() => {
+      // Store timeout reference to clear it later if needed
+      if (typeof window !== 'undefined') {
+        window.notificationTimeout = setTimeout(() => {
           if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification('SweatSmart Reminder', {
-              body: 'Time to log your hyperhidrosis episode!',
-              icon: '/favicon.ico'
+            new Notification('SweatSmart Daily Reminder', {
+              body: 'Time to log your hyperhidrosis episode and track your patterns!',
+              icon: '/favicon.ico',
+              badge: '/favicon.ico'
             });
           }
-        }, 24 * 60 * 60 * 1000); // 24 hours
-      }, timeUntilReminder);
+          
+          // Set up recurring daily notification
+          const dailyInterval = setInterval(() => {
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification('SweatSmart Daily Reminder', {
+                body: 'Time to log your hyperhidrosis episode and track your patterns!',
+                icon: '/favicon.ico',
+                badge: '/favicon.ico'
+              });
+            }
+          }, 24 * 60 * 60 * 1000); // 24 hours
+
+          // Store interval reference
+          if (typeof window !== 'undefined') {
+            window.notificationInterval = dailyInterval;
+          }
+        }, timeUntilReminder);
+      }
+    }
+
+    // Set up trigger alert listener
+    if (localSettings.trigger_alerts) {
+      console.log('Trigger alerts enabled - monitoring for patterns');
+      // You could implement real-time trigger monitoring here
+      // This would integrate with your episode logging to detect patterns
     }
   };
 
@@ -211,7 +242,61 @@ const Settings = () => {
             </CardContent>
           </Card>
 
-          {/* Social Links */}
+          {/* Admin-only Social Links */}
+          {isAdmin && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5" />
+                  Admin: Content Management
+                </CardTitle>
+                <CardDescription>
+                  Manage community content and resources (Admin Only)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="youtube-url" className="flex items-center gap-2">
+                    <Youtube className="h-4 w-4 text-red-600" />
+                    Featured YouTube Video URL
+                  </Label>
+                  <Input
+                    id="youtube-url"
+                    type="url"
+                    placeholder="https://youtube.com/watch?v=..."
+                    value={localSettings.youtube_url}
+                    onChange={(e) =>
+                      setLocalSettings(prev => ({ ...prev, youtube_url: e.target.value }))
+                    }
+                  />
+                  <div className="text-[0.8rem] text-muted-foreground">
+                    This video will be featured in the "Share Your Story" section for all users
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="website-url" className="flex items-center gap-2">
+                    <Globe className="h-4 w-4" />
+                    Featured Website URL
+                  </Label>
+                  <Input
+                    id="website-url"
+                    type="url"
+                    placeholder="https://www.beyondsweat.life"
+                    value={localSettings.website_url}
+                    onChange={(e) =>
+                      setLocalSettings(prev => ({ ...prev, website_url: e.target.value }))
+                    }
+                  />
+                  <div className="text-[0.8rem] text-muted-foreground">
+                    This website will be linked in the community resources section
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Share Your Story - For All Users */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -219,45 +304,37 @@ const Settings = () => {
                 Share Your Story
               </CardTitle>
               <CardDescription>
-                Help the hyperhidrosis community by sharing your experience and resources
+                Help the hyperhidrosis community with featured resources
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="youtube-url" className="flex items-center gap-2">
-                  <Youtube className="h-4 w-4 text-red-600" />
-                  YouTube Video URL
-                </Label>
-                <Input
-                  id="youtube-url"
-                  type="url"
-                  placeholder="https://youtube.com/watch?v=..."
-                  value={localSettings.youtube_url}
-                  onChange={(e) =>
-                    setLocalSettings(prev => ({ ...prev, youtube_url: e.target.value }))
-                  }
-                />
-                <div className="text-[0.8rem] text-muted-foreground">
-                  Share your personal hyperhidrosis story or educational content to help others
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="website-url" className="flex items-center gap-2">
-                  <Globe className="h-4 w-4" />
-                  Website URL
-                </Label>
-                <Input
-                  id="website-url"
-                  type="url"
-                  placeholder="https://yourwebsite.com"
-                  value={localSettings.website_url}
-                  onChange={(e) =>
-                    setLocalSettings(prev => ({ ...prev, website_url: e.target.value }))
-                  }
-                />
-                <div className="text-[0.8rem] text-muted-foreground">
-                  Link to your website with hyperhidrosis resources, treatments, or support information
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <h4 className="font-semibold text-blue-900 mb-2">Featured Resources</h4>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-blue-600" />
+                    <a 
+                      href="https://www.beyondsweat.life" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      Beyond Sweat - Hyperhidrosis Support & Resources
+                    </a>
+                  </div>
+                  {settings?.youtube_url && (
+                    <div className="flex items-center gap-2">
+                      <Youtube className="h-4 w-4 text-red-600" />
+                      <a 
+                        href={settings.youtube_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-red-600 hover:underline"
+                      >
+                        Featured Community Video
+                      </a>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -295,6 +372,16 @@ const Settings = () => {
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
                 Enable browser notifications to receive reminders and alerts. Click "Save Changes" to request permission.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Notification Permission Success */}
+          {'Notification' in window && Notification.permission === 'granted' && (
+            <Alert className="border-green-200 bg-green-50">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                Browser notifications are enabled. You'll receive reminders based on your settings.
               </AlertDescription>
             </Alert>
           )}

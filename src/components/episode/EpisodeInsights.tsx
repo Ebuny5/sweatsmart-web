@@ -1,281 +1,424 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Lightbulb, TrendingUp, MapPin, Zap, Heart, Utensils, Activity, ThermometerSun, User } from 'lucide-react';
-import { ProcessedEpisode, BodyArea, Trigger } from '@/types';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { 
+  Thermometer, 
+  MapPin, 
+  AlertTriangle, 
+  TrendingUp, 
+  Heart,
+  Lightbulb,
+  FileText,
+  Download,
+  Share2
+} from "lucide-react";
+import { ProcessedEpisode, BodyArea, Trigger } from "@/types";
 
 interface EpisodeInsightsProps {
   episode: ProcessedEpisode;
+  episodeCount?: number;
 }
 
-// Body area configurations with enhanced descriptions
-const bodyAreaConfig: Record<BodyArea, { label: string; icon: React.ReactNode; description: string; recommendation: string }> = {
-  palms: {
-    label: 'Palms',
-    icon: <User className="h-4 w-4" />,
-    description: 'Noticeable clamminess and grip issues',
-    recommendation: 'Use iontophoresis or hand-specific antiperspirant nightly; carry grip pads if needed'
-  },
-  soles: {
-    label: 'Feet',
-    icon: <User className="h-4 w-4" />,
-    description: 'Shoes felt saturated',
-    recommendation: 'Rotate between two pairs of moisture-absorbing insoles; air out shoes between wears'
-  },
-  face: {
-    label: 'Face',
-    icon: <User className="h-4 w-4" />,
-    description: 'Light sheen, occasional drips',
-    recommendation: 'Apply oil-free, non-comedogenic mattifying lotion; keep cooling facial wipes on hand'
-  },
-  armpits: {
-    label: 'Underarms',
-    icon: <User className="h-4 w-4" />,
-    description: 'Consistent dampness after 10 minutes',
-    recommendation: 'Re-apply clinical-strength antiperspirant at night; wear moisture-wicking, breathable fabric'
-  },
-  head: {
-    label: 'Head/Scalp',
-    icon: <User className="h-4 w-4" />,
-    description: 'Scalp moisture and hair dampness',
-    recommendation: 'Use dry shampoo between washes; keep a cooling towel nearby during episodes'
-  },
-  back: {
-    label: 'Back',
-    icon: <User className="h-4 w-4" />,
-    description: 'Shirt dampness and discomfort',
-    recommendation: 'Wear moisture-wicking base layers; use a small fan or cooling pad when possible'
-  },
-  groin: {
-    label: 'Groin',
-    icon: <User className="h-4 w-4" />,
-    description: 'Lower body discomfort and dampness',
-    recommendation: 'Choose breathable, moisture-wicking underwear; consider antifungal powder for comfort'
-  },
-  entireBody: {
-    label: 'Entire Body',
-    icon: <User className="h-4 w-4" />,
-    description: 'Widespread sweating affecting multiple areas',
-    recommendation: 'Focus on overall cooling strategies; consider consultation with dermatologist for systemic treatment'
-  },
-  other: {
-    label: 'Other Areas',
-    icon: <User className="h-4 w-4" />,
-    description: 'Additional affected areas',
-    recommendation: 'Monitor patterns and discuss specific area management with healthcare provider'
-  }
-};
+const EpisodeInsights: React.FC<EpisodeInsightsProps> = ({ episode, episodeCount = 0 }) => {
+  // User-friendly body area labels
+  const getBodyAreaLabel = (area: BodyArea): string => {
+    const labels: Record<BodyArea, string> = {
+      palms: 'Palms',
+      soles: 'Feet',
+      face: 'Face',
+      armpits: 'Underarms',
+      head: 'Scalp',
+      back: 'Back',
+      groin: 'Groin',
+      entireBody: 'Entire Body',
+      other: 'Other Areas'
+    };
+    return labels[area] || area;
+  };
 
-// Trigger configurations with enhanced descriptions
-const triggerConfig: Record<string, { icon: React.ReactNode; description: string; recommendation: string }> = {
-  'stress': {
-    icon: <Heart className="h-4 w-4" />,
-    description: 'Heart rate spikes preceded sweating',
-    recommendation: 'Practice 3-minute breathing or mindfulness breaks when anxious; try progressive muscle relaxation'
-  },
-  'anxiety': {
-    icon: <Heart className="h-4 w-4" />,
-    description: 'Anxiety-related sweating episode',
-    recommendation: 'Develop pre-emptive coping strategies; consider anxiety management techniques'
-  },
-  'spicyFood': {
-    icon: <Utensils className="h-4 w-4" />,
-    description: 'Spicy/hot foods consumed before episode',
-    recommendation: 'Keep a food diary to pinpoint problem items; avoid known spicy triggers before high-stress events'
-  },
-  'physicalExercise': {
-    icon: <Activity className="h-4 w-4" />,
-    description: 'Brief walk or physical activity',
-    recommendation: 'Wear breathable footwear and socks; cool down immediately after exertion with fan or cold pack'
-  },
-  'hotTemperature': {
-    icon: <ThermometerSun className="h-4 w-4" />,
-    description: 'High ambient temperature trigger',
-    recommendation: 'Pre-cool before entering warm environments; carry portable cooling devices'
-  },
-  'caffeine': {
-    icon: <Utensils className="h-4 w-4" />,
-    description: 'Caffeine consumption triggered episode',
-    recommendation: 'Monitor caffeine intake timing; consider reducing consumption before important events'
-  }
-};
+  // Severity with emotional context
+  const getSeverityDescription = (severity: number): string => {
+    const descriptions: Record<number, string> = {
+      1: 'Minimal (1/5) – barely noticeable, manageable',
+      2: 'Mild (2/5) – noticeable but not concerning',
+      3: 'Moderate (3/5) – noticeable discomfort but manageable with care',
+      4: 'Severe (4/5) – significant discomfort affecting daily activities',
+      5: 'Very Severe (5/5) – overwhelming, requires immediate attention'
+    };
+    return descriptions[severity] || `Level ${severity}/5`;
+  };
 
-const getSeverityLabel = (severity: number): { label: string; color: string } => {
-  if (severity <= 1) return { label: 'Mild', color: 'bg-green-100 text-green-800' };
-  if (severity <= 2) return { label: 'Light', color: 'bg-yellow-100 text-yellow-800' };
-  if (severity <= 3) return { label: 'Moderate', color: 'bg-orange-100 text-orange-800' };
-  if (severity <= 4) return { label: 'Severe', color: 'bg-red-100 text-red-800' };
-  return { label: 'Extreme', color: 'bg-red-200 text-red-900' };
-};
-
-const EpisodeInsights: React.FC<EpisodeInsightsProps> = ({ episode }) => {
-  // Deduplicate body areas
-  const uniqueBodyAreas = Array.from(new Set(episode.bodyAreas));
-  
-  // Deduplicate triggers by value
-  const uniqueTriggers = episode.triggers.reduce((acc, trigger) => {
-    const existing = acc.find(t => t.value === trigger.value);
-    if (!existing) {
-      acc.push(trigger);
+  // Group triggers by type
+  const groupedTriggers = episode.triggers.reduce((acc, trigger) => {
+    if (!acc[trigger.type]) {
+      acc[trigger.type] = [];
     }
+    acc[trigger.type].push(trigger);
     return acc;
-  }, [] as Trigger[]);
+  }, {} as Record<string, Trigger[]>);
 
-  const severityInfo = getSeverityLabel(episode.severityLevel);
+  const getRecommendation = (area: BodyArea): { strategy: string; nextStep: string } => {
+    const recommendations: Record<BodyArea, { strategy: string; nextStep: string }> = {
+      palms: {
+        strategy: 'Use antiperspirant on dry hands before bed',
+        nextStep: 'Apply hand antiperspirant tonight and track results tomorrow'
+      },
+      soles: {
+        strategy: 'Wear moisture-wicking socks and breathable shoes',
+        nextStep: 'Switch to bamboo or merino wool socks for your next outing'
+      },
+      face: {
+        strategy: 'Use oil-free skincare and keep cooling wipes handy',
+        nextStep: 'Pack face wipes in your bag for emergency touch-ups'
+      },
+      armpits: {
+        strategy: 'Apply clinical-strength antiperspirant and wear breathable fabrics',
+        nextStep: 'Try a prescription-strength antiperspirant tonight'
+      },
+      head: {
+        strategy: 'Use a sweat-absorbing headband or hat',
+        nextStep: 'Invest in a moisture-wicking headband for your next activity'
+      },
+      back: {
+        strategy: 'Wear moisture-wicking base layers',
+        nextStep: 'Choose loose-fitting, breathable clothing for tomorrow'
+      },
+      groin: {
+        strategy: 'Use moisture-wicking underwear and loose-fitting clothes',
+        nextStep: 'Switch to bamboo or moisture-wicking underwear'
+      },
+      entireBody: {
+        strategy: 'Focus on stress management and cooling techniques',
+        nextStep: 'Practice 5 minutes of deep breathing before stressful situations'
+      },
+      other: {
+        strategy: 'Keep the area dry and use appropriate clothing',
+        nextStep: 'Monitor this area closely and note any patterns'
+      }
+    };
+    return recommendations[area];
+  };
+
+  const getTriggerRecommendation = (trigger: Trigger): { strategy: string; nextStep: string } => {
+    const triggerRecommendations: Record<string, { strategy: string; nextStep: string }> = {
+      stress: {
+        strategy: 'Practice deep breathing and mindfulness techniques',
+        nextStep: 'Try 1 minute of calm breathing before your next stressful situation'
+      },
+      anxiety: {
+        strategy: 'Use grounding techniques and progressive muscle relaxation',
+        nextStep: 'Practice the 5-4-3-2-1 grounding technique when you feel anxious'
+      },
+      hotTemperature: {
+        strategy: 'Stay in air-conditioned spaces and use cooling products',
+        nextStep: 'Carry a portable fan or cooling towel for hot environments'
+      },
+      spicyFood: {
+        strategy: 'Avoid spicy foods and opt for milder alternatives',
+        nextStep: 'Plan your next meal with cooling foods like cucumber or yogurt'
+      },
+      physicalExercise: {
+        strategy: 'Exercise in cooler environments and stay hydrated',
+        nextStep: 'Schedule your next workout during cooler hours or in AC'
+      }
+    };
+    return triggerRecommendations[trigger.value] || {
+      strategy: 'Monitor this trigger and avoid when possible',
+      nextStep: 'Keep track of when this trigger affects you most'
+    };
+  };
+
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {/* Immediate Insights Section */}
+      {/* Progress Tracker */}
+      {episodeCount > 0 && (
+        <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-blue-600" />
+              <span className="text-sm font-medium text-blue-800">
+                ✨ You've logged {episodeCount} episodes this month — keep going! You're learning your patterns.
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Episode Summary */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-blue-600" />
-            🕵️‍♀️ Immediate Insights
+            <FileText className="h-5 w-5" />
+            Episode Summary
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Overall Severity */}
-          <div className="flex items-center gap-3">
-            <span className="font-medium">Overall Sweating Severity:</span>
-            <Badge className={severityInfo.color}>
-              {severityInfo.label}
-            </Badge>
-            <span className="text-sm text-muted-foreground">
-              ({episode.severityLevel}/5 intensity)
-            </span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Thermometer className="h-4 w-4 text-orange-500" />
+                <span className="font-medium">Sweating Severity</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {getSeverityDescription(episode.severityLevel)}
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-blue-500" />
+                <span className="font-medium">Affected Areas</span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {episode.bodyAreas.map((area) => (
+                  <Badge key={area} variant="secondary" className="text-xs">
+                    {getBodyAreaLabel(area)}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-red-500" />
+                <span className="font-medium">Triggers Identified</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {episode.triggers.length} trigger(s) detected
+              </p>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Your episode was rated {episode.severityLevel}/5 in intensity
-            {episode.severityLevel >= 3 ? '—enough to interfere with daily activities.' : '—manageable with basic interventions.'}
-          </p>
 
-          {/* Body Areas Affected */}
-          {uniqueBodyAreas.length > 0 && (
-            <div className="space-y-3">
-              <h4 className="font-medium flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Body Areas Affected
-              </h4>
-              <div className="space-y-2">
-                {uniqueBodyAreas.map((area) => {
-                  const config = bodyAreaConfig[area];
-                  return (
-                    <div key={area} className="flex items-start gap-2 text-sm">
-                      {config.icon}
-                      <div>
-                        <span className="font-medium">{config.label}:</span>
-                        <span className="ml-1 text-muted-foreground">{config.description}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Triggers Identified */}
-          {uniqueTriggers.length > 0 && (
-            <div className="space-y-3">
-              <h4 className="font-medium flex items-center gap-2">
-                <Zap className="h-4 w-4" />
-                Triggers Identified
-              </h4>
-              <div className="space-y-2">
-                {uniqueTriggers.map((trigger) => {
-                  const config = triggerConfig[trigger.value] || {
-                    icon: <Zap className="h-4 w-4" />,
-                    description: `${trigger.label} detected`,
-                    recommendation: 'Monitor this trigger and note patterns for future episodes'
-                  };
-                  return (
-                    <div key={trigger.value} className="flex items-start gap-2 text-sm">
-                      {config.icon}
-                      <div>
-                        <span className="font-medium">{trigger.label}:</span>
-                        <span className="ml-1 text-muted-foreground">{config.description}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Actionable Recommendations Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Lightbulb className="h-5 w-5 text-amber-600" />
-            💡 Actionable Recommendations
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Body Area Recommendations */}
-          {uniqueBodyAreas.length > 0 && (
-            <div className="space-y-3">
-              <h4 className="font-medium text-sm uppercase tracking-wide text-muted-foreground">
-                Area-Specific Tips
-              </h4>
-              <div className="space-y-3">
-                {uniqueBodyAreas.map((area) => {
-                  const config = bodyAreaConfig[area];
-                  return (
-                    <div key={area} className="border-l-4 border-blue-200 pl-4 py-2">
-                      <div className="flex items-center gap-2 mb-1">
-                        {config.icon}
-                        <span className="font-medium text-sm">{config.label}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{config.recommendation}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Trigger Recommendations */}
-          {uniqueTriggers.length > 0 && (
-            <div className="space-y-3">
-              <h4 className="font-medium text-sm uppercase tracking-wide text-muted-foreground">
-                Trigger Management
-              </h4>
-              <div className="space-y-3">
-                {uniqueTriggers.map((trigger) => {
-                  const config = triggerConfig[trigger.value] || {
-                    icon: <Zap className="h-4 w-4" />,
-                    description: `${trigger.label} detected`,
-                    recommendation: 'Monitor this trigger and note patterns for future episodes'
-                  };
-                  return (
-                    <div key={trigger.value} className="border-l-4 border-amber-200 pl-4 py-2">
-                      <div className="flex items-center gap-2 mb-1">
-                        {config.icon}
-                        <span className="font-medium text-sm">{trigger.label}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{config.recommendation}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Episode Summary */}
-          <div className="mt-6 pt-4 border-t">
-            <div className="text-center text-sm font-medium">
-              <span className="text-muted-foreground">Episode Summary: </span>
-              <span>Severity {episode.severityLevel}/5</span>
-              <span className="mx-2">•</span>
-              <span>{uniqueBodyAreas.length} body area{uniqueBodyAreas.length !== 1 ? 's' : ''} affected</span>
-              <span className="mx-2">•</span>
-              <span>{uniqueTriggers.length} unique trigger{uniqueTriggers.length !== 1 ? 's' : ''} identified</span>
-            </div>
+          <div className="flex gap-2 pt-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => window.print()}
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export Summary
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigator.share?.({ title: 'SweatSmart Episode Summary', text: 'My hyperhidrosis episode summary' })}
+              className="flex items-center gap-2"
+            >
+              <Share2 className="h-4 w-4" />
+              Share
+            </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* Insights & Recommendations */}
+      <div id="insights-recs">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Lightbulb className="h-5 w-5" />
+              Insights & Recommendations
+            </CardTitle>
+            <CardDescription>
+              Personalized suggestions based on your episode data
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Body Area Insights */}
+            {episode.bodyAreas.map((area) => {
+              const recommendation = getRecommendation(area);
+              return (
+                <div key={area} className="insight-card p-4 border rounded-lg bg-blue-50">
+                  <h3 className="font-semibold text-blue-900 mb-2">
+                    {getBodyAreaLabel(area)} Management
+                  </h3>
+                  <p className="text-sm text-blue-800 mb-2">
+                    <strong>Strategy:</strong> {recommendation.strategy}
+                  </p>
+                  <p className="text-xs text-blue-700 mb-3">
+                    <strong>What to do next:</strong> {recommendation.nextStep}
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => scrollToSection('treatment-options')}
+                    className="text-blue-700 border-blue-200 hover:bg-blue-100"
+                  >
+                    Explore Treatment Options
+                  </Button>
+                </div>
+              );
+            })}
+
+            {/* Trigger Insights */}
+            {Object.entries(groupedTriggers).map(([triggerType, triggers]) => {
+              const typeLabel = triggerType.charAt(0).toUpperCase() + triggerType.slice(1);
+              return (
+                <div key={triggerType} className="insight-card p-4 border rounded-lg bg-amber-50">
+                  <h3 className="font-semibold text-amber-900 mb-2">
+                    {typeLabel} Triggers
+                  </h3>
+                  {triggers.map((trigger, index) => {
+                    const recommendation = getTriggerRecommendation(trigger);
+                    return (
+                      <div key={index} className="mb-4 last:mb-2">
+                        <p className="text-sm text-amber-800 mb-1">
+                          <strong>{trigger.label}</strong> was identified as a trigger.
+                        </p>
+                        <p className="text-sm text-amber-800 mb-2">
+                          <strong>Strategy:</strong> {recommendation.strategy}
+                        </p>
+                        <p className="text-xs text-amber-700 mb-3">
+                          <strong>What to do next:</strong> {recommendation.nextStep}
+                        </p>
+                      </div>
+                    );
+                  })}
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => scrollToSection('self-management')}
+                    className="text-amber-700 border-amber-200 hover:bg-amber-100"
+                  >
+                    Learn Self-Management Strategies
+                  </Button>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Separator />
+
+      {/* Treatment Options */}
+      <div id="treatment-options">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Heart className="h-5 w-5" />
+              Clinical Treatment Options
+            </CardTitle>
+            <CardDescription>
+              Evidence-based medical treatments for hyperhidrosis
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4">
+              <div className="p-4 border rounded-lg">
+                <h4 className="font-semibold mb-2">Topical Medications</h4>
+                <ul className="text-sm space-y-2 text-muted-foreground">
+                  <li><strong>Glycopyrrolate cream (0.5–4%)</strong> - Prescription wipes (Qbrexza®) that block sweat-gland stimulation. Up to 82% reduction vs placebo.</li>
+                  <li><strong>20% Aluminum chloride hexahydrate</strong> - Strong OTC antiperspirant (Drysol®) that blocks sweat ducts. Most effective first-line treatment for palms/feet.</li>
+                </ul>
+              </div>
+
+              <div className="p-4 border rounded-lg">
+                <h4 className="font-semibold mb-2">Iontophoresis</h4>
+                <p className="text-sm text-muted-foreground">
+                  Delivers mild electrical current through water to hands, feet, or underarms. <strong>Efficacy:</strong> >80% reduction after 10–20 treatments.
+                </p>
+              </div>
+
+              <div className="p-4 border rounded-lg">
+                <h4 className="font-semibold mb-2">Botox® Injections</h4>
+                <p className="text-sm text-muted-foreground">
+                  Blocks neurotransmitters that trigger sweating. <strong>Duration:</strong> 3–9 months with 82–87% sweat reduction in underarms and palms.
+                </p>
+              </div>
+
+              <div className="p-4 border rounded-lg">
+                <h4 className="font-semibold mb-2">Microwave Therapy (miraDry®)</h4>
+                <p className="text-sm text-muted-foreground">
+                  FDA-approved device using controlled thermal energy to destroy underarm sweat glands. Durable results, rare nerve-related side effects.
+                </p>
+              </div>
+
+              <div className="p-4 border rounded-lg">
+                <h4 className="font-semibold mb-2">Oral Anticholinergics</h4>
+                <p className="text-sm text-muted-foreground">
+                  <strong>Glycopyrrolate or Oxybutynin</strong> tablets reduce overall sweat gland activity. <strong>Side effects:</strong> dry mouth, headache.
+                </p>
+              </div>
+
+              <div className="p-4 border rounded-lg">
+                <h4 className="font-semibold mb-2">Surgical Options</h4>
+                <p className="text-sm text-muted-foreground">
+                  <strong>Endoscopic Thoracic Sympathectomy (ETS)</strong> for severe palmar hyperhidrosis. Highly effective but reserved for refractory cases due to compensatory sweating risk.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Separator />
+
+      {/* Self-Management Strategies */}
+      <div id="self-management">
+        <Card>
+          <CardHeader>
+            <CardTitle>Self-Management Tips</CardTitle>
+            <CardDescription>
+              Practical strategies you can implement today
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4">
+              <div className="p-4 border rounded-lg">
+                <h4 className="font-semibold mb-2">Clothing & Fabric Choices</h4>
+                <ul className="text-sm space-y-1 text-muted-foreground">
+                  <li>• Choose moisture-wicking fabrics (bamboo, merino wool)</li>
+                  <li>• Wear loose-fitting, breathable clothing</li>
+                  <li>• Avoid synthetic fabrics that trap moisture</li>
+                  <li>• Layer clothing for easy adjustment</li>
+                </ul>
+              </div>
+
+              <div className="p-4 border rounded-lg">
+                <h4 className="font-semibold mb-2">Stress Management</h4>
+                <ul className="text-sm space-y-1 text-muted-foreground">
+                  <li>• Practice deep breathing exercises (4-7-8 technique)</li>
+                  <li>• Try progressive muscle relaxation</li>
+                  <li>• Use mindfulness meditation apps</li>
+                  <li>• Establish regular sleep schedule</li>
+                </ul>
+              </div>
+
+              <div className="p-4 border rounded-lg">
+                <h4 className="font-semibold mb-2">Diet & Lifestyle</h4>
+                <ul className="text-sm space-y-1 text-muted-foreground">
+                  <li>• Limit spicy foods, caffeine, and alcohol</li>
+                  <li>• Stay hydrated with cool water</li>
+                  <li>• Eat cooling foods (cucumber, yogurt, watermelon)</li>
+                  <li>• Exercise during cooler hours</li>
+                </ul>
+              </div>
+
+              <div className="p-4 border rounded-lg">
+                <h4 className="font-semibold mb-2">Temperature Regulation</h4>
+                <ul className="text-sm space-y-1 text-muted-foreground">
+                  <li>• Carry portable fans or cooling towels</li>
+                  <li>• Use air conditioning when available</li>
+                  <li>• Take cool showers before important events</li>
+                  <li>• Keep ice packs or cooling gels handy</li>
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
