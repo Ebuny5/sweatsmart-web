@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useSettings } from "@/hooks/useSettings";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, Bell, Clock, Youtube, Globe, AlertTriangle, CheckCircle } from "lucide-react";
+import { Loader2, Bell, Clock, Youtube, Globe, AlertTriangle, CheckCircle, TestTube } from "lucide-react";
 
 const Settings = () => {
   const { toast } = useToast();
@@ -27,7 +27,7 @@ const Settings = () => {
     website_url: ''
   });
 
-  // Check if user is admin (you can modify this logic based on your auth system)
+  // Check if user is admin
   const isAdmin = user?.email === 'admin@sweatsmart.com' || user?.user_metadata?.role === 'admin';
 
   useEffect(() => {
@@ -43,57 +43,65 @@ const Settings = () => {
     }
   }, [settings]);
 
-  const handleSave = async () => {
-    try {
-      setSaving(true);
+  // Request notification permission on component mount
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        console.log('Notification permission:', permission);
+      });
+    }
+  }, []);
 
-      const success = await updateSettings(localSettings);
-
-      if (success) {
+  const requestNotificationPermission = async () => {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
         toast({
-          title: "Settings saved successfully",
-          description: "Your preferences have been updated and are now active.",
-          action: <CheckCircle className="h-4 w-4 text-green-500" />
+          title: "Notifications enabled",
+          description: "You'll receive reminders and alerts based on your settings.",
         });
-
-        // Clear any existing notification timeouts
-        if (typeof window !== 'undefined' && window.notificationTimeout) {
-          clearTimeout(window.notificationTimeout);
-        }
-
-        // Schedule notifications if enabled
-        if (localSettings.daily_reminders || localSettings.trigger_alerts) {
-          scheduleNotifications();
-        }
       } else {
-        throw new Error('Failed to update settings');
+        toast({
+          title: "Notifications blocked",
+          description: "Please enable notifications in your browser settings to receive alerts.",
+          variant: "destructive",
+        });
       }
-    } catch (error) {
-      console.error('Error saving settings:', error);
+    }
+  };
+
+  const testNotification = () => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('SweatSmart Test Notification', {
+        body: 'This is a test notification. Your alerts are working!',
+        icon: '/favicon.ico',
+        tag: 'test-notification'
+      });
       toast({
-        title: "Error saving settings",
-        description: "Please check your connection and try again.",
+        title: "Test notification sent",
+        description: "If you see a notification, your alerts are working correctly.",
+      });
+    } else {
+      toast({
+        title: "Cannot send test notification",
+        description: "Please enable notifications first.",
         variant: "destructive",
       });
-    } finally {
-      setSaving(false);
     }
   };
 
   const scheduleNotifications = () => {
-    // Request notification permission if not already granted
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().then(permission => {
-        if (permission === 'granted') {
-          toast({
-            title: "Notifications enabled",
-            description: "You'll receive reminders based on your settings.",
-          });
-        }
-      });
+    // Clear any existing timeouts/intervals
+    if (typeof window !== 'undefined') {
+      if (window.notificationTimeout) {
+        clearTimeout(window.notificationTimeout);
+      }
+      if (window.notificationInterval) {
+        clearInterval(window.notificationInterval);
+      }
     }
 
-    // Set up daily reminder with proper scheduling
+    // Set up daily reminders
     if (localSettings.daily_reminders && localSettings.reminder_time) {
       const [hours, minutes] = localSettings.reminder_time.split(':').map(Number);
       const now = new Date();
@@ -109,14 +117,16 @@ const Settings = () => {
       
       console.log(`Daily reminder scheduled for ${reminderTime.toLocaleString()}`);
 
-      // Store timeout reference to clear it later if needed
+      // Use Web Workers or Service Workers for background tasks in production
+      // For now, using setTimeout with proper cleanup
       if (typeof window !== 'undefined') {
         window.notificationTimeout = setTimeout(() => {
           if ('Notification' in window && Notification.permission === 'granted') {
             new Notification('SweatSmart Daily Reminder', {
               body: 'Time to log your hyperhidrosis episode and track your patterns!',
               icon: '/favicon.ico',
-              badge: '/favicon.ico'
+              tag: 'daily-reminder',
+              requireInteraction: true
             });
           }
           
@@ -126,12 +136,12 @@ const Settings = () => {
               new Notification('SweatSmart Daily Reminder', {
                 body: 'Time to log your hyperhidrosis episode and track your patterns!',
                 icon: '/favicon.ico',
-                badge: '/favicon.ico'
+                tag: 'daily-reminder',
+                requireInteraction: true
               });
             }
           }, 24 * 60 * 60 * 1000); // 24 hours
 
-          // Store interval reference
           if (typeof window !== 'undefined') {
             window.notificationInterval = dailyInterval;
           }
@@ -139,11 +149,43 @@ const Settings = () => {
       }
     }
 
-    // Set up trigger alert listener
+    // Set up trigger alert system
     if (localSettings.trigger_alerts) {
       console.log('Trigger alerts enabled - monitoring for patterns');
-      // You could implement real-time trigger monitoring here
-      // This would integrate with your episode logging to detect patterns
+      // In a real implementation, you'd set up a service worker here
+      // to monitor for trigger patterns even when the app is closed
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+
+      const success = await updateSettings(localSettings);
+
+      if (success) {
+        toast({
+          title: "Settings saved successfully",
+          description: "Your preferences have been updated and are now active.",
+          action: <CheckCircle className="h-4 w-4 text-green-500" />
+        });
+
+        // Schedule notifications after successful save
+        if (localSettings.daily_reminders || localSettings.trigger_alerts) {
+          scheduleNotifications();
+        }
+      } else {
+        throw new Error('Failed to update settings');
+      }
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast({
+        title: "Error saving settings",
+        description: "Please check your connection and try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -183,13 +225,37 @@ const Settings = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bell className="h-5 w-5" />
-                Notifications
+                Notifications & Alerts
               </CardTitle>
               <CardDescription>
                 Manage your reminder and alert preferences
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Notification Permission Status */}
+              {'Notification' in window && (
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Browser Notifications</Label>
+                    <div className="text-[0.8rem] text-muted-foreground">
+                      Status: {Notification.permission === 'granted' ? 'Enabled' : 
+                              Notification.permission === 'denied' ? 'Blocked' : 'Not requested'}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    {Notification.permission !== 'granted' && (
+                      <Button variant="outline" size="sm" onClick={requestNotificationPermission}>
+                        Enable Notifications
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm" onClick={testNotification}>
+                      <TestTube className="h-4 w-4 mr-2" />
+                      Test
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label className="text-base">Daily Reminders</Label>
@@ -242,7 +308,7 @@ const Settings = () => {
             </CardContent>
           </Card>
 
-          {/* Admin-only Social Links */}
+          {/* Admin-only Content Management */}
           {isAdmin && (
             <Card>
               <CardHeader>
@@ -270,7 +336,7 @@ const Settings = () => {
                     }
                   />
                   <div className="text-[0.8rem] text-muted-foreground">
-                    This video will be featured in the "Share Your Story" section for all users
+                    This video will be featured in the community section for all users
                   </div>
                 </div>
 
@@ -301,10 +367,10 @@ const Settings = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Globe className="h-5 w-5" />
-                Share Your Story
+                Community Resources
               </CardTitle>
               <CardDescription>
-                Help the hyperhidrosis community with featured resources
+                Featured resources for the hyperhidrosis community
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -322,11 +388,11 @@ const Settings = () => {
                       Beyond Sweat - Hyperhidrosis Support & Resources
                     </a>
                   </div>
-                  {settings?.youtube_url && (
+                  {(settings?.youtube_url || localSettings.youtube_url) && (
                     <div className="flex items-center gap-2">
                       <Youtube className="h-4 w-4 text-red-600" />
                       <a 
-                        href={settings.youtube_url} 
+                        href={settings?.youtube_url || localSettings.youtube_url} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="text-red-600 hover:underline"
@@ -366,25 +432,43 @@ const Settings = () => {
             </CardContent>
           </Card>
 
-          {/* Notification Permission Alert */}
+          {/* Notification Status Alerts */}
           {'Notification' in window && Notification.permission === 'default' && (
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Enable browser notifications to receive reminders and alerts. Click "Save Changes" to request permission.
+                Enable browser notifications to receive reminders and alerts. Click "Enable Notifications" above to get started.
               </AlertDescription>
             </Alert>
           )}
 
-          {/* Notification Permission Success */}
+          {'Notification' in window && Notification.permission === 'denied' && (
+            <Alert className="border-red-200 bg-red-50">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800">
+                Notifications are blocked. Please enable them in your browser settings to receive reminders and alerts.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {'Notification' in window && Notification.permission === 'granted' && (
             <Alert className="border-green-200 bg-green-50">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
-                Browser notifications are enabled. You'll receive reminders based on your settings.
+                Browser notifications are enabled. You'll receive reminders and alerts based on your settings.
               </AlertDescription>
             </Alert>
           )}
+
+          {/* Background Task Information */}
+          <Alert>
+            <Bell className="h-4 w-4" />
+            <AlertDescription>
+              <strong>About Notifications:</strong> Daily reminders work using browser notifications. 
+              For the best experience, keep this tab open or add SweatSmart to your home screen. 
+              Trigger alerts are currently detected when you log episodes in the app.
+            </AlertDescription>
+          </Alert>
         </div>
       </div>
     </AppLayout>
