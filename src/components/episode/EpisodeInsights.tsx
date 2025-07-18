@@ -17,6 +17,8 @@ import {
   Calendar,
   Activity
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import { useEpisodes } from '@/hooks/useEpisodes';
 
 interface EpisodeInsightsProps {
   episode: ProcessedEpisode;
@@ -27,6 +29,8 @@ const EpisodeInsights: React.FC<EpisodeInsightsProps> = ({
   episode, 
   totalEpisodes = 0 
 }) => {
+  const { episodes } = useEpisodes();
+
   // Helper function to get user-friendly body area labels
   const getBodyAreaLabel = (area: BodyArea): string => {
     const labels: Record<BodyArea, string> = {
@@ -107,7 +111,7 @@ const EpisodeInsights: React.FC<EpisodeInsightsProps> = ({
   };
 
   const getTriggerRecommendations = (trigger: Trigger): { strategy: string; nextStep: string } => {
-    const value = trigger.value.toLowerCase();
+    const value = trigger.label.toLowerCase();
     
     if (trigger.type === 'environmental') {
       if (value.includes('hot') || value.includes('temperature')) {
@@ -159,23 +163,155 @@ const EpisodeInsights: React.FC<EpisodeInsightsProps> = ({
     };
   };
 
-  const handleExport = () => {
-    const exportData = {
-      date: episode.datetime.toLocaleDateString(),
-      severity: episode.severityLevel,
-      bodyAreas: episode.bodyAreas.map(getBodyAreaLabel),
-      triggers: episode.triggers.map(t => t.label),
-      notes: episode.notes || 'No notes'
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const margin = 20;
+    let yPosition = margin;
+
+    // Helper function to add text with word wrapping
+    const addWrappedText = (text: string, x: number, maxWidth: number, fontSize = 10) => {
+      doc.setFontSize(fontSize);
+      const lines = doc.splitTextToSize(text, maxWidth);
+      doc.text(lines, x, yPosition);
+      yPosition += lines.length * (fontSize * 0.4) + 5;
+      return lines.length;
     };
-    
-    const dataStr = JSON.stringify(exportData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `episode-${episode.datetime.toISOString().split('T')[0]}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+
+    // Helper function to check if we need a new page
+    const checkNewPage = (requiredSpace = 30) => {
+      if (yPosition + requiredSpace > doc.internal.pageSize.height - margin) {
+        doc.addPage();
+        yPosition = margin;
+      }
+    };
+
+    // Title
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SweatSmart Episode Report', margin, yPosition);
+    yPosition += 20;
+
+    // All Episodes Summary
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('All Episodes Summary', margin, yPosition);
+    yPosition += 15;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total Episodes: ${episodes.length}`, margin, yPosition);
+    yPosition += 10;
+
+    if (episodes.length > 0) {
+      // Episodes table header
+      checkNewPage(50);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Date', margin, yPosition);
+      doc.text('Severity', margin + 40, yPosition);
+      doc.text('Body Areas', margin + 80, yPosition);
+      doc.text('Triggers', margin + 130, yPosition);
+      yPosition += 10;
+
+      doc.setFont('helvetica', 'normal');
+      
+      episodes.forEach((ep) => {
+        checkNewPage(20);
+        
+        const dateStr = ep.datetime.toLocaleDateString();
+        const bodyAreasStr = ep.bodyAreas.map(getBodyAreaLabel).join(', ');
+        const triggersStr = ep.triggers.map(t => t.label).join(', ');
+        
+        doc.text(dateStr, margin, yPosition);
+        doc.text(ep.severityLevel.toString(), margin + 40, yPosition);
+        
+        // Handle long text for body areas and triggers
+        const bodyAreaLines = doc.splitTextToSize(bodyAreasStr, 45);
+        const triggerLines = doc.splitTextToSize(triggersStr, 50);
+        
+        doc.text(bodyAreaLines[0] || '', margin + 80, yPosition);
+        doc.text(triggerLines[0] || '', margin + 130, yPosition);
+        
+        if (bodyAreaLines.length > 1 || triggerLines.length > 1) {
+          yPosition += 8;
+          for (let i = 1; i < Math.max(bodyAreaLines.length, triggerLines.length); i++) {
+            checkNewPage(8);
+            if (bodyAreaLines[i]) doc.text(bodyAreaLines[i], margin + 80, yPosition);
+            if (triggerLines[i]) doc.text(triggerLines[i], margin + 130, yPosition);
+            yPosition += 8;
+          }
+        }
+        
+        yPosition += 12;
+      });
+    }
+
+    // Current Episode Details
+    checkNewPage(60);
+    yPosition += 10;
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Current Episode Details', margin, yPosition);
+    yPosition += 15;
+
+    doc.setFontSize(12);
+    addWrappedText(`Date: ${episode.datetime.toLocaleDateString()} at ${episode.datetime.toLocaleTimeString()}`, margin, pageWidth - 2 * margin, 12);
+    addWrappedText(`Severity: ${getSeverityDescription(episode.severityLevel)}`, margin, pageWidth - 2 * margin, 12);
+
+    if (episode.bodyAreas.length > 0) {
+      addWrappedText(`Affected Areas: ${episode.bodyAreas.map(getBodyAreaLabel).join(', ')}`, margin, pageWidth - 2 * margin, 12);
+    }
+
+    if (episode.triggers.length > 0) {
+      addWrappedText(`Triggers: ${episode.triggers.map(t => t.label).join(', ')}`, margin, pageWidth - 2 * margin, 12);
+    }
+
+    if (episode.notes) {
+      addWrappedText(`Notes: ${episode.notes}`, margin, pageWidth - 2 * margin, 12);
+    }
+
+    // Recommendations
+    checkNewPage(80);
+    yPosition += 10;
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Personalized Recommendations', margin, yPosition);
+    yPosition += 15;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+
+    // Body area recommendations
+    episode.bodyAreas.forEach((area) => {
+      checkNewPage(30);
+      const recommendation = getBodyAreaRecommendations(area);
+      
+      doc.setFont('helvetica', 'bold');
+      addWrappedText(`${getBodyAreaLabel(area)} Care:`, margin, pageWidth - 2 * margin, 10);
+      
+      doc.setFont('helvetica', 'normal');
+      addWrappedText(`Strategy: ${recommendation.strategy}`, margin, pageWidth - 2 * margin, 10);
+      addWrappedText(`Next Step: ${recommendation.nextStep}`, margin, pageWidth - 2 * margin, 10);
+      yPosition += 5;
+    });
+
+    // Trigger recommendations
+    episode.triggers.forEach((trigger) => {
+      checkNewPage(30);
+      const recommendation = getTriggerRecommendations(trigger);
+      
+      doc.setFont('helvetica', 'bold');
+      addWrappedText(`${trigger.label} Management:`, margin, pageWidth - 2 * margin, 10);
+      
+      doc.setFont('helvetica', 'normal');
+      addWrappedText(`Strategy: ${recommendation.strategy}`, margin, pageWidth - 2 * margin, 10);
+      addWrappedText(`Next Step: ${recommendation.nextStep}`, margin, pageWidth - 2 * margin, 10);
+      yPosition += 5;
+    });
+
+    // Save the PDF
+    const fileName = `sweatsmart-episode-report-${episode.datetime.toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
   };
 
   const handleShare = async () => {
@@ -212,9 +348,9 @@ const EpisodeInsights: React.FC<EpisodeInsightsProps> = ({
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handleExport}>
+              <Button variant="outline" size="sm" onClick={handleExportPDF}>
                 <Download className="h-4 w-4 mr-2" />
-                Export
+                Export PDF
               </Button>
               <Button variant="outline" size="sm" onClick={handleShare}>
                 <Share2 className="h-4 w-4 mr-2" />
