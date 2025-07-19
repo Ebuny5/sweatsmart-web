@@ -43,17 +43,32 @@ const Settings = () => {
     checkPermission();
     
     // Set up reminder if settings are already loaded
-    if (settings?.daily_reminders && settings?.reminder_time) {
+    if (settings?.daily_reminders && settings?.reminder_time && notificationPermission === 'granted') {
       notificationService.scheduleReminder(settings.reminder_time);
     }
 
     // Check for trigger alerts
-    if (settings?.trigger_alerts && episodes.length > 0) {
+    if (settings?.trigger_alerts && episodes.length > 0 && notificationPermission === 'granted') {
       notificationService.checkTriggerAlerts(episodes);
     }
-  }, [settings, episodes]);
+  }, [settings, episodes, notificationPermission]);
 
   const handleSettingChange = async (key: string, value: any) => {
+    // If enabling notifications, request permission first
+    if ((key === 'daily_reminders' || key === 'trigger_alerts') && value) {
+      const hasPermission = await notificationService.requestPermission();
+      setNotificationPermission(notificationService.getPermissionStatus());
+      
+      if (!hasPermission) {
+        toast({
+          title: "Permission Required",
+          description: "Please allow notifications in your browser to enable this feature.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     const success = await updateSettings({ [key]: value });
     
     if (success) {
@@ -63,12 +78,8 @@ const Settings = () => {
       });
 
       // Handle notification-specific settings
-      if (key === 'daily_reminders' && value) {
-        const hasPermission = await notificationService.requestPermission();
-        if (hasPermission && settings?.reminder_time) {
-          notificationService.scheduleReminder(settings.reminder_time);
-        }
-        setNotificationPermission(notificationService.getPermissionStatus());
+      if (key === 'daily_reminders' && value && settings?.reminder_time) {
+        notificationService.scheduleReminder(settings.reminder_time);
       } else if (key === 'daily_reminders' && !value) {
         notificationService.clearReminders();
       } else if (key === 'reminder_time' && settings?.daily_reminders) {
@@ -85,6 +96,21 @@ const Settings = () => {
 
   const testNotification = async () => {
     setTestingNotification(true);
+    
+    // Request permission first if not granted
+    const hasPermission = await notificationService.requestPermission();
+    setNotificationPermission(notificationService.getPermissionStatus());
+    
+    if (!hasPermission) {
+      toast({
+        title: "Permission Required",
+        description: "Please allow notifications in your browser to test notifications.",
+        variant: "destructive"
+      });
+      setTestingNotification(false);
+      return;
+    }
+
     const success = await notificationService.testNotification();
     
     if (success) {
@@ -113,6 +139,24 @@ const Settings = () => {
         return <Badge variant="outline"><AlertCircle className="h-3 w-3 mr-1" />Unsupported</Badge>;
       default:
         return <Badge variant="outline"><AlertCircle className="h-3 w-3 mr-1" />Not Set</Badge>;
+    }
+  };
+
+  const requestNotificationPermission = async () => {
+    const hasPermission = await notificationService.requestPermission();
+    setNotificationPermission(notificationService.getPermissionStatus());
+    
+    if (hasPermission) {
+      toast({
+        title: "Notifications Enabled!",
+        description: "You can now receive reminders and alerts.",
+      });
+    } else {
+      toast({
+        title: "Permission Denied",
+        description: "Please manually enable notifications in your browser settings.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -155,7 +199,14 @@ const Settings = () => {
                 <Bell className="h-4 w-4" />
                 <span className="text-sm font-medium">Browser Notifications</span>
               </div>
-              {getPermissionBadge()}
+              <div className="flex items-center gap-2">
+                {getPermissionBadge()}
+                {notificationPermission !== 'granted' && notificationPermission !== 'unsupported' && (
+                  <Button variant="outline" size="sm" onClick={requestNotificationPermission}>
+                    Enable Notifications
+                  </Button>
+                )}
+              </div>
             </div>
 
             {notificationPermission === 'denied' && (
@@ -165,6 +216,15 @@ const Settings = () => {
                   Notifications are blocked. Please enable them in your browser settings to receive reminders and alerts.
                   <br />
                   <span className="text-xs mt-1 block">Chrome: Click the lock icon in address bar → Notifications → Allow</span>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {notificationPermission === 'default' && (
+              <Alert className="border-blue-200 bg-blue-50">
+                <Bell className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-blue-800">
+                  Click "Enable Notifications" above to receive reminders and trigger alerts.
                 </AlertDescription>
               </Alert>
             )}
@@ -233,7 +293,7 @@ const Settings = () => {
                   variant="outline" 
                   size="sm" 
                   onClick={testNotification}
-                  disabled={testingNotification || notificationPermission !== 'granted'}
+                  disabled={testingNotification}
                 >
                   <TestTube className="h-4 w-4 mr-2" />
                   {testingNotification ? 'Sending...' : 'Test Now'}

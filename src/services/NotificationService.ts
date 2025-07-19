@@ -4,7 +4,7 @@ class NotificationService {
   private reminderTimeouts: Set<NodeJS.Timeout> = new Set();
 
   private constructor() {
-    this.init();
+    // Don't auto-request on initialization
   }
 
   static getInstance(): NotificationService {
@@ -12,16 +12,6 @@ class NotificationService {
       NotificationService.instance = new NotificationService();
     }
     return NotificationService.instance;
-  }
-
-  private init() {
-    // Request permission on initialization if not already granted
-    if ('Notification' in window && Notification.permission === 'default') {
-      console.log('Requesting notification permission...');
-      Notification.requestPermission().then(permission => {
-        console.log('Notification permission:', permission);
-      });
-    }
   }
 
   async requestPermission(): Promise<boolean> {
@@ -40,8 +30,9 @@ class NotificationService {
     }
 
     try {
+      // Force a fresh permission request
       const permission = await Notification.requestPermission();
-      console.log('Permission request result:', permission);
+      console.log('Fresh permission request result:', permission);
       return permission === 'granted';
     } catch (error) {
       console.error('Error requesting notification permission:', error);

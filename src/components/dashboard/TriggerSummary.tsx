@@ -1,5 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { TriggerFrequency, ProcessedEpisode } from "@/types";
 import { 
   ResponsiveContainer, 
@@ -12,6 +14,7 @@ import {
   LabelList 
 } from "recharts";
 import { useMemo } from "react";
+import { Eye, BarChart3 } from "lucide-react";
 
 interface TriggerSummaryProps {
   triggers: TriggerFrequency[];
@@ -66,27 +69,50 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
     return displayTriggers.map(triggerFreq => {
       const triggerLabel = triggerFreq.trigger.label || triggerFreq.trigger.value || 'Unknown';
       return {
-        name: triggerLabel.length > 15 
-          ? triggerLabel.substring(0, 15) + '...' 
+        name: triggerLabel.length > 12 
+          ? triggerLabel.substring(0, 12) + '...' 
           : triggerLabel,
         fullName: triggerLabel,
         count: triggerFreq.count,
-        severity: Number(triggerFreq.averageSeverity.toFixed(1))
+        severity: Number(triggerFreq.averageSeverity.toFixed(1)),
+        percentage: triggerFreq.percentage
       };
     });
   }, [displayTriggers]);
 
   const cardTitle = isInsightState ? "Your Top Triggers" : "Trigger Summary";
+
+  const handleTriggerClick = (triggerName: string) => {
+    // Navigate to episodes filtered by this trigger
+    const filteredEpisodes = allEpisodes.filter(episode => 
+      episode.triggers.some(trigger => 
+        (trigger.label || trigger.value || 'Unknown') === triggerName
+      )
+    );
+    
+    console.log(`Clicked on trigger: ${triggerName}`, filteredEpisodes);
+    // TODO: Implement navigation to filtered episodes view
+  };
   
   return (
     <Card className="col-span-3 lg:col-span-2">
       <CardHeader>
-        <CardTitle>{cardTitle}</CardTitle>
-        {allEpisodes.length > 0 && (
-          <p className="text-sm text-muted-foreground">
-            {processedTriggers.length} unique triggers identified
-          </p>
-        )}
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              {cardTitle}
+            </CardTitle>
+            {allEpisodes.length > 0 && (
+              <p className="text-sm text-muted-foreground mt-1">
+                {processedTriggers.length} unique triggers identified from {allEpisodes.length} episodes
+              </p>
+            )}
+          </div>
+          <Badge variant="outline" className="text-xs">
+            Total Episodes: {allEpisodes.length}
+          </Badge>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="h-[300px] w-full">
@@ -95,7 +121,7 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
               <BarChart
                 data={chartData}
                 layout="vertical"
-                margin={{ top: 20, right: 40, left: 80, bottom: 20 }}
+                margin={{ top: 20, right: 60, left: 100, bottom: 20 }}
               >
                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} opacity={0.3} />
                 <XAxis 
@@ -107,10 +133,10 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
                 <YAxis 
                   type="category" 
                   dataKey="name" 
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: 11 }}
                   tickLine={false}
                   axisLine={false}
-                  width={75}
+                  width={95}
                 />
                 <Tooltip 
                   formatter={(value: any, name: string) => {
@@ -118,7 +144,14 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
                   }}
                   labelFormatter={(label: string, payload: any[]) => {
                     const item = payload?.[0]?.payload;
-                    return item?.fullName || label;
+                    return (
+                      <div className="space-y-1">
+                        <div className="font-medium">{item?.fullName || label}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {item?.percentage}% of all episodes
+                        </div>
+                      </div>
+                    );
                   }}
                   contentStyle={{
                     backgroundColor: 'hsl(var(--background))',
@@ -131,11 +164,13 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
                   fill="hsl(var(--primary))" 
                   name="Episodes" 
                   radius={[0, 4, 4, 0]}
+                  cursor="pointer"
+                  onClick={(data) => handleTriggerClick(data.fullName)}
                 >
                   <LabelList 
                     dataKey="count" 
                     position="right" 
-                    fontSize={12}
+                    fontSize={11}
                     fill="hsl(var(--foreground))"
                   />
                 </Bar>
@@ -152,11 +187,30 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
           )}
         </div>
         
-        {!isInsightState && chartData.length > 0 && (
-          <div className="mt-6 p-4 bg-muted/30 rounded-lg border border-muted">
-            <p className="text-sm text-muted-foreground">
-              💡 <strong>Keep tracking!</strong> Log {10 - allEpisodes.length} more episodes to unlock deeper insights into your top triggers.
-            </p>
+        {chartData.length > 0 && (
+          <div className="mt-4 space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {displayTriggers.slice(0, 3).map((trigger, index) => (
+                <Button
+                  key={index}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7"
+                  onClick={() => handleTriggerClick(trigger.trigger.label)}
+                >
+                  <Eye className="h-3 w-3 mr-1" />
+                  {trigger.trigger.label} ({trigger.count})
+                </Button>
+              ))}
+            </div>
+            
+            {!isInsightState && chartData.length > 0 && (
+              <div className="p-3 bg-muted/30 rounded-lg border border-muted">
+                <p className="text-sm text-muted-foreground">
+                  💡 <strong>Keep tracking!</strong> Log {10 - allEpisodes.length} more episodes to unlock deeper insights and trigger analysis.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
