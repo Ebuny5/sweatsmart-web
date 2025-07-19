@@ -4,7 +4,7 @@ class NotificationService {
   private reminderTimeouts: Set<NodeJS.Timeout> = new Set();
 
   private constructor() {
-    // Don't auto-request on initialization
+    // Initialize service
   }
 
   static getInstance(): NotificationService {
@@ -14,13 +14,25 @@ class NotificationService {
     return NotificationService.instance;
   }
 
+  // Check if running as mobile app
+  private isMobileApp(): boolean {
+    return window.location.href.includes('lovableproject.com') || 
+           navigator.userAgent.includes('wv') || 
+           window.matchMedia('(display-mode: standalone)').matches;
+  }
+
   async requestPermission(): Promise<boolean> {
+    // For mobile apps, we don't need browser notification permissions
+    if (this.isMobileApp()) {
+      console.log('Mobile app detected - using in-app alerts');
+      return true;
+    }
+
     if (!('Notification' in window)) {
       console.warn('This browser does not support notifications');
       return false;
     }
 
-    // Check current permission status
     let permission = Notification.permission;
     console.log('Current notification permission:', permission);
 
@@ -29,21 +41,13 @@ class NotificationService {
     }
 
     if (permission === 'denied') {
-      console.warn('Notifications are denied by user - they need to manually enable in browser settings');
+      console.warn('Notifications are denied by user');
       return false;
     }
 
     try {
-      // Request permission - this will show browser dialog
       permission = await Notification.requestPermission();
       console.log('Permission request result:', permission);
-      
-      // Force refresh the permission status
-      setTimeout(() => {
-        const newPermission = Notification.permission;
-        console.log('Refreshed permission status:', newPermission);
-      }, 1000);
-      
       return permission === 'granted';
     } catch (error) {
       console.error('Error requesting notification permission:', error);
@@ -52,22 +56,31 @@ class NotificationService {
   }
 
   getPermissionStatus(): 'granted' | 'denied' | 'default' | 'unsupported' {
+    // For mobile apps, always return granted as we use in-app alerts
+    if (this.isMobileApp()) {
+      return 'granted';
+    }
+
     if (!('Notification' in window)) {
       return 'unsupported';
     }
-    const status = Notification.permission;
-    console.log('Getting permission status:', status);
-    return status;
+    return Notification.permission;
   }
 
   async showNotification(title: string, options?: NotificationOptions): Promise<boolean> {
+    // For mobile apps, use console log instead of browser notifications
+    if (this.isMobileApp()) {
+      console.log(`📱 Mobile Alert: ${title}`, options?.body || '');
+      return true;
+    }
+
     if (!('Notification' in window)) {
       console.warn('Notifications not supported');
       return false;
     }
 
     if (Notification.permission !== 'granted') {
-      console.warn('Cannot show notification: permission not granted. Current status:', Notification.permission);
+      console.warn('Cannot show notification: permission not granted');
       return false;
     }
 
@@ -133,11 +146,6 @@ class NotificationService {
   async checkTriggerAlerts(episodes: any[]): Promise<void> {
     if (episodes.length < 2) return;
 
-    if (Notification.permission !== 'granted') {
-      console.log('Cannot check trigger alerts: notifications not granted');
-      return;
-    }
-
     // Get recent episodes (last 7 days)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -188,8 +196,8 @@ class NotificationService {
   // Test notification (for immediate testing)
   async testNotification(): Promise<boolean> {
     console.log('Testing notification...');
-    return await this.showNotification('Test Notification - SweatSmart', {
-      body: 'If you see this, notifications are working correctly!',
+    return await this.showNotification('Test Alert - SweatSmart', {
+      body: 'Your alerts are working correctly! 🎉',
       tag: 'test'
     });
   }

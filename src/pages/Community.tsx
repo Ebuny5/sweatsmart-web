@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { format, subDays } from "date-fns";
-import { MessageSquare, Heart, Calendar, Users, Plus, ExternalLink, Video, Globe } from "lucide-react";
+import { MessageSquare, Heart, Calendar, Users, Plus, ExternalLink, Video, Globe, Clock } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -28,6 +27,7 @@ interface CommunityPost {
   comments: number;
   createdAt: Date;
   isAnonymous: boolean;
+  isPending?: boolean;
 }
 
 interface CommunityEvent {
@@ -54,6 +54,7 @@ const eventSchema = z.object({
 
 const Community = () => {
   const [posts, setPosts] = useState<CommunityPost[]>([]);
+  const [pendingPosts, setPendingPosts] = useState<CommunityPost[]>([]);
   const [events, setEvents] = useState<CommunityEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
@@ -83,12 +84,12 @@ const Community = () => {
     },
   });
 
-  // Mock data for now - replace with actual Supabase queries
+  // Load placeholder posts and events
   useEffect(() => {
-    // Mock posts
+    // Placeholder posts (kept visible during beta)
     setPosts([
       {
-        id: "1",
+        id: "placeholder-1",
         user: "Sarah M.",
         title: "Finally found relief!",
         content: "After trying different treatments for years, I finally found a combination that works for me. Clinical-strength antiperspirant at night plus iontophoresis treatments have reduced my palm sweating by about 80%. Don't give up hope!",
@@ -99,7 +100,7 @@ const Community = () => {
         isAnonymous: false,
       },
       {
-        id: "2",
+        id: "placeholder-2",
         user: "Anonymous",
         title: "",
         content: "Going to a job interview tomorrow and I'm so nervous about shaking hands. Any quick tips for managing palm sweating in the moment?",
@@ -109,9 +110,20 @@ const Community = () => {
         createdAt: subDays(new Date(), 1),
         isAnonymous: true,
       },
+      {
+        id: "placeholder-3",
+        user: "Mike T.",
+        title: "Great tip for social situations",
+        content: "I always carry a small towel or handkerchief in my pocket. It's been a game-changer for confidence in social situations. Also, keeping my hands slightly apart when walking helps with air circulation.",
+        type: "tip",
+        likes: 15,
+        comments: 8,
+        createdAt: subDays(new Date(), 3),
+        isAnonymous: false,
+      },
     ]);
 
-    // Mock events
+    // Placeholder events
     setEvents([
       {
         id: "1",
@@ -172,22 +184,45 @@ const Community = () => {
         comments: 0,
         createdAt: new Date(),
         isAnonymous: values.isAnonymous,
+        isPending: true, // All new posts require admin approval
       };
 
-      setPosts([newPost, ...posts]);
+      // Add to pending posts instead of live posts
+      setPendingPosts([newPost, ...pendingPosts]);
       setShowStoryDialog(false);
       storyForm.reset();
+      
       toast({
-        title: "Story shared!",
-        description: "Thank you for sharing your experience with the community.",
+        title: "Story submitted!",
+        description: "Thank you for sharing! Your story is pending admin approval and will appear soon.",
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to share your story. Please try again.",
+        description: "Failed to submit your story. Please try again.",
         variant: "destructive",
       });
     }
+  };
+
+  const approvePendingPost = (postId: string) => {
+    const postToApprove = pendingPosts.find(p => p.id === postId);
+    if (postToApprove) {
+      setPosts([{ ...postToApprove, isPending: false }, ...posts]);
+      setPendingPosts(pendingPosts.filter(p => p.id !== postId));
+      toast({
+        title: "Post approved",
+        description: "The story has been published to the community.",
+      });
+    }
+  };
+
+  const rejectPendingPost = (postId: string) => {
+    setPendingPosts(pendingPosts.filter(p => p.id !== postId));
+    toast({
+      title: "Post rejected",
+      description: "The story has been removed from pending queue.",
+    });
   };
 
   const onSubmitEvent = async (values: z.infer<typeof eventSchema>) => {
@@ -289,13 +324,61 @@ const Community = () => {
                     <Button type="button" variant="outline" onClick={() => setShowStoryDialog(false)}>
                       Cancel
                     </Button>
-                    <Button type="submit">Share Story</Button>
+                    <Button type="submit">Submit for Review</Button>
                   </div>
                 </form>
               </Form>
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* Admin Pending Posts Section */}
+        {isAdmin && pendingPosts.length > 0 && (
+          <Card className="border-orange-200 bg-orange-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-orange-800">
+                <Clock className="h-5 w-5" />
+                Pending Stories ({pendingPosts.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {pendingPosts.map((post) => (
+                  <div key={post.id} className="bg-white p-4 rounded-lg border">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center gap-2">
+                        <Badge className={getPostTypeColor(post.type)}>
+                          {getPostTypeLabel(post.type)}
+                        </Badge>
+                        <span className="text-sm text-muted-foreground">
+                          by {post.user}
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          onClick={() => approvePendingPost(post.id)}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          Approve
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="destructive"
+                          onClick={() => rejectPendingPost(post.id)}
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
+                    {post.title && <h4 className="font-medium mb-2">{post.title}</h4>}
+                    <p className="text-sm">{post.content}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* WhatsApp Community Link */}
         <Card className="border-green-200 bg-green-50">
