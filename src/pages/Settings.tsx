@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import DataManagement from "@/components/settings/DataManagement";
 import { notificationService } from "@/services/NotificationService";
 import { useEpisodes } from "@/hooks/useEpisodes";
+import { cn } from "@/lib/utils";
 
 const Settings = () => {
   const { settings, loading, updateSettings } = useSettings();
