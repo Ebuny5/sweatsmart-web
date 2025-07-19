@@ -18,7 +18,8 @@ import {
   TestTube,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from "lucide-react";
 import { useSettings } from "@/hooks/useSettings";
 import { useToast } from "@/hooks/use-toast";
@@ -32,37 +33,41 @@ const Settings = () => {
   const { toast } = useToast();
   const [notificationPermission, setNotificationPermission] = useState<string>('default');
   const [testingNotification, setTestingNotification] = useState(false);
+  const [checkingPermission, setCheckingPermission] = useState(false);
+
+  const checkNotificationPermission = () => {
+    const permission = notificationService.getPermissionStatus();
+    console.log('Checking notification permission:', permission);
+    setNotificationPermission(permission);
+    return permission;
+  };
 
   useEffect(() => {
-    // Check notification permission status
-    const checkPermission = () => {
-      const permission = notificationService.getPermissionStatus();
-      setNotificationPermission(permission);
-    };
-
-    checkPermission();
+    // Initial permission check
+    checkNotificationPermission();
     
-    // Set up reminder if settings are already loaded
-    if (settings?.daily_reminders && settings?.reminder_time && notificationPermission === 'granted') {
+    // Set up reminder if settings are already loaded and permission is granted
+    const currentPermission = checkNotificationPermission();
+    if (settings?.daily_reminders && settings?.reminder_time && currentPermission === 'granted') {
       notificationService.scheduleReminder(settings.reminder_time);
     }
 
     // Check for trigger alerts
-    if (settings?.trigger_alerts && episodes.length > 0 && notificationPermission === 'granted') {
+    if (settings?.trigger_alerts && episodes.length > 0 && currentPermission === 'granted') {
       notificationService.checkTriggerAlerts(episodes);
     }
-  }, [settings, episodes, notificationPermission]);
+  }, [settings, episodes]);
 
   const handleSettingChange = async (key: string, value: any) => {
     // If enabling notifications, request permission first
     if ((key === 'daily_reminders' || key === 'trigger_alerts') && value) {
       const hasPermission = await notificationService.requestPermission();
-      setNotificationPermission(notificationService.getPermissionStatus());
+      const newPermission = checkNotificationPermission();
       
       if (!hasPermission) {
         toast({
           title: "Permission Required",
-          description: "Please allow notifications in your browser to enable this feature.",
+          description: "Please allow notifications in your browser to enable this feature. Check the address bar for notification prompts.",
           variant: "destructive",
         });
         return;
@@ -99,12 +104,12 @@ const Settings = () => {
     
     // Request permission first if not granted
     const hasPermission = await notificationService.requestPermission();
-    setNotificationPermission(notificationService.getPermissionStatus());
+    checkNotificationPermission();
     
     if (!hasPermission) {
       toast({
         title: "Permission Required",
-        description: "Please allow notifications in your browser to test notifications.",
+        description: "Please allow notifications in your browser. Look for the notification prompt in your address bar.",
         variant: "destructive"
       });
       setTestingNotification(false);
@@ -121,12 +126,31 @@ const Settings = () => {
     } else {
       toast({
         title: "Test failed",
-        description: "Unable to send test notification. Check your browser permissions.",
+        description: "Unable to send test notification. Please check your browser permissions.",
         variant: "destructive"
       });
     }
     
     setTimeout(() => setTestingNotification(false), 2000);
+  };
+
+  const refreshPermissionStatus = async () => {
+    setCheckingPermission(true);
+    
+    // Small delay to ensure UI feedback
+    setTimeout(() => {
+      const newPermission = checkNotificationPermission();
+      console.log('Refreshed permission status:', newPermission);
+      
+      if (newPermission === 'granted') {
+        toast({
+          title: "Notifications Enabled!",
+          description: "Your notifications are now working properly.",
+        });
+      }
+      
+      setCheckingPermission(false);
+    }, 500);
   };
 
   const getPermissionBadge = () => {
@@ -144,7 +168,11 @@ const Settings = () => {
 
   const requestNotificationPermission = async () => {
     const hasPermission = await notificationService.requestPermission();
-    setNotificationPermission(notificationService.getPermissionStatus());
+    
+    // Give browser time to update permission
+    setTimeout(() => {
+      checkNotificationPermission();
+    }, 1000);
     
     if (hasPermission) {
       toast({
@@ -153,8 +181,8 @@ const Settings = () => {
       });
     } else {
       toast({
-        title: "Permission Denied",
-        description: "Please manually enable notifications in your browser settings.",
+        title: "Permission Required",
+        description: "Please manually enable notifications in your browser settings or look for the notification prompt in your address bar.",
         variant: "destructive"
       });
     }
@@ -201,6 +229,15 @@ const Settings = () => {
               </div>
               <div className="flex items-center gap-2">
                 {getPermissionBadge()}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={refreshPermissionStatus}
+                  disabled={checkingPermission}
+                >
+                  <RefreshCw className={cn("h-3 w-3 mr-1", checkingPermission && "animate-spin")} />
+                  Refresh
+                </Button>
                 {notificationPermission !== 'granted' && notificationPermission !== 'unsupported' && (
                   <Button variant="outline" size="sm" onClick={requestNotificationPermission}>
                     Enable Notifications
@@ -213,9 +250,11 @@ const Settings = () => {
               <Alert className="border-orange-200 bg-orange-50">
                 <AlertTriangle className="h-4 w-4 text-orange-600" />
                 <AlertDescription className="text-orange-800">
-                  Notifications are blocked. Please enable them in your browser settings to receive reminders and alerts.
+                  Notifications are blocked in your browser. To enable:
                   <br />
-                  <span className="text-xs mt-1 block">Chrome: Click the lock icon in address bar → Notifications → Allow</span>
+                  <strong>Chrome:</strong> Click the lock/notification icon in your address bar → Notifications → Allow
+                  <br />
+                  <strong>Or:</strong> Go to Settings → Site Settings → Notifications → Allow for this site
                 </AlertDescription>
               </Alert>
             )}
@@ -224,7 +263,8 @@ const Settings = () => {
               <Alert className="border-blue-200 bg-blue-50">
                 <Bell className="h-4 w-4 text-blue-600" />
                 <AlertDescription className="text-blue-800">
-                  Click "Enable Notifications" above to receive reminders and trigger alerts.
+                  Click "Enable Notifications" above to receive reminders and trigger alerts. 
+                  Look for the notification prompt in your browser's address bar.
                 </AlertDescription>
               </Alert>
             )}

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Trash2, Download, AlertTriangle } from "lucide-react";
+import { Trash2, Download, AlertTriangle, FileSpreadsheet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -51,9 +51,9 @@ const DataManagement = () => {
     const csvContent = [
       headers.join(','),
       ...data.map(episode => {
-        const date = new Date(episode.date).toLocaleDateString();
-        const time = new Date(episode.date).toLocaleTimeString();
-        const severity = episode.severity || 'Not specified';
+        const date = new Date(episode.date || episode.created_at).toLocaleDateString();
+        const time = new Date(episode.date || episode.created_at).toLocaleTimeString();
+        const severity = episode.severity_level || episode.severity || 'Not specified';
         const bodyAreas = Array.isArray(episode.body_areas) ? episode.body_areas.join('; ') : 'Not specified';
         const triggers = Array.isArray(episode.triggers) ? 
           episode.triggers.map((t: any) => {
@@ -120,13 +120,13 @@ const DataManagement = () => {
           try {
             await navigator.share({
               title: 'SweatSmart Episode Data',
-              text: 'Your exported SweatSmart episode data',
+              text: 'Your exported SweatSmart episode data for analysis',
               files: [file]
             });
             
             toast({
               title: "Data Exported",
-              description: "Your data has been shared successfully.",
+              description: "Your CSV data has been shared successfully.",
             });
             return;
           } catch (shareError) {
@@ -148,7 +148,7 @@ const DataManagement = () => {
 
       toast({
         title: "Data Exported",
-        description: "Your data has been downloaded as a CSV file.",
+        description: "Your CSV data has been downloaded for analysis in spreadsheet apps.",
       });
 
     } catch (error) {
@@ -171,7 +171,7 @@ const DataManagement = () => {
           Data Management
         </CardTitle>
         <CardDescription>
-          Manage your SweatSmart data - export or clear your episode history
+          Export your data for analysis or clear your episode history
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -182,8 +182,8 @@ const DataManagement = () => {
             disabled={isExporting}
             className="flex items-center gap-2"
           >
-            <Download className="h-4 w-4" />
-            {isExporting ? "Exporting..." : "Export My Data"}
+            <FileSpreadsheet className="h-4 w-4" />
+            {isExporting ? "Exporting..." : "Export as CSV"}
           </Button>
           
           <AlertDialog>
@@ -226,6 +226,19 @@ const DataManagement = () => {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+        </div>
+
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-start gap-2">
+            <FileSpreadsheet className="h-5 w-5 text-blue-600 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-blue-800">CSV Export Info</p>
+              <p className="text-blue-700">
+                This exports your episode data as a CSV file for analysis in spreadsheet applications like Excel or Google Sheets. 
+                For individual episode PDFs, use the export button on specific episodes.
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">

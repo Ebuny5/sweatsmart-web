@@ -20,19 +20,30 @@ class NotificationService {
       return false;
     }
 
-    if (Notification.permission === 'granted') {
+    // Check current permission status
+    let permission = Notification.permission;
+    console.log('Current notification permission:', permission);
+
+    if (permission === 'granted') {
       return true;
     }
 
-    if (Notification.permission === 'denied') {
-      console.warn('Notifications are denied by user');
+    if (permission === 'denied') {
+      console.warn('Notifications are denied by user - they need to manually enable in browser settings');
       return false;
     }
 
     try {
-      // Force a fresh permission request
-      const permission = await Notification.requestPermission();
-      console.log('Fresh permission request result:', permission);
+      // Request permission - this will show browser dialog
+      permission = await Notification.requestPermission();
+      console.log('Permission request result:', permission);
+      
+      // Force refresh the permission status
+      setTimeout(() => {
+        const newPermission = Notification.permission;
+        console.log('Refreshed permission status:', newPermission);
+      }, 1000);
+      
       return permission === 'granted';
     } catch (error) {
       console.error('Error requesting notification permission:', error);
@@ -44,13 +55,19 @@ class NotificationService {
     if (!('Notification' in window)) {
       return 'unsupported';
     }
-    return Notification.permission;
+    const status = Notification.permission;
+    console.log('Getting permission status:', status);
+    return status;
   }
 
   async showNotification(title: string, options?: NotificationOptions): Promise<boolean> {
-    const hasPermission = await this.requestPermission();
-    if (!hasPermission) {
-      console.warn('Cannot show notification: permission not granted');
+    if (!('Notification' in window)) {
+      console.warn('Notifications not supported');
+      return false;
+    }
+
+    if (Notification.permission !== 'granted') {
+      console.warn('Cannot show notification: permission not granted. Current status:', Notification.permission);
       return false;
     }
 
@@ -67,7 +84,7 @@ class NotificationService {
         notification.close();
       };
 
-      console.log('Notification shown:', title);
+      console.log('Notification shown successfully:', title);
       return true;
     } catch (error) {
       console.error('Error showing notification:', error);
@@ -116,15 +133,17 @@ class NotificationService {
   async checkTriggerAlerts(episodes: any[]): Promise<void> {
     if (episodes.length < 2) return;
 
-    const hasPermission = await this.requestPermission();
-    if (!hasPermission) return;
+    if (Notification.permission !== 'granted') {
+      console.log('Cannot check trigger alerts: notifications not granted');
+      return;
+    }
 
     // Get recent episodes (last 7 days)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
     const recentEpisodes = episodes.filter(episode => 
-      new Date(episode.datetime) >= sevenDaysAgo
+      new Date(episode.datetime || episode.date) >= sevenDaysAgo
     );
 
     if (recentEpisodes.length < 3) return;
@@ -132,8 +151,9 @@ class NotificationService {
     // Check for patterns
     const triggerCounts: Record<string, number> = {};
     recentEpisodes.forEach(episode => {
-      episode.triggers?.forEach((trigger: any) => {
-        const label = trigger.label || trigger;
+      const triggers = episode.triggers || [];
+      triggers.forEach((trigger: any) => {
+        const label = typeof trigger === 'string' ? trigger : (trigger.label || trigger.value || 'Unknown');
         triggerCounts[label] = (triggerCounts[label] || 0) + 1;
       });
     });
@@ -153,7 +173,7 @@ class NotificationService {
     // Check for severity increases
     const lastThreeEpisodes = recentEpisodes.slice(-3);
     if (lastThreeEpisodes.length === 3) {
-      const severityTrend = lastThreeEpisodes.map(ep => ep.severityLevel);
+      const severityTrend = lastThreeEpisodes.map(ep => ep.severity_level || ep.severity || 1);
       const isIncreasing = severityTrend[0] < severityTrend[1] && severityTrend[1] < severityTrend[2];
       
       if (isIncreasing) {
@@ -167,6 +187,7 @@ class NotificationService {
 
   // Test notification (for immediate testing)
   async testNotification(): Promise<boolean> {
+    console.log('Testing notification...');
     return await this.showNotification('Test Notification - SweatSmart', {
       body: 'If you see this, notifications are working correctly!',
       tag: 'test'

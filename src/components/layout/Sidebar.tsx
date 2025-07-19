@@ -17,9 +17,11 @@ import {
   Plus, 
   Settings, 
   MessageSquare, 
-  Thermometer
+  Thermometer,
+  Menu
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -59,17 +61,35 @@ const Sidebar = () => {
   ];
   
   const handleNavigation = (url: string) => {
+    console.log('Navigating to:', url);
     try {
       navigate(url);
     } catch (error) {
       console.error('Navigation error:', error);
+      // Fallback to direct navigation
       window.location.href = url;
     }
   };
   
   return (
     <>
-      <SidebarTrigger className="fixed left-4 top-4 z-50 lg:hidden" />
+      {/* Custom trigger button that's larger and more professional */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="fixed left-4 top-4 z-50 lg:hidden h-10 w-10 p-0 bg-background/80 backdrop-blur-sm border border-border shadow-sm hover:bg-accent"
+        onClick={() => {
+          // Trigger the sidebar programmatically
+          const trigger = document.querySelector('[data-sidebar="trigger"]') as HTMLButtonElement;
+          if (trigger) {
+            trigger.click();
+          }
+        }}
+      >
+        <Menu className="h-6 w-6" />
+        <span className="sr-only">Toggle Menu</span>
+      </Button>
+      
       <SidebarComponent className="border-r bg-background">
         <SidebarContent>
           <SidebarGroup>
@@ -82,15 +102,23 @@ const Sidebar = () => {
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       className={cn(
-                        "w-full justify-start transition-colors duration-200",
+                        "w-full justify-start transition-colors duration-200 cursor-pointer",
                         location.pathname === item.url 
                           ? "bg-primary text-primary-foreground font-medium" 
                           : "hover:bg-muted hover:text-foreground"
                       )}
-                      onClick={() => handleNavigation(item.url)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Menu item clicked:', item.title, item.url);
+                        handleNavigation(item.url);
+                      }}
+                      asChild={false}
                     >
-                      <item.icon className="h-5 w-5 mr-3" />
-                      <span>{item.title}</span>
+                      <div className="flex items-center w-full">
+                        <item.icon className="h-5 w-5 mr-3 flex-shrink-0" />
+                        <span className="flex-1">{item.title}</span>
+                      </div>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
@@ -99,6 +127,9 @@ const Sidebar = () => {
           </SidebarGroup>
         </SidebarContent>
       </SidebarComponent>
+      
+      {/* Hidden default trigger for sidebar functionality */}
+      <SidebarTrigger className="hidden" />
     </>
   );
 };
