@@ -17,10 +17,10 @@ Terms:
 
 Attribution
 You must give appropriate credit, provide a link to the license, and indicate if changes were made.  
-**Credit example**: "Developed by Gifty Aruwajoye – SweatSmart (https://github.com/yourusername/sweatsmart)"
+**Credit example**: "Developed by Gifty Aruwajoye – SweatSmart (https://github.com/Ebuny5/sweatsmart)"
 
 ❌ NonCommercial
-You may **not** use the material for **commercial purposes** without express permission from the author.
+You may not use the material for commercial purposes without express permission from the author.
 
 ❌ NoDerivatives
 If you remix, transform, or build upon the material, **you may not distribute the modified material**.
