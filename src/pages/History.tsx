@@ -67,11 +67,11 @@ const History = () => {
   if (loading) {
     return (
       <AppLayout>
-        <div className="space-y-6">
-          <h1 className="text-3xl font-bold">Episode History</h1>
-          <div className="grid gap-4">
+        <div className="space-y-4 px-4 sm:px-6 max-w-6xl mx-auto">
+          <h1 className="text-2xl sm:text-3xl font-bold">Episode History</h1>
+          <div className="grid gap-3 sm:gap-4">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-32 animate-pulse bg-muted rounded-lg" />
+              <div key={i} className="h-24 sm:h-32 animate-pulse bg-muted rounded-lg" />
             ))}
           </div>
         </div>
@@ -82,18 +82,15 @@ const History = () => {
   if (error) {
     return (
       <AppLayout>
-        <div className="space-y-6">
-          <h1 className="text-3xl font-bold">Episode History</h1>
-          <div className="text-center py-12">
+        <div className="space-y-4 px-4 sm:px-6 max-w-6xl mx-auto">
+          <h1 className="text-2xl sm:text-3xl font-bold">Episode History</h1>
+          <div className="text-center py-8 sm:py-12">
             <div className="space-y-4">
-              <h3 className="text-xl font-medium text-destructive">Unable to load episodes</h3>
-              <p className="text-muted-foreground">{error}</p>
-              <button 
-                onClick={refetch} 
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-              >
+              <h3 className="text-lg sm:text-xl font-medium text-destructive">Unable to load episodes</h3>
+              <p className="text-sm sm:text-base text-muted-foreground px-4">{error}</p>
+              <Button onClick={refetch} className="w-full sm:w-auto">
                 Try Again
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -103,26 +100,26 @@ const History = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Episode History</h1>
-          <Button onClick={() => navigate("/log-episode")}>
+      <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-6xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <h1 className="text-2xl sm:text-3xl font-bold">Episode History</h1>
+          <Button onClick={() => navigate("/log-episode")} className="w-full sm:w-auto">
             Log New Episode
           </Button>
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="h-5 w-5" />
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Filter className="h-4 w-4 sm:h-5 sm:w-5" />
               Filter & Search
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm">
               Find specific episodes using the filters below
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex flex-col space-y-4 md:flex-row md:space-x-4 md:space-y-0">
+          <CardContent className="pt-0">
+            <div className="flex flex-col space-y-3 sm:space-y-4 lg:flex-row lg:space-x-4 lg:space-y-0">
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -130,74 +127,82 @@ const History = () => {
                     placeholder="Search episodes..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 w-full"
                   />
                 </div>
               </div>
-              <Select value={severityFilter} onValueChange={setSeverityFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Severity Level" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Severities</SelectItem>
-                  <SelectItem value="1">Mild (1)</SelectItem>
-                  <SelectItem value="2">Moderate (2)</SelectItem>
-                  <SelectItem value="3">Medium (3)</SelectItem>
-                  <SelectItem value="4">Severe (4)</SelectItem>
-                  <SelectItem value="5">Extreme (5)</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Sort By" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Newest First</SelectItem>
-                  <SelectItem value="oldest">Oldest First</SelectItem>
-                  <SelectItem value="severity-high">Highest Severity</SelectItem>
-                  <SelectItem value="severity-low">Lowest Severity</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                <Select value={severityFilter} onValueChange={setSeverityFilter}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Severity Level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Severities</SelectItem>
+                    <SelectItem value="1">Mild (1)</SelectItem>
+                    <SelectItem value="2">Moderate (2)</SelectItem>
+                    <SelectItem value="3">Medium (3)</SelectItem>
+                    <SelectItem value="4">Severe (4)</SelectItem>
+                    <SelectItem value="5">Extreme (5)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Sort By" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="oldest">Oldest First</SelectItem>
+                    <SelectItem value="severity-high">Highest Severity</SelectItem>
+                    <SelectItem value="severity-low">Lowest Severity</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {filteredAndSortedEpisodes.length === 0 ? (
-            <Card className="text-center py-12">
+            <Card className="text-center py-8 sm:py-12">
               <CardContent>
-                <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No Episodes Found</h3>
-                <p className="text-muted-foreground mb-4">
+                <Calendar className="h-10 w-10 sm:h-12 sm:w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-base sm:text-lg font-medium mb-2">No Episodes Found</h3>
+                <p className="text-sm text-muted-foreground mb-4 px-4">
                   {episodes.length === 0 
                     ? "You haven't logged any episodes yet. Start by logging your first episode!"
                     : "No episodes match your current filters. Try adjusting your search criteria."
                   }
                 </p>
-                <Button onClick={() => navigate("/log-episode")}>
+                <Button onClick={() => navigate("/log-episode")} className="w-full sm:w-auto">
                   Log Your First Episode
                 </Button>
               </CardContent>
             </Card>
           ) : (
             filteredAndSortedEpisodes.map((episode) => (
-              <Card key={episode.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/episode/${episode.id}`)}>
-                <CardContent className="p-6">
+              <Card 
+                key={episode.id} 
+                className="hover:shadow-md transition-shadow cursor-pointer" 
+                onClick={() => navigate(`/episode/${episode.id}`)}
+              >
+                <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-medium">
+                    <div className="flex-1 min-w-0 pr-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                        <h3 className="font-medium text-sm sm:text-base truncate">
                           {format(episode.datetime, "EEEE, MMMM d, yyyy")}
                         </h3>
-                        <Badge className={getSeverityColor(episode.severityLevel)}>
-                          {getSeverityLabel(episode.severityLevel)}
-                        </Badge>
-                        <span className="text-sm text-muted-foreground">
-                          {format(episode.datetime, "h:mm a")}
-                        </span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge className={`${getSeverityColor(episode.severityLevel)} text-xs`}>
+                            {getSeverityLabel(episode.severityLevel)}
+                          </Badge>
+                          <span className="text-xs sm:text-sm text-muted-foreground">
+                            {format(episode.datetime, "h:mm a")}
+                          </span>
+                        </div>
                       </div>
                       
-                      <div className="flex flex-wrap gap-2 mb-2">
+                      <div className="flex flex-wrap gap-1 sm:gap-2 mb-2">
                         {episode.bodyAreas.slice(0, 3).map((area) => (
                           <Badge key={area} variant="secondary" className="text-xs">
                             {area}
@@ -211,13 +216,13 @@ const History = () => {
                       </div>
 
                       {episode.notes && (
-                        <p className="text-sm text-muted-foreground truncate">
+                        <p className="text-xs sm:text-sm text-muted-foreground truncate">
                           {episode.notes}
                         </p>
                       )}
                     </div>
                     
-                    <ChevronRight className="h-5 w-5 text-muted-foreground ml-4" />
+                    <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
                   </div>
                 </CardContent>
               </Card>
