@@ -1,4 +1,5 @@
- 💧 SweatSmart – Hyperhidrosis Management App
+💧 SweatSmart – Hyperhidrosis Management App
+![License: CC BY-NC-ND 4.0](https://img.shields.io/badge/License-CC%20BY--NC--ND%204.0-lightgrey.svg)
 
 SweatSmart is the first hyperhidrosis-focused tracking and support app developed by Gifty Aruwajoye, a self-taught AI developer and the founder of the Beyond Sweat Foundation — a non-profit organization dedicated to raising awareness, fostering community, and supporting people living with hyperhidrosis. It helps users log episodes, analyze patterns, manage triggers, and connect with a supportive community — all in one place.
 
