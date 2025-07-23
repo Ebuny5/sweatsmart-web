@@ -36,7 +36,7 @@ By contributing, you agree that your contributions will be licensed under the **
 Contact
 
 For questions, email:  
-Gifty Aruwajoye – queenmercy0416@gmail.com  
+Gifty Aruwajoye – sweatsmart@beyondsweat.life
 Or visit: [https://beyondsweat.life](https://beyondsweat.life)
 
 > Let’s go beyond sweat. Thank you for supporting this mission!
