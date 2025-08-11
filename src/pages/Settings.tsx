@@ -17,13 +17,15 @@ import {
   TestTube,
   MessageSquare,
   ExternalLink,
-  Smartphone
+  Smartphone,
+  Bug
 } from "lucide-react";
 import { useSettings } from "@/hooks/useSettings";
 import { useToast } from "@/hooks/use-toast";
 import DataManagement from "@/components/settings/DataManagement";
-import { mobileNotificationService } from "@/services/MobileNotificationService";
+import { enhancedMobileNotificationService } from "@/services/EnhancedMobileNotificationService";
 import { useEpisodes } from "@/hooks/useEpisodes";
+import MobileDebugInfo from "@/components/debug/MobileDebugInfo";
 
 const Settings = () => {
   const { settings, loading, updateSettings } = useSettings();
@@ -32,7 +34,7 @@ const Settings = () => {
   const [testingNotification, setTestingNotification] = useState(false);
 
   // Check if running as mobile app
-  const isMobileApp = mobileNotificationService.isMobileApp();
+  const isMobileApp = enhancedMobileNotificationService.isMedianApp();
 
   useEffect(() => {
     console.log('🔧 Settings: Mobile app detected:', isMobileApp);
@@ -42,13 +44,18 @@ const Settings = () => {
     // Set up mobile-friendly reminders if settings are loaded
     if (settings?.daily_reminders && settings?.reminder_time) {
       console.log('📅 Settings: Setting up reminders for:', settings.reminder_time);
-      mobileNotificationService.scheduleReminder(settings.reminder_time);
+      enhancedMobileNotificationService.scheduleReminder(settings.reminder_time);
     }
 
-    // Check for trigger alerts
-    if (settings?.trigger_alerts && episodes.length > 0) {
-      console.log('🔍 Settings: Setting up trigger monitoring for', episodes.length, 'episodes');
-      mobileNotificationService.checkTriggerAlerts(episodes);
+    // Cache episodes for trigger analysis
+    if (episodes.length > 0) {
+      console.log('🔍 Settings: Caching episodes for trigger monitoring:', episodes.length);
+      enhancedMobileNotificationService.cacheEpisodesForAnalysis(episodes);
+      
+      // Run immediate trigger analysis if enabled
+      if (settings?.trigger_alerts) {
+        enhancedMobileNotificationService.analyzeAndAlertTriggers(episodes);
+      }
     }
   }, [settings, episodes, isMobileApp]);
 
@@ -64,16 +71,16 @@ const Settings = () => {
       // Handle mobile-friendly notification settings
       if (key === 'daily_reminders') {
         if (value && settings?.reminder_time) {
-          mobileNotificationService.scheduleReminder(settings.reminder_time);
+          enhancedMobileNotificationService.scheduleReminder(settings.reminder_time);
           toast({
             title: "Reminders enabled",
             description: `You'll receive daily reminders at ${settings.reminder_time}`,
           });
         } else {
-          mobileNotificationService.clearReminders();
+          enhancedMobileNotificationService.clearReminders();
         }
       } else if (key === 'reminder_time' && settings?.daily_reminders) {
-        mobileNotificationService.scheduleReminder(value);
+        enhancedMobileNotificationService.scheduleReminder(value);
         toast({
           title: "Reminder time updated",
           description: `New reminder time: ${value}`,
@@ -88,13 +95,13 @@ const Settings = () => {
     }
   };
 
-  const testMobileNotification = async () => {
+  const testCompleteNotificationSystem = async () => {
     setTestingNotification(true);
-    console.log('🧪 Testing mobile notification system...');
+    console.log('🧪 Testing complete notification system...');
     
-    mobileNotificationService.testNotification();
+    enhancedMobileNotificationService.testNotificationSystem();
     
-    setTimeout(() => setTestingNotification(false), 2000);
+    setTimeout(() => setTestingNotification(false), 3000);
   };
 
   const openBetaFeedbackForm = () => {
@@ -131,15 +138,18 @@ const Settings = () => {
                   <Smartphone className="h-6 w-6 text-green-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-green-900">Mobile App Detected</h3>
+                  <h3 className="font-semibold text-green-900">Mobile APK Detected</h3>
                   <p className="text-sm text-green-700">
-                    Enhanced mobile notifications and alerts are active.
+                    Enhanced mobile notifications, alerts, and trigger analysis are active.
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
         )}
+
+        {/* Debug Information for Mobile */}
+        {isMobileApp && <MobileDebugInfo />}
 
         {/* Beta Feedback Form */}
         <Card className="border-blue-200 bg-blue-50">
@@ -167,16 +177,16 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        {/* Notification Settings */}
+        {/* Enhanced Notification Settings */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5" />
-              Alerts & Reminders
-              {isMobileApp && <Badge variant="secondary">Mobile Enhanced</Badge>}
+              Professional Alerts & Reminders
+              {isMobileApp && <Badge variant="secondary" className="bg-green-100 text-green-800">APK Enhanced</Badge>}
             </CardTitle>
             <CardDescription>
-              Configure daily reminders and trigger pattern alerts
+              Professional-grade notification system with mobile optimization
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -184,10 +194,10 @@ const Settings = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <Label htmlFor="daily-reminders" className="text-base font-medium">
-                    Daily Reminders
+                    Daily Episode Reminders
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    Get reminded to log your daily episodes
+                    Get persistent reminders to log your daily episodes with smart scheduling
                   </p>
                 </div>
                 <Switch
@@ -198,7 +208,7 @@ const Settings = () => {
               </div>
 
               {settings?.daily_reminders && (
-                <div className="ml-4 space-y-3">
+                <div className="ml-4 space-y-3 p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-3">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <Label htmlFor="reminder-time">Reminder Time</Label>
@@ -210,6 +220,14 @@ const Settings = () => {
                       className="w-32"
                     />
                   </div>
+                  <Alert>
+                    <AlertDescription>
+                      {isMobileApp 
+                        ? "Mobile APK: Reminders will show as in-app notifications and toasts."
+                        : "Web: Reminders will appear as browser notifications (permission required)."
+                      }
+                    </AlertDescription>
+                  </Alert>
                 </div>
               )}
 
@@ -218,10 +236,10 @@ const Settings = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <Label htmlFor="trigger-alerts" className="text-base font-medium">
-                    Trigger Pattern Alerts
+                    Intelligent Trigger Pattern Alerts
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    Get notified when frequent triggers are detected in your episodes
+                    AI-powered analysis of your episodes to detect trigger patterns and severity trends
                   </p>
                 </div>
                 <Switch
@@ -231,23 +249,41 @@ const Settings = () => {
                 />
               </div>
 
+              {settings?.trigger_alerts && (
+                <div className="ml-4 p-4 bg-muted/50 rounded-lg">
+                  <Alert>
+                    <AlertDescription>
+                      The system analyzes your episodes hourly and alerts you when:
+                      <ul className="list-disc ml-4 mt-2">
+                        <li>Frequent triggers are detected (60%+ of recent episodes)</li>
+                        <li>Episode severity shows an increasing trend</li>
+                        <li>Unusual patterns are identified</li>
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              )}
+
               <Separator />
 
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-base font-medium">Test Alerts</Label>
+                  <Label className="text-base font-medium">Test Complete Notification System</Label>
                   <p className="text-sm text-muted-foreground">
-                    Send a test alert to verify everything is working
+                    {isMobileApp 
+                      ? "Test all mobile notification features including APK-specific handling"
+                      : "Test browser notifications, reminders, and trigger alerts"
+                    }
                   </p>
                 </div>
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={testMobileNotification}
+                  onClick={testCompleteNotificationSystem}
                   disabled={testingNotification}
                 >
                   <TestTube className="h-4 w-4 mr-2" />
-                  {testingNotification ? 'Testing...' : 'Test Now'}
+                  {testingNotification ? 'Testing...' : 'Test All Systems'}
                 </Button>
               </div>
             </div>

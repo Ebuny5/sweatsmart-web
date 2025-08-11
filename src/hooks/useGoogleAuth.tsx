@@ -18,18 +18,21 @@ export const useGoogleAuth = () => {
       });
 
       if (error) {
+        // Show helpful error message about Google OAuth setup
         toast({
-          title: "Google Sign-In Error",
-          description: error.message,
+          title: "Google Sign-In Setup Required",
+          description: "Google OAuth needs to be configured in your Supabase project. Please contact support or use email/password login.",
           variant: "destructive",
         });
+        console.error('Google OAuth error:', error);
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to sign in with Google. Please try again.",
+        description: "Failed to sign in with Google. Please try again or use email/password.",
         variant: "destructive",
       });
+      console.error('Google OAuth error:', error);
     } finally {
       setIsLoading(false);
     }

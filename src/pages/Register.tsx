@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Chrome } from "lucide-react";
+import Captcha from "@/components/ui/captcha";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -19,6 +20,7 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [captchaVerified, setCaptchaVerified] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { signInWithGoogle, isLoading: googleLoading } = useGoogleAuth();
@@ -30,6 +32,15 @@ const Register = () => {
       toast({
         title: "Passwords do not match",
         description: "Please make sure your passwords match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!captchaVerified) {
+      toast({
+        title: "Verification required",
+        description: "Please complete the captcha verification.",
         variant: "destructive",
       });
       return;
@@ -148,7 +159,14 @@ const Register = () => {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
+
+              <Captcha onVerify={setCaptchaVerified} />
+
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isLoading || !captchaVerified}
+              >
                 {isLoading ? "Creating account..." : "Sign Up"}
               </Button>
             </form>

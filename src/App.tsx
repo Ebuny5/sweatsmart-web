@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import LogEpisode from "./pages/LogEpisode";
@@ -103,6 +104,9 @@ const AppRoutes = () => (
       <PublicRoute>
         <ForgotPassword />
       </PublicRoute>
+    } />
+    <Route path="/reset-password" element={
+      <ResetPassword />
     } />
     <Route path="/onboarding" element={
       <ProtectedRoute>

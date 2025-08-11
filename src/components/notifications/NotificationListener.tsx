@@ -9,6 +9,8 @@ const NotificationListener = () => {
     const handleNotification = (event: CustomEvent) => {
       const { title, body, type } = event.detail;
       
+      console.log('🔔 NotificationListener: Received notification:', { title, body, type });
+      
       toast({
         title,
         description: body,
@@ -17,10 +19,13 @@ const NotificationListener = () => {
       });
     };
 
+    console.log('🔔 NotificationListener: Setting up event listener');
+    
     // @ts-ignore
     window.addEventListener('sweatsmart-notification', handleNotification);
     
     return () => {
+      console.log('🔔 NotificationListener: Cleaning up event listener');
       // @ts-ignore
       window.removeEventListener('sweatsmart-notification', handleNotification);
     };
