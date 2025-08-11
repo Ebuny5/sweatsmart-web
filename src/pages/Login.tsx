@@ -4,10 +4,14 @@ import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import AppLayout from "@/components/layout/AppLayout";
 import { useToast } from "@/hooks/use-toast";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { Chrome } from "lucide-react";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -15,6 +19,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signInWithGoogle, isLoading: googleLoading } = useGoogleAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,8 +65,29 @@ const Login = () => {
               Enter your credentials to access your account
             </CardDescription>
           </CardHeader>
-          <form onSubmit={handleLogin}>
-            <CardContent className="space-y-4">
+          <CardContent className="space-y-4">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={signInWithGoogle}
+              disabled={googleLoading}
+            >
+              <Chrome className="mr-2 h-4 w-4" />
+              {googleLoading ? "Connecting..." : "Continue with Google"}
+            </Button>
+            
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <Separator className="w-full" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or continue with email
+                </span>
+              </div>
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -83,27 +109,27 @@ const Login = () => {
                     Forgot password?
                   </Link>
                 </div>
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
               </div>
-            </CardContent>
-            <CardFooter className="flex flex-col space-y-4">
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Logging in..." : "Login"}
               </Button>
-              <div className="text-center text-sm">
-                Don't have an account?{" "}
-                <Link to="/register" className="text-primary hover:underline">
-                  Sign up
-                </Link>
-              </div>
-            </CardFooter>
-          </form>
+            </form>
+          </CardContent>
+          <CardFooter className="flex flex-col space-y-4">
+            <div className="text-center text-sm">
+              Don't have an account?{" "}
+              <Link to="/register" className="text-primary hover:underline">
+                Sign up
+              </Link>
+            </div>
+          </CardFooter>
         </Card>
       </div>
     </AppLayout>

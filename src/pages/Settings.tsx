@@ -13,22 +13,17 @@ import {
   Settings as SettingsIcon, 
   Bell, 
   Shield, 
-  AlertTriangle, 
   Clock,
   TestTube,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  RefreshCw,
   MessageSquare,
-  ExternalLink
+  ExternalLink,
+  Smartphone
 } from "lucide-react";
 import { useSettings } from "@/hooks/useSettings";
 import { useToast } from "@/hooks/use-toast";
 import DataManagement from "@/components/settings/DataManagement";
-import { notificationService } from "@/services/NotificationService";
+import { mobileNotificationService } from "@/services/MobileNotificationService";
 import { useEpisodes } from "@/hooks/useEpisodes";
-import { cn } from "@/lib/utils";
 
 const Settings = () => {
   const { settings, loading, updateSettings } = useSettings();
@@ -36,23 +31,26 @@ const Settings = () => {
   const { toast } = useToast();
   const [testingNotification, setTestingNotification] = useState(false);
 
-  // Check if running as mobile app (simplified detection)
-  const isMobileApp = window.location.href.includes('lovableproject.com') || 
-                      navigator.userAgent.includes('wv') || 
-                      window.matchMedia('(display-mode: standalone)').matches;
+  // Check if running as mobile app
+  const isMobileApp = mobileNotificationService.isMobileApp();
 
   useEffect(() => {
+    console.log('🔧 Settings: Mobile app detected:', isMobileApp);
+    console.log('📱 Settings: User agent:', navigator.userAgent);
+    console.log('🌐 Settings: Current URL:', window.location.href);
+
     // Set up mobile-friendly reminders if settings are loaded
     if (settings?.daily_reminders && settings?.reminder_time) {
-      // For mobile, we'll use in-app scheduling instead of browser notifications
-      console.log('Setting up mobile reminders for:', settings.reminder_time);
+      console.log('📅 Settings: Setting up reminders for:', settings.reminder_time);
+      mobileNotificationService.scheduleReminder(settings.reminder_time);
     }
 
     // Check for trigger alerts
     if (settings?.trigger_alerts && episodes.length > 0) {
-      console.log('Setting up trigger pattern monitoring');
+      console.log('🔍 Settings: Setting up trigger monitoring for', episodes.length, 'episodes');
+      mobileNotificationService.checkTriggerAlerts(episodes);
     }
-  }, [settings, episodes]);
+  }, [settings, episodes, isMobileApp]);
 
   const handleSettingChange = async (key: string, value: any) => {
     const success = await updateSettings({ [key]: value });
@@ -64,12 +62,18 @@ const Settings = () => {
       });
 
       // Handle mobile-friendly notification settings
-      if (key === 'daily_reminders' && value && settings?.reminder_time) {
-        toast({
-          title: "Reminders enabled",
-          description: `You'll receive daily reminders at ${settings.reminder_time}`,
-        });
+      if (key === 'daily_reminders') {
+        if (value && settings?.reminder_time) {
+          mobileNotificationService.scheduleReminder(settings.reminder_time);
+          toast({
+            title: "Reminders enabled",
+            description: `You'll receive daily reminders at ${settings.reminder_time}`,
+          });
+        } else {
+          mobileNotificationService.clearReminders();
+        }
       } else if (key === 'reminder_time' && settings?.daily_reminders) {
+        mobileNotificationService.scheduleReminder(value);
         toast({
           title: "Reminder time updated",
           description: `New reminder time: ${value}`,
@@ -86,34 +90,14 @@ const Settings = () => {
 
   const testMobileNotification = async () => {
     setTestingNotification(true);
+    console.log('🧪 Testing mobile notification system...');
     
-    // For mobile apps, show in-app alert instead of browser notification
-    if (isMobileApp) {
-      toast({
-        title: "🔔 Test Alert - SweatSmart",
-        description: "Your reminders and alerts are working correctly!",
-      });
-    } else {
-      // Fallback to browser notification for web
-      const success = await notificationService.testNotification();
-      if (success) {
-        toast({
-          title: "Test notification sent!",
-          description: "Check if you received the notification.",
-        });
-      } else {
-        toast({
-          title: "Test completed",
-          description: "In-app alerts are working correctly.",
-        });
-      }
-    }
+    mobileNotificationService.testNotification();
     
     setTimeout(() => setTestingNotification(false), 2000);
   };
 
   const openBetaFeedbackForm = () => {
-    // Open the Google Form in a new window/tab
     window.open('https://forms.gle/TgddDjPs3neG7ACRA', '_blank', 'noopener,noreferrer');
   };
 
@@ -137,6 +121,25 @@ const Settings = () => {
           <SettingsIcon className="h-6 w-6" />
           <h1 className="text-3xl font-bold">Settings</h1>
         </div>
+
+        {/* Mobile App Status */}
+        {isMobileApp && (
+          <Card className="border-green-200 bg-green-50">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-green-100 rounded-full">
+                  <Smartphone className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-green-900">Mobile App Detected</h3>
+                  <p className="text-sm text-green-700">
+                    Enhanced mobile notifications and alerts are active.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Beta Feedback Form */}
         <Card className="border-blue-200 bg-blue-50">
@@ -170,21 +173,13 @@ const Settings = () => {
             <CardTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5" />
               Alerts & Reminders
+              {isMobileApp && <Badge variant="secondary">Mobile Enhanced</Badge>}
             </CardTitle>
             <CardDescription>
               Configure daily reminders and trigger pattern alerts
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {!isMobileApp && (
-              <Alert className="border-blue-200 bg-blue-50">
-                <Bell className="h-4 w-4 text-blue-600" />
-                <AlertDescription className="text-blue-800">
-                  For the best experience, use the mobile app version to receive reliable alerts and reminders.
-                </AlertDescription>
-              </Alert>
-            )}
-
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -226,7 +221,7 @@ const Settings = () => {
                     Trigger Pattern Alerts
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    Get notified when your logged triggers (like "Heat" or "Stress") are likely to occur — based on your past episodes and reminder time
+                    Get notified when frequent triggers are detected in your episodes
                   </p>
                 </div>
                 <Switch

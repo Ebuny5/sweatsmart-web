@@ -6,9 +6,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import NotificationListener from "@/components/notifications/NotificationListener";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import LogEpisode from "./pages/LogEpisode";
@@ -97,6 +99,11 @@ const AppRoutes = () => (
         <Register />
       </PublicRoute>
     } />
+    <Route path="/forgot-password" element={
+      <PublicRoute>
+        <ForgotPassword />
+      </PublicRoute>
+    } />
     <Route path="/onboarding" element={
       <ProtectedRoute>
         <Onboarding />
@@ -151,6 +158,7 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
+          <NotificationListener />
           <Toaster />
           <Sonner />
           <BrowserRouter>
