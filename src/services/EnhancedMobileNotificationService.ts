@@ -1,4 +1,3 @@
-
 import { useToast } from '@/hooks/use-toast';
 
 interface NotificationData {
@@ -21,6 +20,8 @@ class EnhancedMobileNotificationService {
   private reminderInterval: NodeJS.Timeout | null = null;
   private triggerCheckInterval: NodeJS.Timeout | null = null;
   private isInitialized = false;
+  private audioContext: AudioContext | null = null;
+  private notificationSound: AudioBuffer | null = null;
 
   private constructor() {
     this.initialize();
@@ -33,7 +34,7 @@ class EnhancedMobileNotificationService {
     return EnhancedMobileNotificationService.instance;
   }
 
-  private initialize(): void {
+  private async initialize(): Promise<void> {
     if (this.isInitialized) return;
     
     console.log('🚀 Enhanced Mobile Notification Service initializing...');
@@ -44,11 +45,75 @@ class EnhancedMobileNotificationService {
       isStandalone: window.matchMedia('(display-mode: standalone)').matches
     });
 
+    await this.initializeSound();
     this.startReminderChecker();
     this.startTriggerChecker();
     this.isInitialized = true;
     
     console.log('✅ Enhanced Mobile Notification Service initialized');
+  }
+
+  private async initializeSound(): Promise<void> {
+    try {
+      // Create audio context
+      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Create a simple notification sound using Web Audio API
+      await this.createNotificationSound();
+      
+      console.log('🔊 Notification sound initialized');
+    } catch (error) {
+      console.warn('🔊 Could not initialize audio:', error);
+    }
+  }
+
+  private async createNotificationSound(): Promise<void> {
+    if (!this.audioContext) return;
+
+    try {
+      // Create a buffer for a pleasant notification sound
+      const sampleRate = this.audioContext.sampleRate;
+      const duration = 0.3; // 300ms
+      const buffer = this.audioContext.createBuffer(1, sampleRate * duration, sampleRate);
+      const data = buffer.getChannelData(0);
+
+      // Generate a pleasant notification tone (two-tone chime)
+      for (let i = 0; i < buffer.length; i++) {
+        const t = i / sampleRate;
+        if (t < 0.15) {
+          // First tone: 800Hz
+          data[i] = Math.sin(2 * Math.PI * 800 * t) * Math.exp(-t * 3) * 0.3;
+        } else {
+          // Second tone: 600Hz
+          data[i] = Math.sin(2 * Math.PI * 600 * (t - 0.15)) * Math.exp(-(t - 0.15) * 3) * 0.3;
+        }
+      }
+
+      this.notificationSound = buffer;
+      console.log('🔊 Notification sound created');
+    } catch (error) {
+      console.warn('🔊 Could not create notification sound:', error);
+    }
+  }
+
+  private async playNotificationSound(): Promise<void> {
+    if (!this.audioContext || !this.notificationSound) return;
+
+    try {
+      // Resume audio context if suspended (required for user interaction)
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+      }
+
+      const source = this.audioContext.createBufferSource();
+      source.buffer = this.notificationSound;
+      source.connect(this.audioContext.destination);
+      source.start();
+      
+      console.log('🔊 Notification sound played');
+    } catch (error) {
+      console.warn('🔊 Could not play notification sound:', error);
+    }
   }
 
   isMedianApp(): boolean {
@@ -62,9 +127,7 @@ class EnhancedMobileNotificationService {
       userAgent.includes('median') ||
       userAgent.includes('wv') ||
       window.matchMedia('(display-mode: standalone)').matches ||
-      // @ts-ignore - Check for Median app specific properties
       window.median !== undefined ||
-      // @ts-ignore - Check for Capacitor
       window.Capacitor !== undefined ||
       // Check for mobile app indicators
       userAgent.includes('mobile') && !userAgent.includes('safari')
@@ -79,8 +142,11 @@ class EnhancedMobileNotificationService {
     return isMedian;
   }
 
-  showNotification(title: string, body: string, type: 'info' | 'success' | 'warning' | 'destructive' = 'info'): void {
+  async showNotification(title: string, body: string, type: 'info' | 'success' | 'warning' | 'destructive' = 'info'): Promise<void> {
     console.log(`📱 Mobile Notification [${type.toUpperCase()}]:`, title, body);
+    
+    // Play notification sound
+    await this.playNotificationSound();
     
     // Create a custom event that the NotificationListener can catch
     const event = new CustomEvent('sweatsmart-notification', {
@@ -101,8 +167,8 @@ class EnhancedMobileNotificationService {
   }
 
   private tryNativeNotification(title: string, body: string): void {
-    // @ts-ignore - Try Median native notifications
-    if (window.median && window.median.notification) {
+    // Try Median native notifications
+    if (window.median?.notification) {
       try {
         window.median.notification.show({
           title,
@@ -116,8 +182,8 @@ class EnhancedMobileNotificationService {
       }
     }
 
-    // @ts-ignore - Try Capacitor notifications
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
+    // Try Capacitor notifications
+    if (window.Capacitor?.Plugins?.LocalNotifications) {
       try {
         window.Capacitor.Plugins.LocalNotifications.schedule({
           notifications: [{
@@ -299,7 +365,7 @@ class EnhancedMobileNotificationService {
       .map(([trigger]) => trigger);
 
     if (frequentTriggers.length > 0) {
-      this.showNotification(
+      await this.showNotification(
         'Pattern Alert Detected',
         `Frequent trigger detected: "${frequentTriggers[0]}". Consider avoiding this trigger or preparing management strategies.`,
         'warning'
@@ -315,7 +381,7 @@ class EnhancedMobileNotificationService {
       const isIncreasing = severityTrend[0] < severityTrend[1] && severityTrend[1] < severityTrend[2];
       
       if (isIncreasing) {
-        this.showNotification(
+        await this.showNotification(
           'Severity Trend Alert',
           'Your episode severity has been increasing over the last few days. Consider consulting with a healthcare provider.',
           'destructive'
@@ -326,11 +392,11 @@ class EnhancedMobileNotificationService {
     }
   }
 
-  testNotificationSystem(): void {
+  async testNotificationSystem(): Promise<void> {
     console.log('🧪 Testing complete notification system...');
     
-    // Test basic notification
-    this.showNotification(
+    // Test basic notification with sound
+    await this.showNotification(
       'Test Alert - SweatSmart',
       'Your notification system is working perfectly! 🎉',
       'success'
@@ -338,8 +404,8 @@ class EnhancedMobileNotificationService {
 
     // Test mobile-specific features
     if (this.isMedianApp()) {
-      setTimeout(() => {
-        this.showNotification(
+      setTimeout(async () => {
+        await this.showNotification(
           'Mobile Test - SweatSmart',
           'Mobile app notifications are functioning correctly in your APK! 📱',
           'info'
@@ -348,12 +414,12 @@ class EnhancedMobileNotificationService {
     }
 
     // Test reminder system
-    setTimeout(() => {
+    setTimeout(async () => {
       const testTime = new Date();
       testTime.setMinutes(testTime.getMinutes() + 1);
       const timeString = `${testTime.getHours().toString().padStart(2, '0')}:${testTime.getMinutes().toString().padStart(2, '0')}`;
       
-      this.showNotification(
+      await this.showNotification(
         'Reminder Test Scheduled',
         `Test reminder scheduled for ${timeString} to verify the reminder system works.`,
         'info'
@@ -380,6 +446,11 @@ class EnhancedMobileNotificationService {
     if (this.triggerCheckInterval) {
       clearInterval(this.triggerCheckInterval);
       this.triggerCheckInterval = null;
+    }
+    
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
     }
     
     console.log('🧹 Enhanced Mobile Notification Service cleaned up');

@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import AppLayout from "@/components/layout/AppLayout";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Mail } from "lucide-react";
+import { ArrowLeft, Mail, Shield, CheckCircle } from "lucide-react";
 import Captcha from "@/components/ui/captcha";
 
 const ForgotPassword = () => {
@@ -47,7 +48,7 @@ const ForgotPassword = () => {
         setEmailSent(true);
         toast({
           title: "Reset email sent",
-          description: "Check your email for password reset instructions.",
+          description: "Check your email (including spam folder) for password reset instructions.",
         });
       }
     } catch (error) {
@@ -75,6 +76,30 @@ const ForgotPassword = () => {
                 We've sent password reset instructions to {email}
               </CardDescription>
             </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert className="border-yellow-200 bg-yellow-50">
+                <Shield className="h-4 w-4 text-yellow-600" />
+                <AlertDescription className="text-yellow-800">
+                  <strong>Important:</strong> The email might be in your spam folder. 
+                  Email providers sometimes flag automated emails as spam for security.
+                </AlertDescription>
+              </Alert>
+              
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  Check your inbox first
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  Then check your spam/junk folder
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  Mark the email as "Not Spam" to whitelist future emails
+                </div>
+              </div>
+            </CardContent>
             <CardFooter className="flex flex-col space-y-4">
               <Button asChild className="w-full">
                 <Link to="/login">
@@ -96,11 +121,19 @@ const ForgotPassword = () => {
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold">Reset password</CardTitle>
             <CardDescription>
-              Enter your email address and we'll send you a reset link
+              Enter your email address and we'll send you a secure reset link
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleResetPassword}>
             <CardContent className="space-y-4">
+              <Alert className="border-blue-200 bg-blue-50">
+                <Shield className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-blue-800">
+                  Password reset emails are sent securely but may appear in your spam folder. 
+                  This is normal security behavior from email providers.
+                </AlertDescription>
+              </Alert>
+              
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
