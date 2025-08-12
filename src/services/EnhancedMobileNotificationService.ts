@@ -22,9 +22,12 @@ class EnhancedMobileNotificationService {
   private isInitialized = false;
   private audioContext: AudioContext | null = null;
   private notificationSound: AudioBuffer | null = null;
+  private soundEnabled = true;
+  private userInteracted = false;
 
   private constructor() {
     this.initialize();
+    this.setupUserInteractionListener();
   }
 
   static getInstance(): EnhancedMobileNotificationService {
@@ -32,6 +35,19 @@ class EnhancedMobileNotificationService {
       EnhancedMobileNotificationService.instance = new EnhancedMobileNotificationService();
     }
     return EnhancedMobileNotificationService.instance;
+  }
+
+  private setupUserInteractionListener(): void {
+    const enableAudio = () => {
+      this.userInteracted = true;
+      this.initializeSound();
+      console.log('🔊 User interaction detected, audio enabled');
+    };
+
+    // Listen for any user interaction
+    ['click', 'touch', 'keydown', 'scroll'].forEach(event => {
+      document.addEventListener(event, enableAudio, { once: true, passive: true });
+    });
   }
 
   private async initialize(): Promise<void> {
@@ -45,7 +61,6 @@ class EnhancedMobileNotificationService {
       isStandalone: window.matchMedia('(display-mode: standalone)').matches
     });
 
-    await this.initializeSound();
     this.startReminderChecker();
     this.startTriggerChecker();
     this.isInitialized = true;
@@ -54,9 +69,19 @@ class EnhancedMobileNotificationService {
   }
 
   private async initializeSound(): Promise<void> {
+    if (!this.userInteracted) {
+      console.log('🔊 Waiting for user interaction to enable audio');
+      return;
+    }
+
     try {
       // Create audio context
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Resume if suspended
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+      }
       
       // Create a simple notification sound using Web Audio API
       await this.createNotificationSound();
@@ -64,6 +89,8 @@ class EnhancedMobileNotificationService {
       console.log('🔊 Notification sound initialized');
     } catch (error) {
       console.warn('🔊 Could not initialize audio:', error);
+      // Fallback to HTML5 audio
+      this.createFallbackSound();
     }
   }
 
@@ -73,47 +100,93 @@ class EnhancedMobileNotificationService {
     try {
       // Create a buffer for a pleasant notification sound
       const sampleRate = this.audioContext.sampleRate;
-      const duration = 0.3; // 300ms
+      const duration = 0.4; // 400ms
       const buffer = this.audioContext.createBuffer(1, sampleRate * duration, sampleRate);
       const data = buffer.getChannelData(0);
 
       // Generate a pleasant notification tone (two-tone chime)
       for (let i = 0; i < buffer.length; i++) {
         const t = i / sampleRate;
-        if (t < 0.15) {
+        if (t < 0.2) {
           // First tone: 800Hz
-          data[i] = Math.sin(2 * Math.PI * 800 * t) * Math.exp(-t * 3) * 0.3;
+          data[i] = Math.sin(2 * Math.PI * 800 * t) * Math.exp(-t * 2) * 0.4;
         } else {
-          // Second tone: 600Hz
-          data[i] = Math.sin(2 * Math.PI * 600 * (t - 0.15)) * Math.exp(-(t - 0.15) * 3) * 0.3;
+          // Second tone: 600Hz  
+          data[i] = Math.sin(2 * Math.PI * 600 * (t - 0.2)) * Math.exp(-(t - 0.2) * 2) * 0.4;
         }
       }
 
       this.notificationSound = buffer;
-      console.log('🔊 Notification sound created');
+      console.log('🔊 Web Audio notification sound created');
     } catch (error) {
-      console.warn('🔊 Could not create notification sound:', error);
+      console.warn('🔊 Could not create Web Audio notification sound:', error);
+    }
+  }
+
+  private createFallbackSound(): void {
+    try {
+      // Create a simple beep using the old school method
+      const oscillator = new OscillatorNode(new AudioContext());
+      const gainNode = new GainNode(new AudioContext());
+      
+      console.log('🔊 Fallback audio method initialized');
+    } catch (error) {
+      console.warn('🔊 All audio methods failed:', error);
     }
   }
 
   private async playNotificationSound(): Promise<void> {
-    if (!this.audioContext || !this.notificationSound) return;
+    if (!this.soundEnabled || !this.userInteracted) {
+      console.log('🔊 Sound disabled or no user interaction yet');
+      return;
+    }
 
     try {
-      // Resume audio context if suspended (required for user interaction)
-      if (this.audioContext.state === 'suspended') {
-        await this.audioContext.resume();
+      if (this.audioContext && this.notificationSound) {
+        // Resume audio context if suspended
+        if (this.audioContext.state === 'suspended') {
+          await this.audioContext.resume();
+        }
+
+        const source = this.audioContext.createBufferSource();
+        source.buffer = this.notificationSound;
+        source.connect(this.audioContext.destination);
+        source.start();
+        
+        console.log('🔊 Web Audio notification sound played');
+        return;
       }
 
-      const source = this.audioContext.createBufferSource();
-      source.buffer = this.notificationSound;
-      source.connect(this.audioContext.destination);
-      source.start();
+      // Fallback: Try to play a simple beep
+      const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
       
-      console.log('🔊 Notification sound played');
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+      
+      oscillator.frequency.setValueAtTime(800, context.currentTime);
+      gainNode.gain.setValueAtTime(0.1, context.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.1);
+      
+      oscillator.start(context.currentTime);
+      oscillator.stop(context.currentTime + 0.1);
+      
+      console.log('🔊 Fallback notification sound played');
     } catch (error) {
       console.warn('🔊 Could not play notification sound:', error);
+      // Final fallback - try system beep
+      try {
+        console.log('\u0007'); // Bell character
+      } catch (e) {
+        console.warn('🔊 System beep also failed');
+      }
     }
+  }
+
+  setSoundEnabled(enabled: boolean): void {
+    this.soundEnabled = enabled;
+    console.log('🔊 Sound', enabled ? 'enabled' : 'disabled');
   }
 
   isMedianApp(): boolean {
@@ -127,8 +200,8 @@ class EnhancedMobileNotificationService {
       userAgent.includes('median') ||
       userAgent.includes('wv') ||
       window.matchMedia('(display-mode: standalone)').matches ||
-      window.median !== undefined ||
-      window.Capacitor !== undefined ||
+      (window as any).median !== undefined ||
+      (window as any).Capacitor !== undefined ||
       // Check for mobile app indicators
       userAgent.includes('mobile') && !userAgent.includes('safari')
     );
@@ -168,9 +241,9 @@ class EnhancedMobileNotificationService {
 
   private tryNativeNotification(title: string, body: string): void {
     // Try Median native notifications
-    if (window.median?.notification) {
+    if ((window as any).median?.notification) {
       try {
-        window.median.notification.show({
+        (window as any).median.notification.show({
           title,
           body,
           badge: '/favicon.ico'
@@ -183,9 +256,9 @@ class EnhancedMobileNotificationService {
     }
 
     // Try Capacitor notifications
-    if (window.Capacitor?.Plugins?.LocalNotifications) {
+    if ((window as any).Capacitor?.Plugins?.LocalNotifications) {
       try {
-        window.Capacitor.Plugins.LocalNotifications.schedule({
+        (window as any).Capacitor.Plugins.LocalNotifications.schedule({
           notifications: [{
             title,
             body,
@@ -394,6 +467,9 @@ class EnhancedMobileNotificationService {
 
   async testNotificationSystem(): Promise<void> {
     console.log('🧪 Testing complete notification system...');
+    
+    // Ensure audio is ready
+    await this.initializeSound();
     
     // Test basic notification with sound
     await this.showNotification(

@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import AppLayout from "@/components/layout/AppLayout";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Mail, Shield, CheckCircle } from "lucide-react";
+import { ArrowLeft, Mail, Shield, CheckCircle, Info } from "lucide-react";
 import Captcha from "@/components/ui/captcha";
 
 const ForgotPassword = () => {
@@ -48,7 +48,7 @@ const ForgotPassword = () => {
         setEmailSent(true);
         toast({
           title: "Reset email sent",
-          description: "Check your email (including spam folder) for password reset instructions.",
+          description: "Check your email for password reset instructions.",
         });
       }
     } catch (error) {
@@ -71,32 +71,40 @@ const ForgotPassword = () => {
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
                 <Mail className="h-6 w-6 text-green-600" />
               </div>
-              <CardTitle className="text-2xl font-bold">Check your email</CardTitle>
+              <CardTitle className="text-2xl font-bold">Password reset email sent</CardTitle>
               <CardDescription>
                 We've sent password reset instructions to {email}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <Alert className="border-blue-200 bg-blue-50">
+                <Info className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-blue-800">
+                  <strong>Next steps:</strong> Look for an email from SweatSmart with a "Reset Password" button or link. 
+                  Click it to safely reset your password.
+                </AlertDescription>
+              </Alert>
+
               <Alert className="border-yellow-200 bg-yellow-50">
                 <Shield className="h-4 w-4 text-yellow-600" />
                 <AlertDescription className="text-yellow-800">
-                  <strong>Important:</strong> The email might be in your spam folder. 
-                  Email providers sometimes flag automated emails as spam for security.
+                  <strong>Can't find the email?</strong> Check your spam or junk folder. 
+                  Some email providers automatically filter automated emails.
                 </AlertDescription>
               </Alert>
               
               <div className="space-y-2 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-600" />
-                  Check your inbox first
+                  Look for an email from SweatSmart
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-600" />
-                  Then check your spam/junk folder
+                  Click the "Reset Password" button in the email
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-600" />
-                  Mark the email as "Not Spam" to whitelist future emails
+                  Enter your new password when prompted
                 </div>
               </div>
             </CardContent>
@@ -129,8 +137,8 @@ const ForgotPassword = () => {
               <Alert className="border-blue-200 bg-blue-50">
                 <Shield className="h-4 w-4 text-blue-600" />
                 <AlertDescription className="text-blue-800">
-                  Password reset emails are sent securely but may appear in your spam folder. 
-                  This is normal security behavior from email providers.
+                  We'll send you a secure email with instructions to reset your password. 
+                  The link will be safe and valid for 24 hours.
                 </AlertDescription>
               </Alert>
               
