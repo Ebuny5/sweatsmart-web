@@ -13,6 +13,7 @@ const Captcha = ({ onVerify, className }: CaptchaProps) => {
   const [captchaText, setCaptchaText] = useState("");
   const [userInput, setUserInput] = useState("");
   const [isVerified, setIsVerified] = useState(false);
+  const [attemptedVerify, setAttemptedVerify] = useState(false); // track if user pressed Verify
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const generateCaptcha = () => {
@@ -24,6 +25,7 @@ const Captcha = ({ onVerify, className }: CaptchaProps) => {
     setCaptchaText(result);
     setUserInput("");
     setIsVerified(false);
+    setAttemptedVerify(false); // reset attempt state
     onVerify(false);
     return result;
   };
@@ -86,6 +88,7 @@ const Captcha = ({ onVerify, className }: CaptchaProps) => {
   }, []);
 
   const handleVerify = () => {
+    setAttemptedVerify(true);
     const verified = userInput.toLowerCase() === captchaText.toLowerCase();
     setIsVerified(verified);
     onVerify(verified);
@@ -128,6 +131,8 @@ const Captcha = ({ onVerify, className }: CaptchaProps) => {
             placeholder="Enter captcha"
             className="flex-1 px-3 py-2 border rounded-md text-sm"
             maxLength={5}
+            inputMode="text"
+            autoComplete="off"
           />
           <Button
             type="button"
@@ -141,7 +146,7 @@ const Captcha = ({ onVerify, className }: CaptchaProps) => {
         {isVerified && (
           <p className="text-sm text-green-600">✓ Verification successful</p>
         )}
-        {userInput && !isVerified && userInput.length === 5 && (
+        {!isVerified && attemptedVerify && (
           <p className="text-sm text-red-600">✗ Verification failed</p>
         )}
       </CardContent>
