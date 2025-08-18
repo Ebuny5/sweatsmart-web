@@ -5,11 +5,11 @@ export class SoundManager {
   private soundEnabled = true;
   private userInteracted = false;
 
-  // Medical alarm sound URLs - louder and more prominent
+  // Professional medical alarm sounds - longer duration, tunnel-like
   private readonly MEDICAL_ALARMS = {
-    CRITICAL: 'https://assets.mixkit.co/sfx/preview/mixkit-medical-alarm-loop-493.wav',
-    WARNING: 'https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.wav',
-    REMINDER: 'https://assets.mixkit.co/sfx/preview/mixkit-clear-announce-tones-2861.wav'
+    CRITICAL: 'https://assets.mixkit.co/sfx/preview/mixkit-long-pop-2358.wav', // Longer tunnel-like sound
+    WARNING: 'https://assets.mixkit.co/sfx/preview/mixkit-software-interface-start-2574.wav', // Sustained tone
+    REMINDER: 'https://assets.mixkit.co/sfx/preview/mixkit-positive-notification-951.wav' // Gentle but sustained
   };
 
   private constructor() {
@@ -57,29 +57,22 @@ export class SoundManager {
       return;
     }
 
-    // Add vibration for mobile devices
+    // Enhanced vibration patterns for mobile devices
     if (navigator.vibrate) {
-      const vibrationPattern = severity === 'CRITICAL' ? [500, 200, 500, 200, 500] : [300, 100, 300];
+      const vibrationPattern = severity === 'CRITICAL' ? 
+        [800, 200, 800, 200, 800] : // Longer vibration for critical
+        severity === 'WARNING' ? [600, 150, 600] : [400, 100, 400];
       navigator.vibrate(vibrationPattern);
     }
 
     try {
-      // Method 1: Try external medical alarm sounds first
+      // Method 1: Professional tunnel-like medical alarm sounds
       const audio = new Audio(this.MEDICAL_ALARMS[severity]);
-      audio.volume = 0.9; // Increased volume to 90%
-      audio.loop = severity === 'CRITICAL'; // Loop critical alarms
+      audio.volume = 1.0; // Maximum volume for professional alerts
+      audio.loop = false; // No looping, but longer duration sounds
       
       await audio.play();
-      console.log(`🔊 Medical alarm sound played: ${severity}`);
-      
-      // For critical alarms, stop looping after 10 seconds
-      if (severity === 'CRITICAL') {
-        setTimeout(() => {
-          audio.loop = false;
-          audio.pause();
-          audio.currentTime = 0;
-        }, 10000);
-      }
+      console.log(`🔊 Professional medical alarm played: ${severity}`);
       
       return;
     } catch (error) {
@@ -87,14 +80,14 @@ export class SoundManager {
     }
 
     try {
-      // Method 2: Web Audio API fallback with louder tones
+      // Method 2: Enhanced Web Audio API fallback with tunnel-like sustained tones
       if (!this.audioContext) {
         await this.initializeAudioContext();
       }
 
       if (this.audioContext) {
-        await this.playWebAudioAlarm(severity);
-        console.log(`🔊 Web Audio alarm played: ${severity}`);
+        await this.playProfessionalAlarm(severity);
+        console.log(`🔊 Professional Web Audio alarm played: ${severity}`);
         return;
       }
     } catch (error) {
@@ -102,46 +95,47 @@ export class SoundManager {
     }
 
     try {
-      // Method 3: Enhanced system beep fallback
-      await this.playSystemBeep(severity);
-      console.log(`🔊 System beep played: ${severity}`);
+      // Method 3: Professional system beep fallback
+      await this.playProfessionalBeep(severity);
+      console.log(`🔊 Professional system beep played: ${severity}`);
     } catch (error) {
       console.warn('🔊 All sound methods failed:', error);
     }
   }
 
-  private async playWebAudioAlarm(severity: 'CRITICAL' | 'WARNING' | 'REMINDER'): Promise<void> {
+  private async playProfessionalAlarm(severity: 'CRITICAL' | 'WARNING' | 'REMINDER'): Promise<void> {
     if (!this.audioContext) return;
 
     const sampleRate = this.audioContext.sampleRate;
-    const duration = severity === 'CRITICAL' ? 2.0 : 1.0;
+    const duration = severity === 'CRITICAL' ? 4.0 : severity === 'WARNING' ? 3.0 : 2.0; // Longer durations
     const buffer = this.audioContext.createBuffer(1, sampleRate * duration, sampleRate);
     const data = buffer.getChannelData(0);
 
-    // Generate different alarm patterns based on severity
+    // Generate professional tunnel-like alarm patterns
     for (let i = 0; i < buffer.length; i++) {
       const t = i / sampleRate;
       
       switch (severity) {
         case 'CRITICAL':
-          // Loud alternating high-pitched alarm
-          const freq1 = 1000 + Math.sin(t * 4) * 200; // Oscillating frequency
-          data[i] = Math.sin(2 * Math.PI * freq1 * t) * 0.7 * Math.sin(t * 8); // Amplitude modulation
+          // Deep tunnel resonance with slow fade
+          const baseFreq = 200 + Math.sin(t * 2) * 50;
+          const harmonic = Math.sin(2 * Math.PI * baseFreq * 2 * t) * 0.3;
+          data[i] = (Math.sin(2 * Math.PI * baseFreq * t) + harmonic) * 
+                   Math.exp(-t * 0.5) * 0.8; // Slow decay for tunnel effect
           break;
           
         case 'WARNING':
-          // Two-tone medical beep
-          if (t < 0.5) {
-            data[i] = Math.sin(2 * Math.PI * 880 * t) * Math.exp(-t * 2) * 0.6;
-          } else {
-            data[i] = Math.sin(2 * Math.PI * 660 * (t - 0.5)) * Math.exp(-(t - 0.5) * 2) * 0.6;
-          }
+          // Sustained two-tone professional beep
+          const freq1 = t < duration/2 ? 880 : 660;
+          data[i] = Math.sin(2 * Math.PI * freq1 * t) * 
+                   Math.exp(-t * 0.3) * 0.7; // Slower decay
           break;
           
         case 'REMINDER':
-          // Gentle ascending tone
-          const freq3 = 440 + (t * 200); // Ascending frequency
-          data[i] = Math.sin(2 * Math.PI * freq3 * t) * Math.exp(-t * 1.5) * 0.4;
+          // Gentle ascending tunnel tone
+          const freq3 = 440 + (t * 100); // Slower ascent
+          data[i] = Math.sin(2 * Math.PI * freq3 * t) * 
+                   Math.exp(-t * 0.4) * 0.6; // Extended fade
           break;
       }
     }
@@ -152,12 +146,12 @@ export class SoundManager {
     source.buffer = buffer;
     source.connect(gainNode);
     gainNode.connect(this.audioContext.destination);
-    gainNode.gain.value = 0.8; // High volume
+    gainNode.gain.value = 1.0; // Maximum volume
     
     source.start();
   }
 
-  private async playSystemBeep(severity: 'CRITICAL' | 'WARNING' | 'REMINDER'): Promise<void> {
+  private async playProfessionalBeep(severity: 'CRITICAL' | 'WARNING' | 'REMINDER'): Promise<void> {
     const context = new AudioContext();
     const oscillator = context.createOscillator();
     const gainNode = context.createGain();
@@ -165,21 +159,17 @@ export class SoundManager {
     oscillator.connect(gainNode);
     gainNode.connect(context.destination);
     
-    // Different frequencies for different severities
-    const frequency = severity === 'CRITICAL' ? 1000 : severity === 'WARNING' ? 800 : 600;
+    // Professional frequencies with longer sustain
+    const frequency = severity === 'CRITICAL' ? 800 : severity === 'WARNING' ? 600 : 500;
+    const duration = severity === 'CRITICAL' ? 3 : severity === 'WARNING' ? 2.5 : 2;
+    
     oscillator.frequency.setValueAtTime(frequency, context.currentTime);
     
-    gainNode.gain.setValueAtTime(0.6, context.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 1);
+    gainNode.gain.setValueAtTime(0.8, context.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + duration);
     
     oscillator.start();
-    oscillator.stop(context.currentTime + 1);
-    
-    // For critical alarms, play multiple beeps
-    if (severity === 'CRITICAL') {
-      setTimeout(() => this.playSystemBeep('WARNING'), 1200);
-      setTimeout(() => this.playSystemBeep('WARNING'), 2400);
-    }
+    oscillator.stop(context.currentTime + duration);
   }
 
   setSoundEnabled(enabled: boolean): void {
@@ -193,13 +183,12 @@ export class SoundManager {
   }
 
   async testSound(severity: 'CRITICAL' | 'WARNING' | 'REMINDER' = 'WARNING'): Promise<void> {
-    console.log(`🧪 Testing ${severity} alarm sound...`);
+    console.log(`🧪 Testing ${severity} professional alarm sound...`);
     await this.playNotificationSound(severity);
   }
 
-  // New method to trigger alerts based on medical severity
   async triggerMedicalAlert(severity: 'CRITICAL' | 'WARNING' | 'REMINDER' = 'WARNING'): Promise<void> {
-    console.log(`🚨 Medical alert triggered: ${severity}`);
+    console.log(`🚨 Professional medical alert triggered: ${severity}`);
     await this.playNotificationSound(severity);
   }
 }

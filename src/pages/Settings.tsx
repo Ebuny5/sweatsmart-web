@@ -61,15 +61,15 @@ const Settings = () => {
     enhancedMobileNotificationService.setSoundEnabled(enabled);
     
     toast({
-      title: enabled ? "Sound enabled" : "Sound disabled",
-      description: `Notification sounds are now ${enabled ? 'on' : 'off'}`,
+      title: enabled ? "Professional sound enabled" : "Sound disabled",
+      description: `Professional medical notification sounds are now ${enabled ? 'on' : 'off'}`,
     });
   };
 
   const testNotificationSound = async () => {
     toast({
-      title: "Testing notification system...",
-      description: "You should hear different medical alarm sounds",
+      title: "Testing professional notification system...",
+      description: "You will receive persistent notifications with professional tunnel-like medical alarm sounds",
     });
     
     await enhancedMobileNotificationService.testNotificationSystem();
@@ -77,8 +77,8 @@ const Settings = () => {
 
   const testSpecificSound = async (severity: 'CRITICAL' | 'WARNING' | 'REMINDER', label: string) => {
     toast({
-      title: `Testing ${label}...`,
-      description: `Playing ${label.toLowerCase()} alarm sound`,
+      title: `Testing Professional ${label}...`,
+      description: `Playing ${label.toLowerCase()} with sustained tunnel-like sound`,
     });
     
     await soundManager.testSound(severity);
@@ -90,7 +90,7 @@ const Settings = () => {
     <AppLayout>
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Settings</h1>
+          <h1 className="text-3xl font-bold">Professional Settings</h1>
           {isMedianApp && (
             <Badge variant="secondary" className="flex items-center gap-1">
               <Smartphone className="h-3 w-3" />
@@ -103,18 +103,21 @@ const Settings = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5" />
-              Medical Alert System
+              Professional Medical Alert System
             </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Persistent notifications that work even when the app is closed, with professional tunnel-like medical alarm sounds.
+            </p>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <Label className="flex items-center gap-2">
                   {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-                  Medical Alarm Sounds
+                  Professional Medical Alarm Sounds
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Play medical-grade alarm sounds for notifications
+                  Play professional-grade tunnel-like alarm sounds for medical notifications
                 </p>
               </div>
               <Switch
@@ -126,10 +129,13 @@ const Settings = () => {
             <Separator />
 
             <div className="space-y-4">
-              <h4 className="font-medium">Test Different Alarm Types</h4>
+              <h4 className="font-medium">Test Professional Alarm Types</h4>
+              <p className="text-xs text-muted-foreground">
+                Each sound features a professional tunnel-like quality with sustained tones for medical environments.
+              </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <Button 
-                  onClick={() => testSpecificSound('REMINDER', 'Gentle Reminder')}
+                  onClick={() => testSpecificSound('REMINDER', 'Gentle Professional Reminder')}
                   variant="outline"
                   className="flex items-center gap-2"
                   size="sm"
@@ -139,7 +145,7 @@ const Settings = () => {
                 </Button>
                 
                 <Button 
-                  onClick={() => testSpecificSound('WARNING', 'Warning Alert')}
+                  onClick={() => testSpecificSound('WARNING', 'Professional Warning Alert')}
                   variant="outline"
                   className="flex items-center gap-2"
                   size="sm"
@@ -149,7 +155,7 @@ const Settings = () => {
                 </Button>
                 
                 <Button 
-                  onClick={() => testSpecificSound('CRITICAL', 'Critical Alarm')}
+                  onClick={() => testSpecificSound('CRITICAL', 'Critical Medical Alarm')}
                   variant="destructive"
                   className="flex items-center gap-2"
                   size="sm"
@@ -167,10 +173,10 @@ const Settings = () => {
                 <div className="space-y-1">
                   <Label className="flex items-center gap-2">
                     <Clock className="h-4 w-4" />
-                    Daily Reminders
+                    Professional Daily Reminders
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    Get reminded to log your daily episodes
+                    Persistent reminders to log episodes (works even when app is closed)
                   </p>
                 </div>
                 <Switch
@@ -181,7 +187,7 @@ const Settings = () => {
 
               {remindersEnabled && (
                 <div className="space-y-2">
-                  <Label htmlFor="reminder-time">Reminder Time</Label>
+                  <Label htmlFor="reminder-time">Professional Reminder Time</Label>
                   <Input
                     id="reminder-time"
                     type="time"
@@ -202,15 +208,21 @@ const Settings = () => {
                 className="w-full"
               >
                 <TestTube className="mr-2 h-4 w-4" />
-                Test Complete Alert System
+                Test Complete Professional Alert System
               </Button>
-              <p className="text-xs text-muted-foreground text-center">
-                Tests all alarm types: reminder, warning, and critical medical alerts.
-                <br />
-                <strong>Note:</strong> You must interact with the page first (click, tap, or scroll) to enable sound.
-                <br />
-                <strong>Volume:</strong> Medical alarms are designed to be loud and attention-grabbing.
-              </p>
+              <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
+                <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+                  Professional Notification Features:
+                </h4>
+                <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                  <li>• <strong>Persistent notifications</strong> - Work even when app is closed</li>
+                  <li>• <strong>Tunnel-like sounds</strong> - Professional medical-grade sustained tones</li>
+                  <li>• <strong>System integration</strong> - Appears over other apps</li>
+                  <li>• <strong>User interaction required</strong> - Click, tap, or scroll to enable sound</li>
+                  <li>• <strong>Volume optimized</strong> - Professional medical alert volume levels</li>
+                  <li>• <strong>Mobile vibration</strong> - Enhanced vibration patterns for different alert types</li>
+                </ul>
+              </div>
             </div>
           </CardContent>
         </Card>

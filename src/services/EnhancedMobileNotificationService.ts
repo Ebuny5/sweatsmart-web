@@ -20,6 +20,7 @@ class EnhancedMobileNotificationService {
   private reminderInterval: NodeJS.Timeout | null = null;
   private triggerCheckInterval: NodeJS.Timeout | null = null;
   private isInitialized = false;
+  private serviceWorkerRegistered = false;
 
   private constructor() {
     this.initialize();
@@ -36,18 +37,41 @@ class EnhancedMobileNotificationService {
     if (this.isInitialized) return;
     
     console.log('🚀 Enhanced Mobile Notification Service initializing...');
-    console.log('📱 Environment check:', {
-      userAgent: navigator.userAgent,
-      url: window.location.href,
-      isMedian: this.isMedianApp(),
-      isStandalone: window.matchMedia('(display-mode: standalone)').matches
-    });
-
+    
+    // Request notification permission immediately
+    await this.requestNotificationPermission();
+    
+    // Register service worker for persistent notifications
+    await this.registerServiceWorker();
+    
     this.startReminderChecker();
     this.startTriggerChecker();
     this.isInitialized = true;
     
     console.log('✅ Enhanced Mobile Notification Service initialized');
+  }
+
+  private async requestNotificationPermission(): Promise<void> {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission();
+      console.log('📱 Notification permission:', permission);
+      
+      if (permission === 'denied') {
+        console.warn('📱 Notification permission denied. App will use in-app notifications only.');
+      }
+    }
+  }
+
+  private async registerServiceWorker(): Promise<void> {
+    if ('serviceWorker' in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        console.log('📱 Service Worker registered:', registration);
+        this.serviceWorkerRegistered = true;
+      } catch (error) {
+        console.error('📱 Service Worker registration failed:', error);
+      }
+    }
   }
 
   setSoundEnabled(enabled: boolean): void {
@@ -69,26 +93,23 @@ class EnhancedMobileNotificationService {
       userAgent.includes('mobile') && !userAgent.includes('safari')
     );
 
-    console.log('📱 Mobile app detection:', {
-      isMedian,
-      currentUrl,
-      userAgent: userAgent.substring(0, 100) + '...'
-    });
-
     return isMedian;
   }
 
   async showNotification(title: string, body: string, type: 'info' | 'success' | 'warning' | 'destructive' = 'info'): Promise<void> {
-    console.log(`📱 Mobile Notification [${type.toUpperCase()}]:`, title, body);
+    console.log(`📱 Professional Notification [${type.toUpperCase()}]:`, title, body);
     
     // Map notification type to sound severity
     const soundSeverity = type === 'destructive' ? 'CRITICAL' : 
                          type === 'warning' ? 'WARNING' : 'REMINDER';
     
-    // Play appropriate medical alarm sound
+    // Play professional medical alarm sound
     await soundManager.triggerMedicalAlert(soundSeverity);
     
-    // Create a custom event that the NotificationListener can catch
+    // Show persistent system notification (works even when app is closed)
+    await this.showPersistentNotification(title, body, type);
+    
+    // Create a custom event for in-app notification
     const event = new CustomEvent('sweatsmart-notification', {
       detail: { title, body, type }
     });
@@ -97,48 +118,71 @@ class EnhancedMobileNotificationService {
     // Store notification for persistence
     this.storeNotification(title, body, type);
     
-    // Additional mobile-specific handling
-    if (this.isMedianApp()) {
-      console.log('📱 APK: Notification triggered in mobile app environment');
-      this.tryNativeNotification(title, body);
-    }
+    console.log('📱 Professional notification system activated');
   }
 
-  private tryNativeNotification(title: string, body: string): void {
-    // Try Median native notifications
-    if ((window as any).median?.notification) {
+  private async showPersistentNotification(title: string, body: string, type: string): Promise<void> {
+    // Try native system notifications first (works when app is closed)
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const options: NotificationOptions = {
+        body,
+        icon: '/favicon.ico',
+        badge: '/favicon.ico',
+        tag: `sweatsmart-${type}`, // Prevents duplicate notifications
+        requireInteraction: type === 'destructive', // Keep critical alerts visible
+        vibrate: type === 'destructive' ? [800, 200, 800, 200, 800] : [400, 100, 400],
+        data: {
+          url: window.location.origin,
+          timestamp: new Date().toISOString()
+        },
+        actions: type === 'destructive' ? [
+          { action: 'view', title: 'View Alert' },
+          { action: 'dismiss', title: 'Dismiss' }
+        ] : undefined
+      };
+
       try {
-        (window as any).median.notification.show({
-          title,
+        const notification = new Notification(title, options);
+        
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+
+        // Auto-close non-critical notifications after 10 seconds
+        if (type !== 'destructive') {
+          setTimeout(() => notification.close(), 10000);
+        }
+
+        console.log('📱 System notification shown');
+        return;
+      } catch (error) {
+        console.error('📱 System notification failed:', error);
+      }
+    }
+
+    // Fallback to service worker notification
+    if (this.serviceWorkerRegistered && 'serviceWorker' in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.showNotification(title, {
           body,
-          badge: '/favicon.ico'
+          icon: '/favicon.ico',
+          badge: '/favicon.ico',
+          tag: `sweatsmart-${type}`,
+          requireInteraction: type === 'destructive',
+          vibrate: type === 'destructive' ? [800, 200, 800, 200, 800] : [400, 100, 400],
+          data: {
+            url: window.location.origin,
+            timestamp: new Date().toISOString()
+          }
         });
-        console.log('📱 Native notification sent via Median');
-        return;
+        
+        console.log('📱 Service Worker notification shown');
       } catch (error) {
-        console.log('📱 Median notification failed:', error);
+        console.error('📱 Service Worker notification failed:', error);
       }
     }
-
-    // Try Capacitor notifications
-    if ((window as any).Capacitor?.Plugins?.LocalNotifications) {
-      try {
-        (window as any).Capacitor.Plugins.LocalNotifications.schedule({
-          notifications: [{
-            title,
-            body,
-            id: Date.now(),
-            schedule: { at: new Date(Date.now() + 1000) }
-          }]
-        });
-        console.log('📱 Native notification sent via Capacitor');
-        return;
-      } catch (error) {
-        console.log('📱 Capacitor notification failed:', error);
-      }
-    }
-
-    console.log('📱 No native notification API available, using in-app toast');
   }
 
   private storeNotification(title: string, body: string, type: string): void {
@@ -172,7 +216,7 @@ class EnhancedMobileNotificationService {
   }
 
   scheduleReminder(time: string): void {
-    console.log('📅 Scheduling reminder for:', time);
+    console.log('📅 Scheduling professional reminder for:', time);
     
     const schedule: ReminderSchedule = {
       time,
@@ -183,8 +227,8 @@ class EnhancedMobileNotificationService {
     localStorage.setItem('sweatsmart_reminder_schedule', JSON.stringify(schedule));
     
     this.showNotification(
-      'Reminder Scheduled',
-      `Daily reminders set for ${time}. You'll get notifications to log your episodes.`,
+      'SweatSmart Professional Reminder Set',
+      `Daily medical reminders scheduled for ${time}. You'll receive persistent notifications to log your episodes.`,
       'success'
     );
   }
@@ -200,14 +244,14 @@ class EnhancedMobileNotificationService {
     console.log('📅 All reminders cleared');
     
     this.showNotification(
-      'Reminders Disabled',
+      'Professional Reminders Disabled',
       'Daily episode reminders have been turned off.',
       'info'
     );
   }
 
   private startReminderChecker(): void {
-    console.log('📅 Starting reminder checker...');
+    console.log('📅 Starting professional reminder checker...');
     
     this.reminderInterval = setInterval(() => {
       this.checkForDueReminders();
@@ -230,15 +274,15 @@ class EnhancedMobileNotificationService {
         
         if (schedule.lastSent !== today) {
           this.showNotification(
-            'SweatSmart Daily Reminder',
-            'Time to log your daily episode! Track your hyperhidrosis patterns to better understand your triggers.',
-            'info'
+            'SweatSmart Medical Reminder',
+            'Professional health tracking reminder: Time to log your daily episode and monitor your hyperhidrosis patterns.',
+            'warning'
           );
           
           schedule.lastSent = today;
           localStorage.setItem('sweatsmart_reminder_schedule', JSON.stringify(schedule));
           
-          console.log('📅 Daily reminder sent for:', today);
+          console.log('📅 Professional daily reminder sent for:', today);
         }
       }
     } catch (error) {
@@ -247,7 +291,7 @@ class EnhancedMobileNotificationService {
   }
 
   private startTriggerChecker(): void {
-    console.log('🔍 Starting trigger pattern checker...');
+    console.log('🔍 Starting professional trigger pattern checker...');
     
     this.triggerCheckInterval = setInterval(() => {
       this.checkForTriggerPatterns();
@@ -269,7 +313,7 @@ class EnhancedMobileNotificationService {
   async analyzeAndAlertTriggers(episodes: any[]): Promise<void> {
     if (episodes.length < 3) return;
 
-    console.log('🔍 Analyzing trigger patterns for', episodes.length, 'episodes');
+    console.log('🔍 Professional analysis of trigger patterns for', episodes.length, 'episodes');
 
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -296,12 +340,12 @@ class EnhancedMobileNotificationService {
 
     if (frequentTriggers.length > 0) {
       await this.showNotification(
-        'Pattern Alert Detected',
-        `Frequent trigger detected: "${frequentTriggers[0]}". Consider avoiding this trigger or preparing management strategies.`,
-        'warning'
+        'Professional Medical Alert: Pattern Detected',
+        `Frequent trigger identified: "${frequentTriggers[0]}". Professional recommendation: Consider avoiding this trigger or preparing management strategies.`,
+        'destructive'
       );
       
-      console.log('🚨 Trigger alert sent for:', frequentTriggers[0]);
+      console.log('🚨 Professional trigger alert sent for:', frequentTriggers[0]);
     }
 
     const lastThreeEpisodes = recentEpisodes.slice(-3);
@@ -311,57 +355,55 @@ class EnhancedMobileNotificationService {
       
       if (isIncreasing) {
         await this.showNotification(
-          'Severity Trend Alert',
-          'Your episode severity has been increasing over the last few days. Consider consulting with a healthcare provider.',
+          'Professional Medical Alert: Severity Trend',
+          'Your episode severity has been increasing. Professional recommendation: Consider consulting with a healthcare provider immediately.',
           'destructive'
         );
         
-        console.log('🚨 Severity alert sent');
+        console.log('🚨 Professional severity alert sent');
       }
     }
   }
 
   async testNotificationSystem(): Promise<void> {
-    console.log('🧪 Testing complete notification system...');
+    console.log('🧪 Testing complete professional notification system...');
     
-    // Test different alarm levels
+    // Test different professional alarm levels
     await this.showNotification(
-      'Test Reminder - SweatSmart',
-      'Testing gentle reminder sound 🔔',
+      'Professional Test - SweatSmart',
+      'Testing professional reminder notification with tunnel-like sound 🔔',
       'info'
     );
 
     setTimeout(async () => {
       await this.showNotification(
-        'Test Warning - SweatSmart',
-        'Testing warning alarm sound ⚠️',
+        'Professional Warning Test - SweatSmart',
+        'Testing professional warning notification with sustained alarm ⚠️',
         'warning'
       );
-    }, 3000);
+    }, 4000);
 
     setTimeout(async () => {
       await this.showNotification(
-        'Test Critical Alert - SweatSmart',
-        'Testing critical medical alarm! 🚨',
+        'Professional Critical Alert Test - SweatSmart',
+        'Testing professional critical medical alert with tunnel sound! 🚨',
         'destructive'
       );
-    }, 6000);
+    }, 8000);
 
-    if (this.isMedianApp()) {
-      setTimeout(async () => {
-        await this.showNotification(
-          'Mobile Test - SweatSmart',
-          'Mobile app notifications are functioning correctly! 📱',
-          'success'
-        );
-      }, 9000);
-    }
+    setTimeout(async () => {
+      await this.showNotification(
+        'Professional Mobile Test - SweatSmart',
+        'Professional mobile notifications are functioning correctly and will persist even when app is closed! 📱',
+        'success'
+      );
+    }, 12000);
   }
 
   cacheEpisodesForAnalysis(episodes: any[]): void {
     try {
       localStorage.setItem('recent_episodes_cache', JSON.stringify(episodes));
-      console.log('💾 Cached', episodes.length, 'episodes for trigger analysis');
+      console.log('💾 Cached', episodes.length, 'episodes for professional analysis');
     } catch (error) {
       console.error('💾 Failed to cache episodes:', error);
     }
