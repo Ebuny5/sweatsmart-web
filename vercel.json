@@ -6,5 +6,11 @@
       "dest": "/index.html",
       "status": 200
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/:match*",
+      "destination": "https://ujbcolxawpzfjkjviwqw.supabase.co/:match*"
+    }
   ]
 }
