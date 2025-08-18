@@ -1,4 +1,3 @@
-
 import { soundManager } from '@/utils/soundManager';
 
 interface NotificationData {
@@ -82,8 +81,12 @@ class EnhancedMobileNotificationService {
   async showNotification(title: string, body: string, type: 'info' | 'success' | 'warning' | 'destructive' = 'info'): Promise<void> {
     console.log(`📱 Mobile Notification [${type.toUpperCase()}]:`, title, body);
     
-    // Play notification sound
-    await soundManager.playNotificationSound();
+    // Map notification type to sound severity
+    const soundSeverity = type === 'destructive' ? 'CRITICAL' : 
+                         type === 'warning' ? 'WARNING' : 'REMINDER';
+    
+    // Play appropriate medical alarm sound
+    await soundManager.triggerMedicalAlert(soundSeverity);
     
     // Create a custom event that the NotificationListener can catch
     const event = new CustomEvent('sweatsmart-notification', {
@@ -321,33 +324,38 @@ class EnhancedMobileNotificationService {
   async testNotificationSystem(): Promise<void> {
     console.log('🧪 Testing complete notification system...');
     
+    // Test different alarm levels
     await this.showNotification(
-      'Test Alert - SweatSmart',
-      'Your notification system is working perfectly! 🎉',
-      'success'
+      'Test Reminder - SweatSmart',
+      'Testing gentle reminder sound 🔔',
+      'info'
     );
+
+    setTimeout(async () => {
+      await this.showNotification(
+        'Test Warning - SweatSmart',
+        'Testing warning alarm sound ⚠️',
+        'warning'
+      );
+    }, 3000);
+
+    setTimeout(async () => {
+      await this.showNotification(
+        'Test Critical Alert - SweatSmart',
+        'Testing critical medical alarm! 🚨',
+        'destructive'
+      );
+    }, 6000);
 
     if (this.isMedianApp()) {
       setTimeout(async () => {
         await this.showNotification(
           'Mobile Test - SweatSmart',
-          'Mobile app notifications are functioning correctly in your APK! 📱',
-          'info'
+          'Mobile app notifications are functioning correctly! 📱',
+          'success'
         );
-      }, 2000);
+      }, 9000);
     }
-
-    setTimeout(async () => {
-      const testTime = new Date();
-      testTime.setMinutes(testTime.getMinutes() + 1);
-      const timeString = `${testTime.getHours().toString().padStart(2, '0')}:${testTime.getMinutes().toString().padStart(2, '0')}`;
-      
-      await this.showNotification(
-        'Reminder Test Scheduled',
-        `Test reminder scheduled for ${timeString} to verify the reminder system works.`,
-        'info'
-      );
-    }, 4000);
   }
 
   cacheEpisodesForAnalysis(episodes: any[]): void {
