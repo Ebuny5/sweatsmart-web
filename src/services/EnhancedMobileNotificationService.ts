@@ -139,11 +139,7 @@ class EnhancedMobileNotificationService {
         data: {
           url: window.location.origin,
           timestamp: new Date().toISOString()
-        },
-        actions: type === 'destructive' ? [
-          { action: 'view', title: 'View Alert' },
-          { action: 'dismiss', title: 'Dismiss' }
-        ] : undefined
+        }
       };
 
       try {
