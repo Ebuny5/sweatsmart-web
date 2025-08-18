@@ -57,7 +57,6 @@ const Settings = () => {
   const handleSoundToggle = (enabled: boolean) => {
     setSoundEnabled(enabled);
     enhancedMobileNotificationService.setSoundEnabled(enabled);
-    localStorage.setItem('sweatsmart_sound_enabled', JSON.stringify(enabled));
     
     toast({
       title: enabled ? "Sound enabled" : "Sound disabled",
@@ -66,6 +65,13 @@ const Settings = () => {
   };
 
   const testNotificationSound = async () => {
+    // Show immediate feedback
+    toast({
+      title: "Testing notifications...",
+      description: "You should hear a sound if audio is working properly",
+    });
+    
+    // Test the complete system
     await enhancedMobileNotificationService.testNotificationSystem();
   };
 
@@ -153,7 +159,9 @@ const Settings = () => {
                 Test Notifications & Sound
               </Button>
               <p className="text-xs text-muted-foreground text-center">
-                Click to test if notifications and sound are working properly
+                Click to test if notifications and sound are working properly.
+                <br />
+                <strong>Note:</strong> You must interact with the page first (click, tap, or scroll) to enable sound.
               </p>
             </div>
           </CardContent>

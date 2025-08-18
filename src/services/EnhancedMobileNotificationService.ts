@@ -1,4 +1,5 @@
-import { useToast } from '@/hooks/use-toast';
+
+import { soundManager } from '@/utils/soundManager';
 
 interface NotificationData {
   id: string;
@@ -20,14 +21,9 @@ class EnhancedMobileNotificationService {
   private reminderInterval: NodeJS.Timeout | null = null;
   private triggerCheckInterval: NodeJS.Timeout | null = null;
   private isInitialized = false;
-  private audioContext: AudioContext | null = null;
-  private notificationSound: AudioBuffer | null = null;
-  private soundEnabled = true;
-  private userInteracted = false;
 
   private constructor() {
     this.initialize();
-    this.setupUserInteractionListener();
   }
 
   static getInstance(): EnhancedMobileNotificationService {
@@ -35,19 +31,6 @@ class EnhancedMobileNotificationService {
       EnhancedMobileNotificationService.instance = new EnhancedMobileNotificationService();
     }
     return EnhancedMobileNotificationService.instance;
-  }
-
-  private setupUserInteractionListener(): void {
-    const enableAudio = () => {
-      this.userInteracted = true;
-      this.initializeSound();
-      console.log('🔊 User interaction detected, audio enabled');
-    };
-
-    // Listen for any user interaction
-    ['click', 'touch', 'keydown', 'scroll'].forEach(event => {
-      document.addEventListener(event, enableAudio, { once: true, passive: true });
-    });
   }
 
   private async initialize(): Promise<void> {
@@ -68,132 +51,14 @@ class EnhancedMobileNotificationService {
     console.log('✅ Enhanced Mobile Notification Service initialized');
   }
 
-  private async initializeSound(): Promise<void> {
-    if (!this.userInteracted) {
-      console.log('🔊 Waiting for user interaction to enable audio');
-      return;
-    }
-
-    try {
-      // Create audio context
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
-      // Resume if suspended
-      if (this.audioContext.state === 'suspended') {
-        await this.audioContext.resume();
-      }
-      
-      // Create a simple notification sound using Web Audio API
-      await this.createNotificationSound();
-      
-      console.log('🔊 Notification sound initialized');
-    } catch (error) {
-      console.warn('🔊 Could not initialize audio:', error);
-      // Fallback to HTML5 audio
-      this.createFallbackSound();
-    }
-  }
-
-  private async createNotificationSound(): Promise<void> {
-    if (!this.audioContext) return;
-
-    try {
-      // Create a buffer for a pleasant notification sound
-      const sampleRate = this.audioContext.sampleRate;
-      const duration = 0.4; // 400ms
-      const buffer = this.audioContext.createBuffer(1, sampleRate * duration, sampleRate);
-      const data = buffer.getChannelData(0);
-
-      // Generate a pleasant notification tone (two-tone chime)
-      for (let i = 0; i < buffer.length; i++) {
-        const t = i / sampleRate;
-        if (t < 0.2) {
-          // First tone: 800Hz
-          data[i] = Math.sin(2 * Math.PI * 800 * t) * Math.exp(-t * 2) * 0.4;
-        } else {
-          // Second tone: 600Hz  
-          data[i] = Math.sin(2 * Math.PI * 600 * (t - 0.2)) * Math.exp(-(t - 0.2) * 2) * 0.4;
-        }
-      }
-
-      this.notificationSound = buffer;
-      console.log('🔊 Web Audio notification sound created');
-    } catch (error) {
-      console.warn('🔊 Could not create Web Audio notification sound:', error);
-    }
-  }
-
-  private createFallbackSound(): void {
-    try {
-      // Create a simple beep using the old school method
-      const oscillator = new OscillatorNode(new AudioContext());
-      const gainNode = new GainNode(new AudioContext());
-      
-      console.log('🔊 Fallback audio method initialized');
-    } catch (error) {
-      console.warn('🔊 All audio methods failed:', error);
-    }
-  }
-
-  private async playNotificationSound(): Promise<void> {
-    if (!this.soundEnabled || !this.userInteracted) {
-      console.log('🔊 Sound disabled or no user interaction yet');
-      return;
-    }
-
-    try {
-      if (this.audioContext && this.notificationSound) {
-        // Resume audio context if suspended
-        if (this.audioContext.state === 'suspended') {
-          await this.audioContext.resume();
-        }
-
-        const source = this.audioContext.createBufferSource();
-        source.buffer = this.notificationSound;
-        source.connect(this.audioContext.destination);
-        source.start();
-        
-        console.log('🔊 Web Audio notification sound played');
-        return;
-      }
-
-      // Fallback: Try to play a simple beep
-      const context = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = context.createOscillator();
-      const gainNode = context.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(context.destination);
-      
-      oscillator.frequency.setValueAtTime(800, context.currentTime);
-      gainNode.gain.setValueAtTime(0.1, context.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.1);
-      
-      oscillator.start(context.currentTime);
-      oscillator.stop(context.currentTime + 0.1);
-      
-      console.log('🔊 Fallback notification sound played');
-    } catch (error) {
-      console.warn('🔊 Could not play notification sound:', error);
-      // Final fallback - try system beep
-      try {
-        console.log('\u0007'); // Bell character
-      } catch (e) {
-        console.warn('🔊 System beep also failed');
-      }
-    }
-  }
-
   setSoundEnabled(enabled: boolean): void {
-    this.soundEnabled = enabled;
-    console.log('🔊 Sound', enabled ? 'enabled' : 'disabled');
+    soundManager.setSoundEnabled(enabled);
   }
 
   isMedianApp(): boolean {
     const userAgent = navigator.userAgent.toLowerCase();
     const currentUrl = window.location.href.toLowerCase();
     
-    // Enhanced detection for Median apps
     const isMedian = (
       currentUrl.includes('median.co') ||
       currentUrl.includes('lovableproject.com') ||
@@ -202,7 +67,6 @@ class EnhancedMobileNotificationService {
       window.matchMedia('(display-mode: standalone)').matches ||
       (window as any).median !== undefined ||
       (window as any).Capacitor !== undefined ||
-      // Check for mobile app indicators
       userAgent.includes('mobile') && !userAgent.includes('safari')
     );
 
@@ -219,7 +83,7 @@ class EnhancedMobileNotificationService {
     console.log(`📱 Mobile Notification [${type.toUpperCase()}]:`, title, body);
     
     // Play notification sound
-    await this.playNotificationSound();
+    await soundManager.playNotificationSound();
     
     // Create a custom event that the NotificationListener can catch
     const event = new CustomEvent('sweatsmart-notification', {
@@ -233,8 +97,6 @@ class EnhancedMobileNotificationService {
     // Additional mobile-specific handling
     if (this.isMedianApp()) {
       console.log('📱 APK: Notification triggered in mobile app environment');
-      
-      // Try to use native notification if available
       this.tryNativeNotification(title, body);
     }
   }
@@ -289,7 +151,7 @@ class EnhancedMobileNotificationService {
       };
       
       notifications.unshift(newNotification);
-      localStorage.setItem('sweatsmart_notifications', JSON.stringify(notifications.slice(0, 100))); // Keep last 100
+      localStorage.setItem('sweatsmart_notifications', JSON.stringify(notifications.slice(0, 100)));
       
       console.log('💾 Notification stored:', newNotification.id);
     } catch (error) {
@@ -344,10 +206,9 @@ class EnhancedMobileNotificationService {
   private startReminderChecker(): void {
     console.log('📅 Starting reminder checker...');
     
-    // Check every minute for due reminders
     this.reminderInterval = setInterval(() => {
       this.checkForDueReminders();
-    }, 60000); // Check every minute
+    }, 60000);
   }
 
   private checkForDueReminders(): void {
@@ -361,11 +222,9 @@ class EnhancedMobileNotificationService {
       const now = new Date();
       const [hours, minutes] = schedule.time.split(':').map(Number);
       
-      // Check if current time matches reminder time (within 1 minute)
       if (now.getHours() === hours && now.getMinutes() === minutes) {
         const today = now.toDateString();
         
-        // Only send once per day
         if (schedule.lastSent !== today) {
           this.showNotification(
             'SweatSmart Daily Reminder',
@@ -373,7 +232,6 @@ class EnhancedMobileNotificationService {
             'info'
           );
           
-          // Update last sent date
           schedule.lastSent = today;
           localStorage.setItem('sweatsmart_reminder_schedule', JSON.stringify(schedule));
           
@@ -388,10 +246,9 @@ class EnhancedMobileNotificationService {
   private startTriggerChecker(): void {
     console.log('🔍 Starting trigger pattern checker...');
     
-    // Check for trigger patterns every hour
     this.triggerCheckInterval = setInterval(() => {
       this.checkForTriggerPatterns();
-    }, 60000 * 60); // Check every hour
+    }, 60000 * 60);
   }
 
   private checkForTriggerPatterns(): void {
@@ -411,7 +268,6 @@ class EnhancedMobileNotificationService {
 
     console.log('🔍 Analyzing trigger patterns for', episodes.length, 'episodes');
 
-    // Get recent episodes (last 7 days)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
@@ -421,7 +277,6 @@ class EnhancedMobileNotificationService {
 
     if (recentEpisodes.length < 3) return;
 
-    // Check for frequent triggers
     const triggerCounts: Record<string, number> = {};
     recentEpisodes.forEach(episode => {
       const triggers = episode.triggers || [];
@@ -431,7 +286,6 @@ class EnhancedMobileNotificationService {
       });
     });
 
-    // Find triggers that appear in 60% or more of recent episodes
     const threshold = Math.ceil(recentEpisodes.length * 0.6);
     const frequentTriggers = Object.entries(triggerCounts)
       .filter(([_, count]) => count >= threshold)
@@ -447,7 +301,6 @@ class EnhancedMobileNotificationService {
       console.log('🚨 Trigger alert sent for:', frequentTriggers[0]);
     }
 
-    // Check for severity increases
     const lastThreeEpisodes = recentEpisodes.slice(-3);
     if (lastThreeEpisodes.length === 3) {
       const severityTrend = lastThreeEpisodes.map(ep => ep.severity_level || ep.severity || 1);
@@ -468,17 +321,12 @@ class EnhancedMobileNotificationService {
   async testNotificationSystem(): Promise<void> {
     console.log('🧪 Testing complete notification system...');
     
-    // Ensure audio is ready
-    await this.initializeSound();
-    
-    // Test basic notification with sound
     await this.showNotification(
       'Test Alert - SweatSmart',
       'Your notification system is working perfectly! 🎉',
       'success'
     );
 
-    // Test mobile-specific features
     if (this.isMedianApp()) {
       setTimeout(async () => {
         await this.showNotification(
@@ -489,7 +337,6 @@ class EnhancedMobileNotificationService {
       }, 2000);
     }
 
-    // Test reminder system
     setTimeout(async () => {
       const testTime = new Date();
       testTime.setMinutes(testTime.getMinutes() + 1);
@@ -503,7 +350,6 @@ class EnhancedMobileNotificationService {
     }, 4000);
   }
 
-  // Cache episodes for trigger analysis
   cacheEpisodesForAnalysis(episodes: any[]): void {
     try {
       localStorage.setItem('recent_episodes_cache', JSON.stringify(episodes));
@@ -522,11 +368,6 @@ class EnhancedMobileNotificationService {
     if (this.triggerCheckInterval) {
       clearInterval(this.triggerCheckInterval);
       this.triggerCheckInterval = null;
-    }
-    
-    if (this.audioContext) {
-      this.audioContext.close();
-      this.audioContext = null;
     }
     
     console.log('🧹 Enhanced Mobile Notification Service cleaned up');
