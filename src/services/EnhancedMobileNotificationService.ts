@@ -122,6 +122,12 @@ class EnhancedMobileNotificationService {
   }
 
   private async showPersistentNotification(title: string, body: string, type: string): Promise<void> {
+    // Handle vibration separately before showing notification
+    if (navigator.vibrate) {
+      const vibrationPattern = type === 'destructive' ? [800, 200, 800, 200, 800] : [400, 100, 400];
+      navigator.vibrate(vibrationPattern);
+    }
+
     // Try native system notifications first (works when app is closed)
     if ('Notification' in window && Notification.permission === 'granted') {
       const options: NotificationOptions = {
@@ -130,7 +136,6 @@ class EnhancedMobileNotificationService {
         badge: '/favicon.ico',
         tag: `sweatsmart-${type}`, // Prevents duplicate notifications
         requireInteraction: type === 'destructive', // Keep critical alerts visible
-        vibrate: type === 'destructive' ? [800, 200, 800, 200, 800] : [400, 100, 400],
         data: {
           url: window.location.origin,
           timestamp: new Date().toISOString()
@@ -171,7 +176,6 @@ class EnhancedMobileNotificationService {
           badge: '/favicon.ico',
           tag: `sweatsmart-${type}`,
           requireInteraction: type === 'destructive',
-          vibrate: type === 'destructive' ? [800, 200, 800, 200, 800] : [400, 100, 400],
           data: {
             url: window.location.origin,
             timestamp: new Date().toISOString()
