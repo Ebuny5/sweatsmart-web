@@ -108,11 +108,7 @@ const AppRoutes = () => (
     <Route path="/reset-password" element={
       <ResetPassword />
     } />
-    <Route path="/auth/callback" element={
-      <PublicRoute>
-        <AuthCallback />
-      </PublicRoute>
-    } />
+    <Route path="/auth/callback" element={<AuthCallback />} />
     <Route path="/onboarding" element={
       <ProtectedRoute>
         <Onboarding />
