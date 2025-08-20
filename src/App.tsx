@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,6 +21,7 @@ import Insights from "./pages/Insights";
 import Community from "./pages/Community";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import AuthCallback from "./pages/AuthCallback";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -107,6 +107,11 @@ const AppRoutes = () => (
     } />
     <Route path="/reset-password" element={
       <ResetPassword />
+    } />
+    <Route path="/auth/callback" element={
+      <PublicRoute>
+        <AuthCallback />
+      </PublicRoute>
     } />
     <Route path="/onboarding" element={
       <ProtectedRoute>
