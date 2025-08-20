@@ -2,9 +2,12 @@
 {
   "routes": [
     {
+      "src": "/(.*)\\.(js|css|map|json|png|jpg|jpeg|gif|webp|svg|ico|txt|woff|woff2|ttf|eot)$",
+      "dest": "/$1.$2"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/index.html",
-      "status": 200
+      "dest": "/index.html"
     }
   ],
   "rewrites": [
