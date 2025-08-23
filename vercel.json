@@ -1,19 +1,13 @@
 
 {
-  "routes": [
-    {
-      "src": "/(.*)\\.(js|css|map|json|png|jpg|jpeg|gif|webp|svg|ico|txt|woff|woff2|ttf|eot)$",
-      "dest": "/$1.$2"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
-  ],
   "rewrites": [
     {
       "source": "/api/:match*",
       "destination": "https://ujbcolxawpzfjkjviwqw.supabase.co/:match*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/"
     }
   ]
 }
