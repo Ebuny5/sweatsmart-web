@@ -18,7 +18,8 @@ import {
   Settings, 
   MessageSquare, 
   Thermometer,
-  Menu
+  Menu,
+  MessageCircle
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -54,14 +55,24 @@ const Sidebar = () => {
       icon: MessageSquare,
     },
     {
+      title: "Feedback",
+      url: "https://docs.google.com/forms/d/e/1FAIpQLSfHBkUOMxFhB03UyfpnrEQk5VlszVUFN2n-TqjRwJ1ehqSeTw/viewform",
+      icon: MessageCircle,
+      external: true,
+    },
+    {
       title: "Settings",
       url: "/settings",
       icon: Settings,
     },
   ];
   
-  const handleNavigation = (url: string) => {
+  const handleNavigation = (url: string, external?: boolean) => {
     console.log('Navigating to:', url);
+    if (external) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+      return;
+    }
     try {
       navigate(url);
     } catch (error) {
@@ -111,7 +122,7 @@ const Sidebar = () => {
                         e.preventDefault();
                         e.stopPropagation();
                         console.log('Menu item clicked:', item.title, item.url);
-                        handleNavigation(item.url);
+                        handleNavigation(item.url, item.external);
                       }}
                       asChild={false}
                     >

@@ -70,6 +70,9 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated }) => {
                 <DropdownMenuItem onClick={() => navigate('/settings')}>
                   Settings
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => window.open('https://docs.google.com/forms/d/e/1FAIpQLSfHBkUOMxFhB03UyfpnrEQk5VlszVUFN2n-TqjRwJ1ehqSeTw/viewform', '_blank', 'noopener,noreferrer')}>
+                  Feedback
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   Logout
