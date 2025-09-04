@@ -19,7 +19,8 @@ import {
   MessageSquare, 
   Thermometer,
   Menu,
-  MessageCircle
+  MessageCircle,
+  Camera
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,11 @@ const Sidebar = () => {
       title: "Insights",
       url: "/insights",
       icon: Thermometer,
+    },
+    {
+      title: "Palm Scanner",
+      url: "/palm-scanner",
+      icon: Camera,
     },
     {
       title: "Community",

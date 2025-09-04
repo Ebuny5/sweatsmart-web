@@ -22,6 +22,7 @@ import Community from "./pages/Community";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./pages/AuthCallback";
+import PalmScanner from "./pages/PalmScanner";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -152,6 +153,11 @@ const AppRoutes = () => (
     <Route path="/settings" element={
       <ProtectedRoute>
         <Settings />
+      </ProtectedRoute>
+    } />
+    <Route path="/palm-scanner" element={
+      <ProtectedRoute>
+        <PalmScanner />
       </ProtectedRoute>
     } />
     <Route path="*" element={<NotFound />} />
