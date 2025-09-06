@@ -13,7 +13,7 @@ export const useGoogleAuth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: 'https://www.sweatsmart.guru/auth/callback',
         },
       });
 
