@@ -25,5 +25,7 @@
   ],
   "lang": "en",
   "categories": ["health", "medical"],
-  "id": "com.beyondsweat.sweatsmart"
+  "id": "com.beyondsweat.sweatsmart",
+  "prefer_related_applications": false,
+  "related_applications": []
 }
