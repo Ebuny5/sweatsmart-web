@@ -1,0 +1,23 @@
+{
+  "background_color": "#ffffff",
+  "description": "Track, analyze, and manage excessive sweating with personalized insights and a supportive community.",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "SweatSmart",
+  "orientation": "portrait",
+  "scope": "/",
+  "short_name": "SweatSmart",
+  "start_url": "/",
+  "theme_color": "#0a58ca",
+  "icons": [
+    {
+      "src": "https://lovable.dev/opengraph-image-p98pqg.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "lang": "en",
+  "categories": ["health", "medical"],
+  "id": "com.beyondsweat.sweatsmart"
+}
