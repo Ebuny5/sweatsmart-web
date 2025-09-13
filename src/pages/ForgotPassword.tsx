@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import AppLayout from "@/components/layout/AppLayout";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, PASSWORD_RESET_REDIRECT_TO } from "@/integrations/supabase/client";
 import { ArrowLeft, Mail, Shield, CheckCircle, Info } from "lucide-react";
 import Captcha from "@/components/ui/captcha";
 
@@ -35,7 +35,7 @@ const ForgotPassword = () => {
     
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://www.sweatsmart.guru/reset-password',
+        redirectTo: PASSWORD_RESET_REDIRECT_TO,
       });
 
       if (error) {

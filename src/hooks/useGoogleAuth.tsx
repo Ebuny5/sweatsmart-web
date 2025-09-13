@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, AUTH_REDIRECT_TO } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export const useGoogleAuth = () => {
@@ -13,7 +13,7 @@ export const useGoogleAuth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'https://www.sweatsmart.guru/auth/callback',
+          redirectTo: AUTH_REDIRECT_TO,
         },
       });
 

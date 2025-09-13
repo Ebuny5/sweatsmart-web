@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import AppLayout from "@/components/layout/AppLayout";
 import { useToast } from "@/hooks/use-toast";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, AUTH_REDIRECT_TO } from "@/integrations/supabase/client";
 import { Chrome } from "lucide-react";
 import Captcha from "@/components/ui/captcha";
 
@@ -55,7 +55,7 @@ const Register = () => {
           data: {
             full_name: name,
           },
-          emailRedirectTo: 'https://www.sweatsmart.guru/auth/callback',
+          emailRedirectTo: AUTH_REDIRECT_TO,
         },
       });
 
