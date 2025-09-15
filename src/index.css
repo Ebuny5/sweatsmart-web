@@ -6,83 +6,99 @@
 
 @layer base {
   :root {
-    --background: 195 20% 98%;
-    --foreground: 200 15% 20%;
+    --background: 0 0% 99%;
+    --foreground: 215 25% 27%;
 
     --card: 0 0% 100%;
-    --card-foreground: 200 15% 20%;
+    --card-foreground: 215 25% 27%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 200 15% 20%;
+    --popover-foreground: 215 25% 27%;
 
-    --primary: 174 59% 41%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 201 70% 56%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 210 17% 95%;
+    --secondary-foreground: 215 25% 27%;
 
-    --muted: 210 20% 96%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 210 17% 98%;
+    --muted-foreground: 215 16% 47%;
 
-    --accent: 189 90% 45%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 214 100% 97%;
+    --accent-foreground: 217 91% 60%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 200 20% 88%;
-    --input: 200 20% 88%;
-    --ring: 174 59% 41%;
+    --border: 210 20% 92%;
+    --input: 210 20% 92%;
+    --ring: 217 91% 60%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    --sidebar-background: 174 30% 97%;
-    --sidebar-foreground: 200 15% 20%;
-    --sidebar-primary: 174 59% 41%;
+    /* Medical app gradients and special colors */
+    --gradient-primary: linear-gradient(135deg, hsl(217, 91%, 60%), hsl(217, 91%, 50%));
+    --gradient-subtle: linear-gradient(180deg, hsl(0, 0%, 100%), hsl(210, 17%, 98%));
+    --droplet-blue: 217 91% 60%;
+    --droplet-light: 214 100% 97%;
+    --professional-gray: 215 16% 47%;
+    --clean-white: 0 0% 100%;
+
+    --sidebar-background: 0 0% 99%;
+    --sidebar-foreground: 215 25% 27%;
+    --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 174 30% 95%;
-    --sidebar-accent-foreground: 200 15% 20%;
-    --sidebar-border: 174 30% 92%;
-    --sidebar-ring: 174 59% 41%;
+    --sidebar-accent: 214 100% 97%;
+    --sidebar-accent-foreground: 215 25% 27%;
+    --sidebar-border: 210 20% 92%;
+    --sidebar-ring: 217 91% 60%;
   }
 
   .dark {
-    --background: 200 25% 10%;
+    --background: 215 28% 10%;
     --foreground: 210 20% 98%;
 
-    --card: 200 25% 15%;
+    --card: 215 28% 12%;
     --card-foreground: 210 20% 98%;
 
-    --popover: 200 25% 15%;
+    --popover: 215 28% 12%;
     --popover-foreground: 210 20% 98%;
 
-    --primary: 174 59% 41%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 201 70% 56%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 215 28% 18%;
+    --secondary-foreground: 210 20% 98%;
 
-    --muted: 200 25% 25%;
-    --muted-foreground: 210 20% 70%;
+    --muted: 215 28% 18%;
+    --muted-foreground: 215 16% 65%;
 
-    --accent: 189 90% 45%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 215 28% 18%;
+    --accent-foreground: 217 91% 60%;
 
     --destructive: 0 74% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 200 25% 25%;
-    --input: 200 25% 25%;
-    --ring: 174 59% 41%;
+    --border: 215 28% 18%;
+    --input: 215 28% 18%;
+    --ring: 217 91% 60%;
 
-    --sidebar-background: 200 25% 15%;
+    /* Dark mode gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(217, 91%, 60%), hsl(217, 91%, 50%));
+    --gradient-subtle: linear-gradient(180deg, hsl(215, 28%, 12%), hsl(215, 28%, 10%));
+    --droplet-blue: 217 91% 60%;
+    --droplet-light: 215 28% 18%;
+    --professional-gray: 215 16% 65%;
+    --clean-white: 215 28% 12%;
+
+    --sidebar-background: 215 28% 10%;
     --sidebar-foreground: 210 20% 98%;
-    --sidebar-primary: 174 59% 41%;
+    --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 200 25% 20%;
+    --sidebar-accent: 215 28% 18%;
     --sidebar-accent-foreground: 210 20% 98%;
-    --sidebar-border: 200 25% 25%;
-    --sidebar-ring: 174 59% 41%;
+    --sidebar-border: 215 28% 18%;
+    --sidebar-ring: 217 91% 60%;
   }
 }
 
