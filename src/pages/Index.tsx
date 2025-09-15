@@ -187,15 +187,15 @@ const Index = () => {
             </div>
             
             <div className="flex gap-8">
-              <a href="#" className="text-sm text-professional-gray hover:text-primary transition-colors">
+              <Link to="/privacy" className="text-sm text-professional-gray hover:text-primary transition-colors">
                 Privacy
-              </a>
-              <a href="#" className="text-sm text-professional-gray hover:text-primary transition-colors">
+              </Link>
+              <Link to="/terms" className="text-sm text-professional-gray hover:text-primary transition-colors">
                 Terms
-              </a>
-              <a href="#" className="text-sm text-professional-gray hover:text-primary transition-colors">
+              </Link>
+              <Link to="/contact" className="text-sm text-professional-gray hover:text-primary transition-colors">
                 Contact
-              </a>
+              </Link>
             </div>
           </div>
         </div>
