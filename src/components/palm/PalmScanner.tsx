@@ -135,7 +135,7 @@ export function PalmScanner() {
         
         toast({
           title: "HyperScan Complete",
-          description: `Analysis confidence: ${analysis.confidence}%`,
+          description: `Hyperhidrosis analysis complete with ${analysis.confidence}% confidence`,
         });
       } catch (error) {
         console.error('Error analyzing hyperhidrosis:', error);
@@ -166,6 +166,9 @@ export function PalmScanner() {
             <Droplets className="h-5 w-5 text-primary" />
             HyperScanner
           </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Analyze hyperhidrosis in palms, hands, feet, and soles
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="scanner relative rounded-lg overflow-hidden border-2 border-primary/20">
@@ -193,7 +196,7 @@ export function PalmScanner() {
             ) : (
               <>
                 <Droplets className="mr-2 h-4 w-4" />
-                Scan Palm or Foot
+                Scan Palms, Hands, Feet or Soles
               </>
             )}
           </Button>
@@ -276,8 +279,8 @@ export function PalmScanner() {
 
             <div className="p-4 bg-muted rounded-lg">
               <p className="text-xs text-muted-foreground">
-                ⚠️ This analysis is for informational purposes only. 
-                Consult with a healthcare professional for proper diagnosis and treatment.
+                ⚠️ This analysis works for palms, hands, feet, and soles. Results are for informational purposes only. 
+                Consult with a healthcare professional for proper diagnosis and treatment of hyperhidrosis.
               </p>
             </div>
           </CardContent>
