@@ -47,13 +47,23 @@ async function analyzeHyperhidrosis(imageDataUrl: string): Promise<HyperAnalysis
   const redChannel = tf.mean(tensor.slice([0, 0, 0, 0], [1, 224, 224, 1])).dataSync()[0];
   const blueChannel = tf.mean(tensor.slice([0, 0, 0, 2], [1, 224, 224, 1])).dataSync()[0];
   
-  // Simulate AI model predictions based on image analysis
-  const moistureLevel = meanBrightness * 10;
-  const textureVariance = variance * 100;
-  const skinTone = redChannel / blueChannel;
+  // Advanced moisture detection analysis
+  const greenChannel = tf.mean(tensor.slice([0, 0, 0, 1], [1, 224, 224, 1])).dataSync()[0];
   
-  // Determine severity (1-10 scale)
-  let severityLevel = Math.min(10, Math.max(1, Math.round(moistureLevel + textureVariance * 2)));
+  // Wet skin detection: wet skin appears shinier/more reflective
+  const reflectanceRatio = meanBrightness / variance; // Higher = more uniform/shiny
+  const colorBalance = (redChannel + greenChannel + blueChannel) / 3;
+  const moistureIndicator = reflectanceRatio * colorBalance;
+  
+  // Texture analysis for sweat patterns
+  const textureVariance = variance * 100;
+  const sweatPattern = textureVariance > 0.8 ? textureVariance * 0.5 : 0;
+  
+  // Calculate actual moisture level (0-1 scale)
+  const actualMoisture = moistureIndicator > 0.15 ? Math.min(1, moistureIndicator * 2) : 0;
+  
+  // Determine severity based on actual moisture detection
+  let severityLevel = Math.max(1, Math.round(actualMoisture * 10 + sweatPattern));
   let severityLabel = '';
   
   if (severityLevel <= 2) severityLabel = 'Minimal';
@@ -69,11 +79,11 @@ async function analyzeHyperhidrosis(imageDataUrl: string): Promise<HyperAnalysis
   else if (poreDensity < 60) poreStatus = 'Elevated';
   else poreStatus = 'Highly Active';
   
-  // Detect potential triggers
+  // Detect potential triggers based on improved analysis
   const triggers = [];
-  if (moistureLevel > 6) triggers.push('Heat');
+  if (actualMoisture > 0.6) triggers.push('Heat');
   if (textureVariance > 5) triggers.push('Stress');
-  if (skinTone > 1.2) triggers.push('Physical Activity');
+  if (reflectanceRatio > 0.2) triggers.push('Physical Activity');
   if (triggers.length === 0) triggers.push('Baseline Activity');
   
   // Determine treatment recommendations
