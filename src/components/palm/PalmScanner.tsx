@@ -1,133 +1,53 @@
 import { useRef, useState } from 'react';
 import { Camera } from 'react-camera-pro';
-import * as tf from '@tensorflow/tfjs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Droplets, Activity, AlertTriangle, Stethoscope } from 'lucide-react';
+import { Droplets, Activity, AlertTriangle, Stethoscope, Info } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
-interface HyperAnalysisResult {
+interface GoogleAIAnalysisResult {
+  confidence: number;
   severity: {
     level: number;
-    label: string;
+    assessment: string;
   };
-  poreDensity: {
-    percentage: number;
-    status: string;
+  sweatGlandActivity: {
+    level: number;
+    assessment: string;
   };
-  triggers: {
-    detected: string[];
-    confidence: number;
-  };
-  treatment: {
+  detectedTriggers: string[];
+  treatmentRecommendations: {
     primary: string;
-    secondary: string[];
+    alternative: string[];
   };
-  confidence: number;
+  analysisNotes: string;
 }
 
-async function analyzeHyperhidrosis(imageDataUrl: string): Promise<HyperAnalysisResult> {
-  const img = new Image();
-  img.src = imageDataUrl;
-  
-  await img.decode();
-  
-  // Convert to tensor for analysis
-  const tensor = tf.browser.fromPixels(img)
-                           .resizeBilinear([224, 224])
-                           .toFloat()
-                           .div(255.0)
-                           .expandDims();
+async function analyzeWithGoogleAI(imageDataUrl: string): Promise<GoogleAIAnalysisResult> {
+  try {
+    const { data, error } = await supabase.functions.invoke('analyze-hyperhidrosis', {
+      body: { imageData: imageDataUrl }
+    });
 
-  // Advanced analysis simulation (in real app, this would be your trained model)
-  const meanBrightness = tf.mean(tensor).dataSync()[0];
-  const variance = tf.moments(tensor).variance.dataSync()[0];
-  const redChannel = tf.mean(tensor.slice([0, 0, 0, 0], [1, 224, 224, 1])).dataSync()[0];
-  const blueChannel = tf.mean(tensor.slice([0, 0, 0, 2], [1, 224, 224, 1])).dataSync()[0];
-  
-  // Advanced moisture detection analysis
-  const greenChannel = tf.mean(tensor.slice([0, 0, 0, 1], [1, 224, 224, 1])).dataSync()[0];
-  
-  // Wet skin detection: wet skin appears shinier/more reflective
-  const reflectanceRatio = meanBrightness / variance; // Higher = more uniform/shiny
-  const colorBalance = (redChannel + greenChannel + blueChannel) / 3;
-  const moistureIndicator = reflectanceRatio * colorBalance;
-  
-  // Texture analysis for sweat patterns
-  const textureVariance = variance * 100;
-  const sweatPattern = textureVariance > 0.8 ? textureVariance * 0.5 : 0;
-  
-  // Calculate actual moisture level (0-1 scale)
-  const actualMoisture = moistureIndicator > 0.15 ? Math.min(1, moistureIndicator * 2) : 0;
-  
-  // Determine severity based on actual moisture detection
-  let severityLevel = Math.max(1, Math.round(actualMoisture * 10 + sweatPattern));
-  let severityLabel = '';
-  
-  if (severityLevel <= 2) severityLabel = 'Minimal';
-  else if (severityLevel <= 4) severityLabel = 'Mild';
-  else if (severityLevel <= 6) severityLabel = 'Moderate';
-  else if (severityLevel <= 8) severityLabel = 'Severe';
-  else severityLabel = 'Very Severe';
-  
-  // Analyze pore density
-  const poreDensity = Math.min(95, Math.max(5, textureVariance * 15));
-  let poreStatus = '';
-  if (poreDensity < 30) poreStatus = 'Normal';
-  else if (poreDensity < 60) poreStatus = 'Elevated';
-  else poreStatus = 'Highly Active';
-  
-  // Detect potential triggers based on improved analysis
-  const triggers = [];
-  if (actualMoisture > 0.6) triggers.push('Heat');
-  if (textureVariance > 5) triggers.push('Stress');
-  if (reflectanceRatio > 0.2) triggers.push('Physical Activity');
-  if (triggers.length === 0) triggers.push('Baseline Activity');
-  
-  // Determine treatment recommendations
-  let primaryTreatment = '';
-  const secondaryTreatments = [];
-  
-  if (severityLevel <= 3) {
-    primaryTreatment = 'Topical Antiperspirants';
-    secondaryTreatments.push('Lifestyle Modifications', 'Stress Management');
-  } else if (severityLevel <= 6) {
-    primaryTreatment = 'Iontophoresis Therapy';
-    secondaryTreatments.push('Prescription Antiperspirants', 'Oral Medications');
-  } else {
-    primaryTreatment = 'Botox Injections';
-    secondaryTreatments.push('Iontophoresis', 'Surgical Options');
+    if (error) {
+      console.error('Supabase function error:', error);
+      throw new Error('Failed to analyze image with Google AI');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error calling Google AI analysis:', error);
+    throw error;
   }
-  
-  const confidence = Math.min(95, 70 + (textureVariance * 5));
-  
-  return {
-    severity: {
-      level: severityLevel,
-      label: severityLabel
-    },
-    poreDensity: {
-      percentage: Math.round(poreDensity),
-      status: poreStatus
-    },
-    triggers: {
-      detected: triggers,
-      confidence: Math.round(confidence)
-    },
-    treatment: {
-      primary: primaryTreatment,
-      secondary: secondaryTreatments
-    },
-    confidence: Math.round(confidence)
-  };
 }
 
 export function PalmScanner() {
   const camera = useRef<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [result, setResult] = useState<HyperAnalysisResult | null>(null);
+  const [result, setResult] = useState<GoogleAIAnalysisResult | null>(null);
   const { toast } = useToast();
 
   const scanFootOrPalm = async () => {
@@ -139,13 +59,13 @@ export function PalmScanner() {
         const photo = camera.current.takePhoto();
         console.log('Hyperhidrosis scan initiated:', photo);
         
-        // 2️⃣ RUN SWEAT DETECTION MODEL
-        const analysis = await analyzeHyperhidrosis(photo);
+        // 2️⃣ RUN GOOGLE AI SWEAT DETECTION MODEL
+        const analysis = await analyzeWithGoogleAI(photo);
         setResult(analysis);
         
         toast({
-          title: "HyperScan Complete",
-          description: `Hyperhidrosis analysis complete with ${analysis.confidence}% confidence`,
+          title: "SweatSmart Analysis Complete",
+          description: `Analysis complete with ${Math.round(analysis.confidence)}% confidence`,
         });
       } catch (error) {
         console.error('Error analyzing hyperhidrosis:', error);
@@ -231,23 +151,23 @@ export function PalmScanner() {
               <div className="flex items-center justify-between">
                 <span>Level {result.severity.level}/10</span>
                 <Badge className={getSeverityColor(result.severity.level)}>
-                  {result.severity.label}
+                  {result.severity.assessment}
                 </Badge>
               </div>
               <Progress value={result.severity.level * 10} className="h-2" />
             </div>
 
-            {/* Pore Activity */}
+            {/* Sweat Gland Activity */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Activity className="h-4 w-4 text-primary" />
                 <h3 className="font-semibold">Sweat Gland Activity</h3>
               </div>
               <div className="flex items-center justify-between">
-                <span>{result.poreDensity.percentage}% Active</span>
-                <Badge variant="secondary">{result.poreDensity.status}</Badge>
+                <span>Level {result.sweatGlandActivity.level}/10</span>
+                <Badge variant="secondary">{result.sweatGlandActivity.assessment}</Badge>
               </div>
-              <Progress value={result.poreDensity.percentage} className="h-2" />
+              <Progress value={result.sweatGlandActivity.level * 10} className="h-2" />
             </div>
 
             {/* Detected Triggers */}
@@ -257,7 +177,7 @@ export function PalmScanner() {
                 <h3 className="font-semibold">Detected Triggers</h3>
               </div>
               <div className="flex flex-wrap gap-2">
-                {result.triggers.detected.map((trigger, index) => (
+                {result.detectedTriggers.map((trigger, index) => (
                   <Badge key={index} variant="outline">
                     {trigger}
                   </Badge>
@@ -274,16 +194,27 @@ export function PalmScanner() {
               <div className="space-y-2">
                 <div className="p-3 bg-primary/10 rounded-lg">
                   <p className="font-medium text-primary">Primary Treatment</p>
-                  <p className="text-sm text-muted-foreground">{result.treatment.primary}</p>
+                  <p className="text-sm text-muted-foreground">{result.treatmentRecommendations.primary}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Alternative Options:</p>
-                  {result.treatment.secondary.map((treatment, index) => (
+                  {result.treatmentRecommendations.alternative.map((treatment, index) => (
                     <Badge key={index} variant="secondary" className="mr-2">
                       {treatment}
                     </Badge>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            {/* AI Analysis Notes */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Info className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold">AI Analysis Notes</h3>
+              </div>
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground">{result.analysisNotes}</p>
               </div>
             </div>
 
