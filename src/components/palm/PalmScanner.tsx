@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Droplets, Activity, AlertTriangle, Stethoscope, Info } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Droplets, Activity, AlertTriangle, Stethoscope, Info, Upload, Camera as CameraIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface GoogleAIAnalysisResult {
@@ -46,20 +48,42 @@ async function analyzeWithGoogleAI(imageDataUrl: string): Promise<GoogleAIAnalys
 
 export function PalmScanner() {
   const camera = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<GoogleAIAnalysisResult | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const scanFootOrPalm = async () => {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    }
+  };
+
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const scanFromCamera = async () => {
     if (camera.current) {
       try {
         setIsAnalyzing(true);
         
-        // 1️⃣ CAPTURE IMAGE
         const photo = camera.current.takePhoto();
-        console.log('Hyperhidrosis scan initiated:', photo);
+        console.log('Camera scan initiated');
         
-        // 2️⃣ RUN GOOGLE AI SWEAT DETECTION MODEL
         const analysis = await analyzeWithGoogleAI(photo);
         setResult(analysis);
         
@@ -68,10 +92,40 @@ export function PalmScanner() {
           description: `Analysis complete with ${Math.round(analysis.confidence)}% confidence`,
         });
       } catch (error) {
-        console.error('Error analyzing hyperhidrosis:', error);
+        console.error('Error analyzing from camera:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
         toast({
           title: "Scan Error",
-          description: "Failed to analyze. Please try again.",
+          description: `Failed to analyze: ${errorMessage}`,
+          variant: "destructive",
+        });
+      } finally {
+        setIsAnalyzing(false);
+      }
+    }
+  };
+
+  const scanFromFile = async () => {
+    if (selectedFile) {
+      try {
+        setIsAnalyzing(true);
+        
+        const base64Data = await convertFileToBase64(selectedFile);
+        console.log('File scan initiated');
+        
+        const analysis = await analyzeWithGoogleAI(base64Data);
+        setResult(analysis);
+        
+        toast({
+          title: "SweatSmart Analysis Complete",
+          description: `Analysis complete with ${Math.round(analysis.confidence)}% confidence`,
+        });
+      } catch (error) {
+        console.error('Error analyzing from file:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        toast({
+          title: "Scan Error", 
+          description: `Failed to analyze: ${errorMessage}`,
           variant: "destructive",
         });
       } finally {
@@ -101,35 +155,100 @@ export function PalmScanner() {
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="scanner relative rounded-lg overflow-hidden border-2 border-primary/20">
-            <Camera 
-              ref={camera} 
-              aspectRatio={4/3}
-              facingMode="environment"
-              errorMessages={{
-                noCameraAccessible: 'No camera accessible. Please check permissions.',
-                permissionDenied: 'Camera access denied. Please allow camera permissions.',
-              }}
-            />
-          </div>
-          
-          <Button 
-            onClick={scanFootOrPalm} 
-            disabled={isAnalyzing}
-            className="w-full h-12"
-          >
-            {isAnalyzing ? (
-              <>
-                <Activity className="mr-2 h-4 w-4 animate-spin" />
-                Analyzing Hyperhidrosis...
-              </>
-            ) : (
-              <>
-                <Droplets className="mr-2 h-4 w-4" />
-                Scan Palms, Hands, Feet or Soles
-              </>
-            )}
-          </Button>
+          <Tabs defaultValue="camera" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="camera" className="flex items-center gap-2">
+                <CameraIcon className="h-4 w-4" />
+                Camera
+              </TabsTrigger>
+              <TabsTrigger value="upload" className="flex items-center gap-2">
+                <Upload className="h-4 w-4" />
+                Upload
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="camera" className="space-y-4">
+              <div className="scanner relative rounded-lg overflow-hidden border-2 border-primary/20">
+                <Camera 
+                  ref={camera} 
+                  aspectRatio={4/3}
+                  facingMode="environment"
+                  errorMessages={{
+                    noCameraAccessible: 'No camera accessible. Please check permissions.',
+                    permissionDenied: 'Camera access denied. Please allow camera permissions.',
+                  }}
+                />
+              </div>
+              
+              <Button 
+                onClick={scanFromCamera} 
+                disabled={isAnalyzing}
+                className="w-full h-12"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Activity className="mr-2 h-4 w-4 animate-spin" />
+                    Analyzing Hyperhidrosis...
+                  </>
+                ) : (
+                  <>
+                    <CameraIcon className="mr-2 h-4 w-4" />
+                    Capture & Analyze
+                  </>
+                )}
+              </Button>
+            </TabsContent>
+            
+            <TabsContent value="upload" className="space-y-4">
+              <div className="border-2 border-dashed border-primary/20 rounded-lg p-6 text-center">
+                {previewUrl ? (
+                  <div className="space-y-4">
+                    <img 
+                      src={previewUrl} 
+                      alt="Selected image" 
+                      className="max-w-full max-h-64 mx-auto rounded-lg"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Selected: {selectedFile?.name}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <Upload className="h-12 w-12 text-muted-foreground mx-auto" />
+                    <p className="text-muted-foreground">
+                      Select an image of palms, hands, feet, or soles
+                    </p>
+                  </div>
+                )}
+                
+                <Input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                  className="mt-4"
+                />
+              </div>
+              
+              <Button 
+                onClick={scanFromFile} 
+                disabled={isAnalyzing || !selectedFile}
+                className="w-full h-12"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Activity className="mr-2 h-4 w-4 animate-spin" />
+                    Analyzing Hyperhidrosis...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload & Analyze
+                  </>
+                )}
+              </Button>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 

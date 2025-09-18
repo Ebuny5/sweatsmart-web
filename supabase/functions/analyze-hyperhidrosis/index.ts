@@ -91,7 +91,13 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Google AI API Error:', errorText);
-      throw new Error(`Google AI API error: ${response.status}`);
+      
+      // Handle quota exceeded errors specifically
+      if (response.status === 429) {
+        throw new Error('Google AI API quota exceeded. Please try again later.');
+      }
+      
+      throw new Error(`Google AI API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
@@ -108,15 +114,19 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error in analyze-hyperhidrosis function:', error);
-    return new Response(JSON.stringify({ 
+    
+    // Return a structured error response that matches the expected schema
+    const errorResponse = { 
       error: error.message,
       confidence: 0,
-      severity: { level: 1, assessment: "Analysis failed" },
+      severity: { level: 1, assessment: "Analysis unavailable" },
       sweatGlandActivity: { level: 1, assessment: "Unable to analyze" },
       detectedTriggers: [],
       treatmentRecommendations: { primary: "Consult healthcare provider", alternative: [] },
-      analysisNotes: "Analysis failed due to technical error. Please try again."
-    }), {
+      analysisNotes: `Analysis failed: ${error.message}. Please try again later.`
+    };
+    
+    return new Response(JSON.stringify(errorResponse), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
