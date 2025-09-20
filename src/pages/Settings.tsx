@@ -18,6 +18,7 @@ const Settings = () => {
   const [reminderTime, setReminderTime] = useState("");
   const [remindersEnabled, setRemindersEnabled] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [debugEnabled, setDebugEnabled] = useState<boolean>(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -35,6 +36,12 @@ const Settings = () => {
     const soundPref = localStorage.getItem('sweatsmart_sound_enabled');
     if (soundPref !== null) {
       setSoundEnabled(JSON.parse(soundPref));
+    }
+
+    // Load debug preference
+    const debugPref = localStorage.getItem('sweatsmart_debug_mode');
+    if (debugPref !== null) {
+      setDebugEnabled(debugPref === 'true');
     }
   }, []);
 
@@ -63,6 +70,16 @@ const Settings = () => {
     toast({
       title: enabled ? "Professional sound enabled" : "Sound disabled",
       description: `Professional medical notification sounds are now ${enabled ? 'on' : 'off'}`,
+    });
+
+  };
+
+  const handleDebugToggle = (enabled: boolean) => {
+    setDebugEnabled(enabled);
+    localStorage.setItem('sweatsmart_debug_mode', String(enabled));
+    toast({
+      title: enabled ? "Debug Mode enabled" : "Debug Mode disabled",
+      description: enabled ? 'Verbose logs will be printed during AI analysis' : 'Verbose logs disabled',
     });
   };
 
@@ -223,6 +240,19 @@ const Settings = () => {
                   <li>• <strong>Mobile vibration</strong> - Enhanced vibration patterns for different alert types</li>
                 </ul>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Debug Mode</CardTitle>
+            <p className="text-sm text-muted-foreground">Enable verbose logging for AI analysis and connectivity checks.</p>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <Label>Enable Debug Mode</Label>
+              <Switch checked={debugEnabled} onCheckedChange={handleDebugToggle} />
             </div>
           </CardContent>
         </Card>

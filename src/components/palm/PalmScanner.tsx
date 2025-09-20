@@ -49,8 +49,13 @@ async function analyzeWithGoogleAI(imageDataUrl: string): Promise<GoogleAIAnalys
     if (error) {
       if (isDebug) {
         console.error('Supabase function error:', error);
+        console.error('Supabase error status:', (error as any)?.status);
+        console.error('Supabase error name:', (error as any)?.name);
+        console.error('Supabase error message:', (error as any)?.message);
       }
-      throw new Error('Failed to analyze image with Google AI');
+      const status = (error as any)?.status ?? (error as any)?.context?.status ?? 'Unknown';
+      const message = (error as any)?.message ?? 'Unknown error';
+      throw new Error(`Failed to analyze image with Google AI: ${message} (status: ${status})`);
     }
 
     if (isDebug) {
@@ -151,8 +156,20 @@ export function PalmScanner() {
     if (selectedFile) {
       try {
         setIsAnalyzing(true);
-        
+
+        // Validate and log file details
+        validateImage(selectedFile);
+        const debug = isDebugMode();
+        if (debug) {
+          console.log('Selected file name:', selectedFile.name);
+          console.log('Selected file size:', selectedFile.size);
+          console.log('Selected file type:', selectedFile.type);
+        }
+
         const base64Data = await convertFileToBase64(selectedFile);
+        if (debug) {
+          console.log('Base64 length before API:', base64Data.length);
+        }
         console.log('File scan initiated');
         
         const analysis = await analyzeWithGoogleAI(base64Data);
