@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const googleAIKey = Deno.env.get('GOOGLE_AI_STUDIO_API_KEY');
+const googleAIKey = Deno.env.get('GOOGLE_AI_STUDIO_API_KEY_WEB');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
