@@ -29,19 +29,43 @@ interface GoogleAIAnalysisResult {
 }
 
 async function analyzeWithGoogleAI(imageDataUrl: string): Promise<GoogleAIAnalysisResult> {
+  const isDebug = typeof window !== 'undefined' && localStorage.getItem('sweatsmart_debug_mode') === 'true';
+  const projectRef = 'ujbcolxawpzfjkjviwqw';
+  const endpointUrl = `https://${projectRef}.supabase.co/functions/v1/analyze-hyperhidrosis`;
+
   try {
+    if (isDebug) {
+      console.log('=== GOOGLE VISION/AI DEBUG START ===');
+      console.log('Using Supabase Edge Function (server-side key)');
+      console.log('API Endpoint URL:', endpointUrl);
+      console.log('Base64 length:', imageDataUrl ? imageDataUrl.length : 'NO BASE64');
+      console.log('Request payload structure:', JSON.stringify({ imageData: `[base64 length: ${imageDataUrl?.length}]` }, null, 2));
+    }
+
     const { data, error } = await supabase.functions.invoke('analyze-hyperhidrosis', {
       body: { imageData: imageDataUrl }
     });
 
     if (error) {
-      console.error('Supabase function error:', error);
+      if (isDebug) {
+        console.error('Supabase function error:', error);
+      }
       throw new Error('Failed to analyze image with Google AI');
     }
 
-    return data;
-  } catch (error) {
-    console.error('Error calling Google AI analysis:', error);
+    if (isDebug) {
+      console.log('Function response data:', data);
+    }
+
+    return data as GoogleAIAnalysisResult;
+  } catch (error: any) {
+    if (isDebug) {
+      console.error('=== GOOGLE VISION/AI ERROR DETAILS ===');
+      console.error('Error type:', error?.constructor?.name);
+      console.error('Error message:', error?.message);
+      console.error('Error stack:', error?.stack);
+      console.error('=== END ERROR DETAILS ===');
+    }
     throw error;
   }
 }
@@ -74,6 +98,24 @@ export function PalmScanner() {
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
+  };
+
+  const isDebugMode = () => typeof window !== 'undefined' && localStorage.getItem('sweatsmart_debug_mode') === 'true';
+
+  const validateImage = (file: File) => {
+    const debug = isDebugMode();
+    if (debug) {
+      console.log('=== IMAGE VALIDATION ===');
+      console.log('File exists:', !!file);
+      console.log('File size:', file?.size, 'bytes');
+      console.log('File type:', file?.type);
+      console.log('Is valid image type:', ['image/jpeg', 'image/png', 'image/jpg'].includes(file?.type));
+      console.log('Size under 4MB:', file?.size < 4 * 1024 * 1024);
+    }
+
+    if (!file) throw new Error('No file provided');
+    if (file.size > 4 * 1024 * 1024) throw new Error(`File too large: ${file.size} bytes (max: 4MB)`);
+    if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) throw new Error(`Invalid file type: ${file.type}`);
   };
 
   const scanFromCamera = async () => {
