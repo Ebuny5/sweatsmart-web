@@ -20,6 +20,7 @@ interface GoogleAIAnalysisResult {
     level: number;
     assessment: string;
   };
+  moistureSource: string;
   detectedTriggers: string[];
   treatmentRecommendations: {
     primary: string;
@@ -346,6 +347,19 @@ export function PalmScanner() {
                 <Badge variant="secondary">{result.sweatGlandActivity.assessment}</Badge>
               </div>
               <Progress value={result.sweatGlandActivity.level * 10} className="h-2" />
+            </div>
+
+            {/* Moisture Source */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Droplets className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold">Moisture Source</h3>
+              </div>
+              <div className="flex items-center justify-between">
+                <Badge variant={result.moistureSource === 'Hyperhidrosis' ? 'default' : result.moistureSource === 'External Moisture' ? 'destructive' : 'secondary'} className="text-base px-4 py-1">
+                  {result.moistureSource}
+                </Badge>
+              </div>
             </div>
 
             {/* Detected Triggers */}
