@@ -83,6 +83,26 @@ export function PalmScanner() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const { toast } = useToast();
 
+  // Loading state messages must be managed with top-level hooks to avoid React error #310
+  const loadingMessages = [
+    "Calibrating hyperhidrosis detectors...",
+    "Analyzing image for moisture signatures...",
+    "Distinguishing between sweat and external sources...",
+    "Cross-referencing with dermatological patterns...",
+    "Assessing pore-level activity...",
+    "Identifying potential triggers...",
+    "Compiling personalized recommendations...",
+    "Finalizing your detailed report...",
+  ];
+  const [messageIndex, setMessageIndex] = useState(0);
+  useEffect(() => {
+    if (!isAnalyzing) return;
+    const interval = setInterval(() => {
+      setMessageIndex((prev) => (prev + 1) % loadingMessages.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [isAnalyzing]);
+
   const startCamera = useCallback(async () => {
     try {
       setCameraError(null);
@@ -332,24 +352,6 @@ export function PalmScanner() {
 
   // Show loading state
   if (isAnalyzing) {
-    const loadingMessages = [
-      "Calibrating hyperhidrosis detectors...",
-      "Analyzing image for moisture signatures...",
-      "Distinguishing between sweat and external sources...",
-      "Cross-referencing with dermatological patterns...",
-      "Assessing pore-level activity...",
-      "Identifying potential triggers...",
-      "Compiling personalized recommendations...",
-      "Finalizing your detailed report...",
-    ];
-    const [messageIndex, setMessageIndex] = useState(0);
-    
-    useEffect(() => {
-      const interval = setInterval(() => {
-        setMessageIndex((prev) => (prev + 1) % loadingMessages.length);
-      }, 2000);
-      return () => clearInterval(interval);
-    }, []);
 
     return (
       <div className="w-full max-w-2xl mx-auto">
