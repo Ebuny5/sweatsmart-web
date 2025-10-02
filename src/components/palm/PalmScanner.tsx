@@ -1,13 +1,9 @@
-import { useRef, useState } from 'react';
-import { Camera } from 'react-camera-pro';
-import { Button } from '@/components/ui/button';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Droplets, Activity, AlertTriangle, Stethoscope, Info, Upload, Camera as CameraIcon } from 'lucide-react';
+import { Droplets, Activity, AlertTriangle, Stethoscope, Info, Sparkles, Camera as CameraIcon, Upload as UploadIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface GoogleAIAnalysisResult {
@@ -77,121 +73,123 @@ async function analyzeWithGoogleAI(imageDataUrl: string): Promise<GoogleAIAnalys
 }
 
 export function PalmScanner() {
-  const camera = useRef<any>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<GoogleAIAnalysisResult | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const startCamera = useCallback(async () => {
+    try {
+      setCameraError(null);
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      });
+      setStream(mediaStream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+    } catch (err) {
+      console.error("Error accessing camera:", err);
+      setCameraError("Could not access the camera. Please check permissions and try again.");
+    }
+  }, []);
+
+  useEffect(() => {
+    startCamera();
+
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setSelectedFile(file);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-    }
-  };
-
-  const convertFileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        resolve(result);
+      reader.onload = (e) => {
+        const base64Image = e.target?.result as string;
+        if (base64Image) {
+          analyzeImage(base64Image);
+          if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            setStream(null);
+          }
+        }
       };
-      reader.onerror = reject;
       reader.readAsDataURL(file);
-    });
-  };
-
-  const isDebugMode = () => typeof window !== 'undefined' && localStorage.getItem('sweatsmart_debug_mode') === 'true';
-
-  const validateImage = (file: File) => {
-    const debug = isDebugMode();
-    if (debug) {
-      console.log('=== IMAGE VALIDATION ===');
-      console.log('File exists:', !!file);
-      console.log('File size:', file?.size, 'bytes');
-      console.log('File type:', file?.type);
-      console.log('Is valid image type:', ['image/jpeg', 'image/png', 'image/jpg'].includes(file?.type));
-      console.log('Size under 4MB:', file?.size < 4 * 1024 * 1024);
     }
-
-    if (!file) throw new Error('No file provided');
-    if (file.size > 4 * 1024 * 1024) throw new Error(`File too large: ${file.size} bytes (max: 4MB)`);
-    if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) throw new Error(`Invalid file type: ${file.type}`);
   };
 
-  const scanFromCamera = async () => {
-    if (camera.current) {
-      try {
-        setIsAnalyzing(true);
-        
-        const photo = camera.current.takePhoto();
-        console.log('Camera scan initiated');
-        
-        const analysis = await analyzeWithGoogleAI(photo);
-        setResult(analysis);
-        
-        toast({
-          title: "SweatSmart Analysis Complete",
-          description: `Analysis complete with ${Math.round(analysis.confidence)}% confidence`,
-        });
-      } catch (error) {
-        console.error('Error analyzing from camera:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-        toast({
-          title: "Scan Error",
-          description: `Failed to analyze: ${errorMessage}`,
-          variant: "destructive",
-        });
-      } finally {
-        setIsAnalyzing(false);
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleCapture = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      const context = canvas.getContext('2d');
+      if (context) {
+        context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        analyzeImage(dataUrl);
+
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+          setStream(null);
+        }
       }
     }
   };
 
-  const scanFromFile = async () => {
-    if (selectedFile) {
-      try {
-        setIsAnalyzing(true);
+  const analyzeImage = async (base64ImageDataUrl: string) => {
+    setIsAnalyzing(true);
+    setResult(null);
+    setImagePreview(base64ImageDataUrl);
 
-        // Validate and log file details
-        validateImage(selectedFile);
-        const debug = isDebugMode();
-        if (debug) {
-          console.log('Selected file name:', selectedFile.name);
-          console.log('Selected file size:', selectedFile.size);
-          console.log('Selected file type:', selectedFile.type);
-        }
-
-        const base64Data = await convertFileToBase64(selectedFile);
-        if (debug) {
-          console.log('Base64 length before API:', base64Data.length);
-        }
-        console.log('File scan initiated');
-        
-        const analysis = await analyzeWithGoogleAI(base64Data);
-        setResult(analysis);
-        
-        toast({
-          title: "SweatSmart Analysis Complete",
-          description: `Analysis complete with ${Math.round(analysis.confidence)}% confidence`,
-        });
-      } catch (error) {
-        console.error('Error analyzing from file:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-        toast({
-          title: "Scan Error", 
-          description: `Failed to analyze: ${errorMessage}`,
-          variant: "destructive",
-        });
-      } finally {
-        setIsAnalyzing(false);
-      }
+    try {
+      console.log('Analysis started');
+      const analysis = await analyzeWithGoogleAI(base64ImageDataUrl);
+      setResult(analysis);
+      
+      toast({
+        title: "SweatSmart Analysis Complete",
+        description: `Analysis complete with ${Math.round(analysis.confidence)}% confidence`,
+      });
+    } catch (error) {
+      console.error('Error analyzing image:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast({
+        title: "Scan Error",
+        description: `Failed to analyze: ${errorMessage}`,
+        variant: "destructive",
+      });
+      setImagePreview(null);
+    } finally {
+      setIsAnalyzing(false);
     }
+  };
+
+  const handleReset = () => {
+    setResult(null);
+    setImagePreview(null);
+    startCamera();
   };
 
   const getSeverityColor = (level: number) => {
@@ -202,133 +200,56 @@ export function PalmScanner() {
     return 'bg-red-700';
   };
 
-  return (
-    <div className="w-full max-w-2xl mx-auto space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Droplets className="h-5 w-5 text-primary" />
-            HyperScanner
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Analyze hyperhidrosis in palms, hands, feet, and soles
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Tabs defaultValue="camera" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="camera" className="flex items-center gap-2">
-                <CameraIcon className="h-4 w-4" />
-                Camera
-              </TabsTrigger>
-              <TabsTrigger value="upload" className="flex items-center gap-2">
-                <Upload className="h-4 w-4" />
-                Upload
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="camera" className="space-y-4">
-              <div className="scanner relative rounded-lg overflow-hidden border-2 border-primary/20">
-                <Camera 
-                  ref={camera} 
-                  aspectRatio={4/3}
-                  facingMode="environment"
-                  errorMessages={{
-                    noCameraAccessible: 'No camera accessible. Please check permissions.',
-                    permissionDenied: 'Camera access denied. Please allow camera permissions.',
-                  }}
-                />
-              </div>
-              
-              <Button 
-                onClick={scanFromCamera} 
-                disabled={isAnalyzing}
-                className="w-full h-12"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Activity className="mr-2 h-4 w-4 animate-spin" />
-                    Analyzing Hyperhidrosis...
-                  </>
-                ) : (
-                  <>
-                    <CameraIcon className="mr-2 h-4 w-4" />
-                    Capture & Analyze
-                  </>
-                )}
-              </Button>
-            </TabsContent>
-            
-            <TabsContent value="upload" className="space-y-4">
-              <div className="border-2 border-dashed border-primary/20 rounded-lg p-6 text-center">
-                {previewUrl ? (
-                  <div className="space-y-4">
-                    <img 
-                      src={previewUrl} 
-                      alt="Selected image" 
-                      className="max-w-full max-h-64 mx-auto rounded-lg"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Selected: {selectedFile?.name}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <Upload className="h-12 w-12 text-muted-foreground mx-auto" />
-                    <p className="text-muted-foreground">
-                      Select an image of palms, hands, feet, or soles
-                    </p>
-                  </div>
-                )}
-                
-                <Input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileSelect}
-                  className="mt-4"
-                />
-              </div>
-              
-              <Button 
-                onClick={scanFromFile} 
-                disabled={isAnalyzing || !selectedFile}
-                className="w-full h-12"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Activity className="mr-2 h-4 w-4 animate-spin" />
-                    Analyzing Hyperhidrosis...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload & Analyze
-                  </>
-                )}
-              </Button>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-
-      {result && (
+  // Show results if available
+  if (result && imagePreview) {
+    return (
+      <div className="w-full max-w-2xl mx-auto">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Analysis Results</span>
-              <Badge variant="outline">{result.confidence}% Confidence</Badge>
-            </CardTitle>
+            <div className="flex justify-between items-start">
+              <CardTitle className="text-2xl">Analysis Results</CardTitle>
+              <Badge variant="outline" className="text-base">{result.confidence}% Confidence</Badge>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Image Preview */}
+            <div className="rounded-lg overflow-hidden border">
+              <img src={imagePreview} alt="Analyzed" className="w-full h-auto object-cover max-h-64" />
+            </div>
+
+            {/* AI Analysis Notes with Moisture Source */}
+            {result.analysisNotes && (
+              <div className="bg-muted/50 border rounded-lg p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <Info className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold mb-1">AI Analysis Note</h3>
+                    <p className="text-sm text-muted-foreground">{result.analysisNotes}</p>
+                  </div>
+                </div>
+                {result.moistureSource && (
+                  <div className="pt-3 border-t flex items-center gap-3">
+                    <Sparkles className="h-5 w-5 text-primary flex-shrink-0" />
+                    <span className="font-semibold text-sm">Suspected Moisture Source:</span>
+                    <Badge 
+                      variant={result.moistureSource === 'Hyperhidrosis' ? 'default' : result.moistureSource === 'External Moisture' ? 'destructive' : 'secondary'}
+                      className="text-sm"
+                    >
+                      {result.moistureSource}
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Severity Assessment */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-primary" />
+                <AlertTriangle className="h-5 w-5 text-primary" />
                 <h3 className="font-semibold">Severity Assessment</h3>
               </div>
-              <div className="flex items-center justify-between">
-                <span>Level {result.severity.level}/10</span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-medium">Level {result.severity.level}/10</span>
                 <Badge className={getSeverityColor(result.severity.level)}>
                   {result.severity.assessment}
                 </Badge>
@@ -339,33 +260,20 @@ export function PalmScanner() {
             {/* Sweat Gland Activity */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <Activity className="h-4 w-4 text-primary" />
+                <Activity className="h-5 w-5 text-primary" />
                 <h3 className="font-semibold">Sweat Gland Activity</h3>
               </div>
-              <div className="flex items-center justify-between">
-                <span>Level {result.sweatGlandActivity.level}/10</span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-medium">{result.sweatGlandActivity.level}% Active</span>
                 <Badge variant="secondary">{result.sweatGlandActivity.assessment}</Badge>
               </div>
-              <Progress value={result.sweatGlandActivity.level * 10} className="h-2" />
-            </div>
-
-            {/* Moisture Source */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Droplets className="h-4 w-4 text-primary" />
-                <h3 className="font-semibold">Moisture Source</h3>
-              </div>
-              <div className="flex items-center justify-between">
-                <Badge variant={result.moistureSource === 'Hyperhidrosis' ? 'default' : result.moistureSource === 'External Moisture' ? 'destructive' : 'secondary'} className="text-base px-4 py-1">
-                  {result.moistureSource}
-                </Badge>
-              </div>
+              <Progress value={result.sweatGlandActivity.level} className="h-2" />
             </div>
 
             {/* Detected Triggers */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <Droplets className="h-4 w-4 text-primary" />
+                <Droplets className="h-5 w-5 text-primary" />
                 <h3 className="font-semibold">Detected Triggers</h3>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -380,45 +288,185 @@ export function PalmScanner() {
             {/* Treatment Recommendations */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <Stethoscope className="h-4 w-4 text-primary" />
+                <Stethoscope className="h-5 w-5 text-primary" />
                 <h3 className="font-semibold">Treatment Recommendations</h3>
               </div>
-              <div className="space-y-2">
-                <div className="p-3 bg-primary/10 rounded-lg">
-                  <p className="font-medium text-primary">Primary Treatment</p>
-                  <p className="text-sm text-muted-foreground">{result.treatmentRecommendations.primary}</p>
+              <div className="space-y-3">
+                <div className="p-4 bg-primary/10 rounded-lg">
+                  <p className="font-semibold text-primary mb-1">Primary Treatment</p>
+                  <p className="text-sm">{result.treatmentRecommendations.primary}</p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">Alternative Options:</p>
-                  {result.treatmentRecommendations.alternative.map((treatment, index) => (
-                    <Badge key={index} variant="secondary" className="mr-2">
-                      {treatment}
-                    </Badge>
-                  ))}
+                <div>
+                  <p className="text-sm font-semibold mb-2">Alternative Options:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {result.treatmentRecommendations.alternative.map((treatment, index) => (
+                      <Badge key={index} variant="secondary">
+                        {treatment}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* AI Analysis Notes */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Info className="h-4 w-4 text-primary" />
-                <h3 className="font-semibold">AI Analysis Notes</h3>
-              </div>
-              <div className="p-3 bg-muted/50 rounded-lg">
-                <p className="text-sm text-muted-foreground">{result.analysisNotes}</p>
-              </div>
-            </div>
-
-            <div className="p-4 bg-muted rounded-lg">
-              <p className="text-xs text-muted-foreground">
+            {/* Disclaimer */}
+            <div className="p-4 bg-warning/10 border-l-4 border-warning rounded-r-lg">
+              <p className="text-sm">
                 ⚠️ This analysis works for palms, hands, feet, and soles. Results are for informational purposes only. 
                 Consult with a healthcare professional for proper diagnosis and treatment of hyperhidrosis.
               </p>
             </div>
+
+            {/* Reset Button */}
+            <button
+              onClick={handleReset}
+              className="w-full px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-lg shadow hover:bg-primary/90 transition"
+            >
+              Analyze Another Image
+            </button>
           </CardContent>
         </Card>
-      )}
+      </div>
+    );
+  }
+
+  // Show loading state
+  if (isAnalyzing) {
+    const loadingMessages = [
+      "Calibrating hyperhidrosis detectors...",
+      "Analyzing image for moisture signatures...",
+      "Distinguishing between sweat and external sources...",
+      "Cross-referencing with dermatological patterns...",
+      "Assessing pore-level activity...",
+      "Identifying potential triggers...",
+      "Compiling personalized recommendations...",
+      "Finalizing your detailed report...",
+    ];
+    const [messageIndex, setMessageIndex] = useState(0);
+    
+    useEffect(() => {
+      const interval = setInterval(() => {
+        setMessageIndex((prev) => (prev + 1) % loadingMessages.length);
+      }, 2000);
+      return () => clearInterval(interval);
+    }, []);
+
+    return (
+      <div className="w-full max-w-2xl mx-auto">
+        <Card>
+          <CardContent className="p-8 text-center">
+            <div className="flex justify-center items-center mb-6">
+              <Activity className="h-10 w-10 text-primary animate-spin" />
+            </div>
+            <h2 className="text-xl font-bold mb-2">Analyzing...</h2>
+            <p className="text-muted-foreground transition-opacity duration-500">
+              {loadingMessages[messageIndex]}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show camera error
+  if (cameraError) {
+    return (
+      <div className="w-full max-w-2xl mx-auto">
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="text-destructive">Camera Error</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">{cameraError}</p>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button
+                onClick={startCamera}
+                className="flex-1 px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-lg shadow hover:bg-primary/90 transition"
+              >
+                Retry Camera
+              </button>
+              <button
+                onClick={handleUploadClick}
+                className="flex-1 inline-flex items-center justify-center px-6 py-3 bg-secondary text-secondary-foreground font-semibold rounded-lg shadow hover:bg-secondary/90 transition"
+              >
+                <UploadIcon className="h-5 w-5 mr-2" />
+                Upload an Image
+              </button>
+            </div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              className="hidden"
+              accept="image/*"
+            />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show camera capture interface
+  return (
+    <div className="w-full max-w-2xl mx-auto">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Droplets className="h-5 w-5 text-primary" />
+            HyperScanner
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Use your camera for a live scan or upload an existing image
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Video Preview */}
+          <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
+            <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+            {!stream && (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                <p className="text-white animate-pulse">Starting camera...</p>
+              </div>
+            )}
+          </div>
+
+          <canvas ref={canvasRef} className="hidden" />
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            className="hidden"
+            accept="image/*"
+          />
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <button
+              onClick={handleCapture}
+              disabled={!stream}
+              className="flex-1 inline-flex items-center justify-center px-8 py-3 bg-primary text-primary-foreground font-semibold rounded-lg shadow hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              <CameraIcon className="h-6 w-6 mr-2" />
+              Scan with Camera
+            </button>
+            <button
+              onClick={handleUploadClick}
+              className="flex-1 inline-flex items-center justify-center px-8 py-3 bg-secondary text-secondary-foreground font-semibold rounded-lg shadow hover:bg-secondary/90 transition"
+            >
+              <UploadIcon className="h-6 w-6 mr-2" />
+              Upload Image
+            </button>
+          </div>
+
+          {/* Info */}
+          <div className="p-4 bg-muted/50 rounded-lg">
+            <p className="text-sm text-muted-foreground">
+              This analysis is for informational purposes only. Consult with a healthcare professional for a medical diagnosis.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
     </div>
   );
 }
