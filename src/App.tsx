@@ -7,8 +7,10 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import NotificationListener from "@/components/notifications/NotificationListener";
 import Index from "./pages/Index";
+import NewIndex from "./pages/NewIndex";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Onboarding from "./pages/Onboarding";
@@ -26,6 +28,9 @@ import PalmScanner from "./pages/PalmScanner";
 import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
+import About from "./pages/About";
+import Cookies from "./pages/Cookies";
+import Legal from "./pages/Legal";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -89,21 +94,11 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 
 const AppRoutes = () => (
   <Routes>
-    <Route path="/" element={
-      <PublicRoute>
-        <Index />
-      </PublicRoute>
-    } />
-    <Route path="/login" element={
-      <PublicRoute>
-        <Login />
-      </PublicRoute>
-    } />
-    <Route path="/register" element={
-      <PublicRoute>
-        <Register />
-      </PublicRoute>
-    } />
+    <Route path="/" element={<NewIndex />} />
+    <Route path="/old" element={<PublicRoute><Index /></PublicRoute>} />
+    <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
+    <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+    <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
     <Route path="/forgot-password" element={
       <PublicRoute>
         <ForgotPassword />
@@ -166,6 +161,9 @@ const AppRoutes = () => (
     <Route path="/contact" element={<Contact />} />
     <Route path="/privacy" element={<Privacy />} />
     <Route path="/terms" element={<Terms />} />
+    <Route path="/about" element={<About />} />
+    <Route path="/cookies" element={<Cookies />} />
+    <Route path="/legal" element={<Legal />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
