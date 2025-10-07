@@ -86,7 +86,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageData } = await req.json();
+    const { imageData, hrData, gsrData } = await req.json();
 
     console.log('=== GEMINI API DEBUG START ===');
     console.log('GOOGLE_AI_STUDIO_API_KEY exists:', !!API_KEY);
@@ -103,22 +103,41 @@ serve(async (req) => {
     console.log('Base64 length:', base64Data.length);
     console.log('MIME type:', mimeType);
 
-    const prompt = `CRITICAL INSTRUCTION: Your primary goal is to determine the source of moisture on the skin. This is the most important part of your analysis.
+    const { hrData, gsrData } = await req.json();
 
-You are a sophisticated AI model called "SweatSmart" specializing in the analysis of hyperhidrosis from images of palms, feet, and soles.
+    const prompt = `You are a specialized dermatological AI assistant for SweatSmart.guru. Your purpose is to analyze images of any skin area (palms, soles, face, underarms, etc.) where users detect hyperhidrosis symptoms.
 
-Your task is to analyze the provided image and classify the moisture source. Pay close attention to visual cues to differentiate between:
-- **Hyperhidrosis Sweat:** Originates from pores without an obvious cause like exercise. It appears as distinct, tiny beads or a sheen following skin lines. The skin looks glistening and clammy. This is your primary focus for a positive diagnosis.
-- **Exertional Sweat:** Caused by physical activity. While it's sweat, it is not necessarily hyperhidrosis. The presentation might be similar, but it's a normal physiological response. If the context is unknown, note this possibility.
-- **External Moisture:** This includes water, lotions, oils, etc. It often coats the surface more uniformly, shows drip marks, has larger, irregular droplets not associated with pores, or reflects light like a film.
+**CORE RULES:**
+- Analysis MUST be based PRIMARILY on visual characteristics
+- Sensor data (GSR, Heart Rate) is SECONDARY support only
+- Visual evidence overrides conflicting sensor data
 
-Based on your analysis, you MUST:
-1. Set the 'moistureSource' field to one of: 'Hyperhidrosis', 'Exertional Sweat', 'External Moisture', or 'Uncertain'.
-2. If you suspect 'External Moisture', you MUST lower the confidence score significantly (e.g., below 40) and set severity to a low score (e.g., 1). Your 'analysisNotes' MUST state that an external source is suspected.
-3. If you are confident the moisture is from 'Hyperhidrosis', provide a high confidence score and a corresponding severity assessment.
-4. If you suspect 'Exertional Sweat' but cannot be sure it's not hyperhidrosis, you can provide a moderate confidence score and note the ambiguity in 'analysisNotes'.
+**VISUAL ANALYSIS FRAMEWORK:**
+1. **Moisture Pattern Analysis:**
+   - Look for tiny discrete droplets along skin lines = Hyperhidrosis
+   - Look for uniform sheen/glossy film = Lotion/Oil
+   - Look for irregular pooling/streaking = External Water
 
-Provide your final, detailed assessment in a valid JSON format that adheres to the provided schema. Do not include any text, markdown, or code block formatting before or after the JSON object.`;
+2. **Skin Assessment:**
+   - Check for maceration (white soggy skin), redness, peeling
+   - Note if skin appears "clammy" (hyperhidrosis) vs "wet" (external)
+
+3. **Sensor Correlation:**
+   - High GSR (>5 µS) + Visual Beading = Strong Hyperhidrosis
+   - Low GSR (<1.5 µS) + Visual Sheen = Strong External Moisture
+   - Conflicting data: Explain conflict, prioritize visual diagnosis
+
+4. **Trigger Detection:**
+   - Hyperhidrosis: Consider "Stress" (if high HR), "Exertional", "Idiopathic"
+   - External: "Recent washing", "Lotion", "Environmental contact"
+
+**Sensor Data Provided:**
+- Heart Rate: ${hrData || 'N/A'} bpm
+- GSR: ${gsrData || 'N/A'} µS
+
+**Instructions:** Perform step-by-step visual analysis first, then correlate with sensor data. Provide specific triggers and personalized recommendations.
+
+Provide your final assessment in valid JSON format that adheres to the provided schema. Do not include any text, markdown, or code block formatting before or after the JSON object.`;
 
     // Use Gemini API directly with structured output
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${API_KEY}`;

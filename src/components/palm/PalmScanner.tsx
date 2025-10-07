@@ -47,16 +47,16 @@ export function PalmScanner() {
         switch (simulationScenario) {
           case 'Exercise':
             hrValue = getRandomValue(110, 140);
-            gsrValue = getRandomValue(6.0, 8.5, 2);
+            gsrValue = getRandomValue(1.5, 3.5, 2);
             break;
           case 'Normal':
-            hrValue = getRandomValue(60, 85);
-            gsrValue = getRandomValue(0.5, 2.0, 2);
+            hrValue = getRandomValue(75, 100);
+            gsrValue = getRandomValue(3.5, 6.0, 2);
             break;
           case 'Resting':
           default:
             hrValue = getRandomValue(60, 85);
-            gsrValue = getRandomValue(7.0, 9.5, 2);
+            gsrValue = getRandomValue(6.0, 10.0, 2);
             break;
         }
 
