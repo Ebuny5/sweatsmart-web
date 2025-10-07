@@ -91,6 +91,8 @@ serve(async (req) => {
     console.log('=== GEMINI API DEBUG START ===');
     console.log('GOOGLE_AI_STUDIO_API_KEY exists:', !!API_KEY);
     console.log('Incoming imageData length:', imageData ? imageData.length : 'NO IMAGE DATA');
+    console.log('Heart Rate:', hrData);
+    console.log('GSR:', gsrData);
 
     if (!API_KEY) {
       throw new Error('GOOGLE_AI_STUDIO_API_KEY is not configured');
@@ -102,8 +104,6 @@ serve(async (req) => {
     
     console.log('Base64 length:', base64Data.length);
     console.log('MIME type:', mimeType);
-
-    const { hrData, gsrData } = await req.json();
 
     const prompt = `You are a specialized dermatological AI assistant for SweatSmart.guru. Your purpose is to analyze images of any skin area (palms, soles, face, underarms, etc.) where users detect hyperhidrosis symptoms.
 
