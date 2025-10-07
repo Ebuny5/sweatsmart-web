@@ -1,14 +1,11 @@
-
 import React, { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { EnhancedAvatar, EnhancedAvatarImage, EnhancedAvatarFallback } from "@/components/ui/enhanced-avatar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Calendar, Mail, User, Settings } from "lucide-react";
+import { Edit, Calendar, ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "@/hooks/useProfile";
@@ -127,149 +124,120 @@ const Profile = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-4 px-4 sm:px-6 max-w-6xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h1 className="text-2xl sm:text-3xl font-bold">Profile</h1>
+      <div className="space-y-6 px-4 sm:px-6 max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Profile</h1>
           {!isEditing && (
-            <Button onClick={() => setIsEditing(true)} className="flex items-center gap-2 w-full sm:w-auto">
-              <User className="h-4 w-4" />
+            <Button onClick={() => setIsEditing(true)} variant="secondary">
+              <Edit className="h-4 w-4 mr-2" />
               Edit Profile
             </Button>
           )}
         </div>
 
-        <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
-          <div className="space-y-4 sm:space-y-6">
-            <Card>
-              <CardHeader className="text-center pb-4">
-                <div className="flex justify-center mb-4">
-                  <div className="relative">
-                     <EnhancedAvatar size="xl" className="mx-auto">
-                       <EnhancedAvatarImage src="" alt={displayName} />
-                       <EnhancedAvatarFallback 
-                         initials={userInitials}
-                         size="xl"
-                       />
-                     </EnhancedAvatar>
-                    {isEditing && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="absolute -bottom-2 -right-2 h-10 w-10 rounded-full p-0"
-                      >
-                        <Camera className="h-4 w-4" />
-                      </Button>
-                    )}
+        {/* Profile Header Card */}
+        <Card>
+          <CardContent className="pt-6 text-center">
+            <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center text-3xl font-bold text-primary mx-auto mb-4">
+              {userInitials}
+            </div>
+            <h2 className="text-2xl font-bold mb-1">{displayName}</h2>
+            <p className="text-muted-foreground mb-4">{user.email}</p>
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Calendar className="h-4 w-4" />
+              <span>Joined {joinDate}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Statistics Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Statistics</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="text-center">
+                <div className="text-4xl font-bold text-primary mb-1">{episodes.length}</div>
+                <div className="text-sm text-muted-foreground">Episodes Logged</div>
+              </div>
+              <div className="text-center">
+                <div className="text-4xl font-bold text-primary mb-1">{currentStreak}</div>
+                <div className="text-sm text-muted-foreground">Current Streak</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Personal Information Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Personal Information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isEditing ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Display Name</Label>
+                  <Input
+                    id="name"
+                    value={profileData.display_name}
+                    onChange={(e) => setProfileData({...profileData, display_name: e.target.value})}
+                    placeholder="Enter your display name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={user.email || ''}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button onClick={handleSave} disabled={isSaving}>
+                    {isSaving ? "Saving..." : "Save Changes"}
+                  </Button>
+                  <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <div className="text-sm text-muted-foreground mb-1">Display Name</div>
+                    <div className="font-medium">{profileData.display_name || 'Not set'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground mb-1">Email</div>
+                    <div className="font-medium truncate">{user.email}</div>
                   </div>
                 </div>
-                <CardTitle className="text-lg sm:text-xl">{displayName}</CardTitle>
-                <CardDescription className="flex items-center justify-center gap-1 text-sm">
-                  <Mail className="h-4 w-4" />
-                  <span className="truncate">{user.email}</span>
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 pt-0">
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Calendar className="mr-2 h-4 w-4 flex-shrink-0" />
-                  <span>Joined {joinDate}</span>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg">Statistics</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 pt-0">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Episodes Logged</span>
-                  <Badge variant="secondary" className="font-medium">{episodes.length}</Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Current Streak</span>
-                  <Badge variant="outline" className="font-medium">{currentStreak} days</Badge>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg">Personal Information</CardTitle>
-                <CardDescription className="text-sm">
-                  {isEditing ? "Update your personal details" : "Your personal information"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4 pt-0">
-                {isEditing ? (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="name" className="text-sm font-medium">Display Name</Label>
-                      <Input
-                        id="name"
-                        value={profileData.display_name}
-                        onChange={(e) => setProfileData({...profileData, display_name: e.target.value})}
-                        placeholder="Enter your display name"
-                        className="w-full"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="text-sm font-medium">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={user.email || ''}
-                        disabled
-                        className="bg-muted w-full"
-                      />
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-2 pt-4">
-                      <Button onClick={handleSave} disabled={isSaving} className="w-full sm:w-auto">
-                        {isSaving ? "Saving..." : "Save Changes"}
-                      </Button>
-                      <Button variant="outline" onClick={handleCancel} disabled={isSaving} className="w-full sm:w-auto">
-                        Cancel
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Display Name</Label>
-                        <p className="mt-1 text-sm sm:text-base">{profileData.display_name || 'Not set'}</p>
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Email</Label>
-                        <p className="mt-1 text-sm sm:text-base truncate">{user.email}</p>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg">Account Settings</CardTitle>
-                <CardDescription className="text-sm">
-                  Manage your account preferences
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start"
-                  onClick={() => navigate('/settings')}
-                >
-                  <Settings className="mr-2 h-4 w-4" />
-                  Go to Settings
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+        {/* Account Settings Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Account Settings</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <button 
+              onClick={() => navigate('/settings')}
+              className="w-full flex items-center justify-between p-4 rounded-lg border hover:bg-accent transition-colors"
+            >
+              <span>Manage your account preferences</span>
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </CardContent>
+        </Card>
       </div>
     </AppLayout>
   );
