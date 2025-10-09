@@ -1,2 +1,7 @@
-
 project_id = "ujbcolxawpzfjkjviwqw"
+
+[functions.analyze-hyperhidrosis]
+verify_jwt = false
+
+[functions.generate-episode-insights]
+verify_jwt = false

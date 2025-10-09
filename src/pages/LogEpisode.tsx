@@ -14,9 +14,9 @@ import { cn } from "@/lib/utils";
 import SeveritySelector from "@/components/episode/SeveritySelector";
 import BodyAreaSelector from "@/components/episode/BodyAreaSelector";
 import TriggerSelector from "@/components/episode/TriggerSelector";
-import EpisodeInsights from "@/components/episode/EpisodeInsights";
-import { SeverityLevel, BodyArea, Trigger, ProcessedEpisode } from "@/types";
-import { CalendarIcon, Clock } from "lucide-react";
+import AIGeneratedInsights from "@/components/episode/AIGeneratedInsights";
+import { SeverityLevel, BodyArea, Trigger } from "@/types";
+import { CalendarIcon, Clock, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -39,6 +39,8 @@ const LogEpisode = () => {
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [showInsights, setShowInsights] = useState<boolean>(false);
+  const [aiInsights, setAiInsights] = useState<any>(null);
+  const [isLoadingInsights, setIsLoadingInsights] = useState<boolean>(false);
   
   useEffect(() => {
     if (isNow) {
@@ -111,11 +113,40 @@ const LogEpisode = () => {
       
       toast({
         title: "Episode logged successfully",
-        description: "Your episode has been saved.",
+        description: "Generating personalized insights...",
       });
       
-      // Show insights instead of immediately navigating
-      setShowInsights(true);
+      // Generate AI insights
+      setIsLoadingInsights(true);
+      try {
+        const { data: insightsData, error: insightsError } = await supabase.functions.invoke(
+          'generate-episode-insights',
+          {
+            body: {
+              severity,
+              bodyAreas,
+              triggers: triggers.map(t => ({ type: t.type, value: t.value, label: t.label })),
+              notes
+            }
+          }
+        );
+
+        if (insightsError) {
+          console.error('Error generating insights:', insightsError);
+          toast({
+            title: "Insights generation failed",
+            description: "Your episode was saved, but we couldn't generate insights. Please try again later.",
+            variant: "destructive",
+          });
+        } else {
+          setAiInsights(insightsData.insights);
+        }
+      } catch (insightError) {
+        console.error('Error calling insights function:', insightError);
+      } finally {
+        setIsLoadingInsights(false);
+        setShowInsights(true);
+      }
     } catch (error) {
       console.error('Error saving episode:', error);
       toast({
@@ -129,25 +160,33 @@ const LogEpisode = () => {
   };
   
   if (showInsights) {
-    // Create a temporary episode object for insights
-    const tempEpisode: ProcessedEpisode = {
-      id: 'temp-' + Date.now(), // temporary ID
-      userId: user?.id || '',
-      datetime: date ? new Date(date.getFullYear(), date.getMonth(), date.getDate(), ...time.split(':').map(Number)) : new Date(),
-      severityLevel: severity,
-      bodyAreas: bodyAreas,
-      triggers: triggers,
-      notes: notes || undefined,
-      createdAt: new Date(),
-    };
-
     return (
       <AppLayout>
         <div className="max-w-3xl mx-auto">
           <h1 className="text-3xl font-bold mb-6">Episode Logged Successfully!</h1>
           
           <div className="space-y-6">
-            <EpisodeInsights episode={tempEpisode} />
+            {isLoadingInsights ? (
+              <Card>
+                <CardContent className="flex items-center justify-center py-12">
+                  <div className="text-center space-y-4">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                    <p className="text-muted-foreground">Generating personalized medical insights...</p>
+                    <p className="text-sm text-muted-foreground">This may take a few moments</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : aiInsights ? (
+              <AIGeneratedInsights insights={aiInsights} />
+            ) : (
+              <Card>
+                <CardContent className="py-6">
+                  <p className="text-muted-foreground text-center">
+                    Episode saved, but insights could not be generated. Please check your history for the logged episode.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
             
             <div className="flex justify-center space-x-4">
               <Button
@@ -161,6 +200,7 @@ const LogEpisode = () => {
                   setTriggers([]);
                   setNotes("");
                   setShowInsights(false);
+                  setAiInsights(null);
                 }}
               >
                 Log Another Episode
@@ -168,8 +208,8 @@ const LogEpisode = () => {
               <Button onClick={() => navigate("/dashboard")}>
                 Back to Dashboard
               </Button>
-              <Button variant="outline" onClick={() => navigate("/insights")}>
-                View All Insights
+              <Button variant="outline" onClick={() => navigate("/history")}>
+                View History
               </Button>
             </div>
           </div>
