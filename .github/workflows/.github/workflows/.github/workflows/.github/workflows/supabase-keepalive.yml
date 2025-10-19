@@ -2,39 +2,45 @@ name: Supabase Keep Alive
 
 on:
   schedule:
-    # Recommended: every 12 hours (adjust if you prefer)
+    # Every 12 hours
     - cron: '0 */12 * * *'
-  workflow_dispatch:
+  workflow_dispatch: # Allows manual testing
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase /auth health
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}      # e.g. https://xxxx.supabase.co
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-        run: |
-          echo "→ Pinging auth health endpoint"
-          curl -sS --fail "${SUPABASE_URL}/auth/v1/health" -o /dev/null || {
-            echo "Auth health ping failed"
-            exit 1
-          }
-
-      - name: Ping public table (light DB read)
+      - name: Ping Supabase Auth Health
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: |
-          # Replace keep_alive with a small public table you create (see instructions below)
-          echo "→ Pinging public table 'keep_alive'"
+          echo "→ Pinging Supabase Auth at $(date)"
+          
+          # Ping auth health endpoint
+          curl -sS --fail "${SUPABASE_URL}/auth/v1/health" -o /dev/null || {
+            echo "❌ Auth health ping failed"
+            exit 1
+          }
+          
+          echo "✅ Auth is healthy"
+          
+      - name: Ping Supabase REST API
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          echo "→ Pinging REST API"
+          
+          # Ping REST API endpoint
           curl -sS --fail \
-            -H "apikey: ${SUPABASE_ANON_KEY}" \
-            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
-            "${SUPABASE_URL}/rest/v1/keep_alive?select=id&limit=1" -o /dev/null || {
-              echo "Table ping failed — check that table 'keep_alive' exists and is public"
+            -H "apikey: ${SUPABASE_PUBLISHABLE_KEY}" \
+            "${SUPABASE_URL}/rest/v1/" -o /dev/null || {
+              echo "❌ REST API ping failed"
               exit 1
             }
-
+          
+          echo "✅ REST API is responsive"
+          
       - name: Completed
-        run: echo "✅ Supabase keep-alive completed at $(date)"
+        run: echo "✅ Supabase keep-alive completed successfully at $(date)"
