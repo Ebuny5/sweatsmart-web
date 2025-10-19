@@ -1,20 +1,40 @@
 name: Supabase Keep Alive
+
 on:
   schedule:
-    - cron: "*/5 * * * *"  # Every 5 minutes
+    # Recommended: every 12 hours (adjust if you prefer)
+    - cron: '0 */12 * * *'
+  workflow_dispatch:
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Keep Supabase awake
+      - name: Ping Supabase /auth health
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}      # e.g. https://xxxx.supabase.co
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          # Ping REST API
-          curl -X GET "${{ secrets.SUPABASE_PROJECT }}/rest/v1/?select=version" \
-          -H "apikey: ${{ secrets.SUPABASE_API_KEY }}" \
-          -H "Authorization: Bearer ${{ secrets.SUPABASE_API_KEY }}"
-          
-          # Ping Auth endpoint
-          curl -s "${{ secrets.SUPABASE_PROJECT }}/auth/v1/health"
-          
-          echo "✅ Supabase keep-alive completed at $(date)"
+          echo "→ Pinging auth health endpoint"
+          curl -sS --fail "${SUPABASE_URL}/auth/v1/health" -o /dev/null || {
+            echo "Auth health ping failed"
+            exit 1
+          }
+
+      - name: Ping public table (light DB read)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          # Replace keep_alive with a small public table you create (see instructions below)
+          echo "→ Pinging public table 'keep_alive'"
+          curl -sS --fail \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            "${SUPABASE_URL}/rest/v1/keep_alive?select=id&limit=1" -o /dev/null || {
+              echo "Table ping failed — check that table 'keep_alive' exists and is public"
+              exit 1
+            }
+
+      - name: Completed
+        run: echo "✅ Supabase keep-alive completed at $(date)"
