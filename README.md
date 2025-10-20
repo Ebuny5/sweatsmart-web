@@ -34,14 +34,14 @@ SweatSmart is available as a:
   Feedback
 
 We’re in beta! Help us improve SweatSmart:
-👉 [Submit Feedback](https://forms.gle/TgddDjPs3neG7ACRA)
+[Submit Feedback](https://forms.gle/TgddDjPs3neG7ACRA)
 
- 💬 Join Our Support Community
+ Join Our Support Community
 
 We’ve created a dedicated WhatsApp hub for hyperhidrosis warriors:
-- 🔔 [Join Community – WhatsApp](https://chat.whatsapp.com/BKgrDMOttm76Jva6fSZUMi)
+-  [Join Community – WhatsApp](https://chat.whatsapp.com/BKgrDMOttm76Jva6fSZUMi)
 
- 🔐 Privacy and Data
+ Privacy and Data
 
 Your data is yours. SweatSmart never shares personal info without your consent.
 - [Privacy Policy](https://beyondsweat.life#privacy)
