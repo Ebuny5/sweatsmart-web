@@ -22,14 +22,14 @@ SweatSmart is the first hyperhidrosis-focused tracking and support app developed
 
 SweatSmart is available as a:
 - Progressive Web App (PWA) hosted on Vercel
-- Wrapped Android APK using Median (for beta testing)
+- Wrapped Android APK (for beta testing)
 
  Technologies Used
 
 - Frontend: [Loveable.dev](https://www.loveable.dev) (No-code/Low-code platform)
 - Backend: [Supabase](https://supabase.com) (authentication, data storage)
 - Hosting: [Vercel](https://vercel.com)
-- APK Build: [Median](https://median.co)
+- APK Build:[PWA Builder](https://www.pwabuilder.com)
 
   Feedback
 
