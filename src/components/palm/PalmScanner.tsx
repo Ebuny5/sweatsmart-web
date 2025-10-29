@@ -151,10 +151,12 @@ export function PalmScanner() {
 
       {analysisResult && !isLoading && (
         <AnalysisResults 
-          result={analysisResult} 
-          onReset={handleReset} 
-          imagePreview={imagePreview} 
-        />
+  result={analysisResult} 
+  onReset={handleReset} 
+  imagePreview={imagePreview}
+  hrData={hrData}         // ← NEW
+  gsrData={gsrData}       // ← NEW
+/>
       )}
     </section>
   );
