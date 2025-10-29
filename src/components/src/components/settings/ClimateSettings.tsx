@@ -1,3 +1,4 @@
+import { climateNotificationService } from '../../services/climateNotificationService';
 import React, { useState, useEffect } from 'react';
 import { Cloud, Thermometer, Droplets, Sun, Clock, MapPin, Save, Bell, Info } from 'lucide-react';
 
