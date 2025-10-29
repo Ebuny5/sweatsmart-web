@@ -1,10 +1,29 @@
- import React from "react";
+import React, { useEffect, useState } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import ClimateSettings from "@/components/settings/ClimateSettings";
+import { supabase } from '@/integrations/supabase/client';
 
 const Settings = () => {
-  // You'll need to get the actual userId from your auth context
-  const userId = "user-id-here"; // Replace with actual user ID
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // This automatically gets the logged-in user's ID
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id || null);
+    };
+    getUser();
+  }, []);
+
+  if (!userId) {
+    return (
+      <AppLayout>
+        <div className="container mx-auto p-6">
+          <div>Please log in to access climate settings</div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
