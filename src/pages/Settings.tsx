@@ -43,21 +43,35 @@ const Settings = () => {
       return;
     }
 
-    setTestStatus('Requesting permission...');
-    
     if (!("Notification" in window)) {
-      setTestStatus('Browser doesnt support notifications');
+      setTestStatus('Browser does not support notifications');
+      setTimeout(() => setTestStatus(''), 3000);
       return;
     }
 
-    const permission = await Notification.requestPermission();
-    
+    let permission = Notification.permission;
+
+    if (permission === "default") {
+      setTestStatus('Requesting permission...');
+      permission = await Notification.requestPermission();
+    }
+
+    if (permission === "denied") {
+      setTestStatus('❌ Notifications blocked. Enable in browser settings.');
+      setTimeout(() => setTestStatus(''), 5000);
+      return;
+    }
+
     if (permission === "granted") {
-      new Notification("SweatSmart Test", {
-        body: "Real notification! Temperature threshold exceeded",
+      setTestStatus('Sending notification...');
+      new Notification("SweatSmart Climate Alert", {
+        body: "🌡️ Temperature: 32°C - Consider taking precautions",
         icon: "/favicon.ico"
       });
-      setTestStatus('✓ REAL notification sent!');
+      setTestStatus('✓ Test notification sent!');
+      setTimeout(() => setTestStatus(''), 3000);
+    }
+  };
     } else {
       setTestStatus('Permission denied');
     }
@@ -118,7 +132,7 @@ const Settings = () => {
                       <span className="font-semibold text-gray-900">Test Notification</span>
                     </div>
                     <p className="text-xs text-gray-700 leading-relaxed">
-                      Perfect for investor demos - See exactly how alerts will appear to users
+                      Test how alerts will appear on your device
                     </p>
                   </div>
                   <button
