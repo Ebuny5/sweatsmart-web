@@ -36,23 +36,31 @@ const Settings = () => {
     }, 500);
   };
 
-  const handleTestNotification = () => {
+  const handleTestNotification = async () => {
     if (!climateSettings.enabled) {
       setTestStatus('Please enable Climate Alerts first');
       setTimeout(() => setTestStatus(''), 3000);
       return;
     }
 
-    setTestStatus('Sending test notification...');
+    setTestStatus('Requesting permission...');
     
-    // Simulate sending a test notification
-    setTimeout(() => {
-      setTestStatus('✓ Test notification sent! Check your device');
-      setTimeout(() => setTestStatus(''), 3000);
-      
-      // In a real app, this would trigger an actual notification
-      console.log('Test notification triggered with current settings:', climateSettings);
-    }, 1000);
+    if (!("Notification" in window)) {
+      setTestStatus('Browser doesnt support notifications');
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    
+    if (permission === "granted") {
+      new Notification("SweatSmart Test", {
+        body: "Real notification! Temperature threshold exceeded",
+        icon: "/favicon.ico"
+      });
+      setTestStatus('✓ REAL notification sent!');
+    } else {
+      setTestStatus('Permission denied');
+    }
   };
 
   return (
@@ -101,7 +109,7 @@ const Settings = () => {
           {climateSettings.enabled ? (
             <div className="space-y-8">
               
-              {/* Test Notification Button - NEW FEATURE */}
+              {/* Test Notification Button */}
               <div className="p-5 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
