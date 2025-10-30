@@ -26,6 +26,60 @@ class ClimateNotificationService {
   private notificationCheckInterval: NodeJS.Timeout | null = null;
 
   /**
+   * Get user's notification preferences - PUBLIC METHOD
+   */
+  async getUserPreferences(userId: string): Promise<NotificationPreferences> {
+    const { data, error } = await supabase
+      .from('notification_preferences')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (error || !data) {
+      // Return default preferences
+      return {
+        enabled: true,
+        temperatureThreshold: 28,
+        humidityThreshold: 70,
+        uvThreshold: 6,
+        quietHoursStart: '22:00',
+        quietHoursEnd: '07:00',
+        locationEnabled: true,
+      };
+    }
+
+    return data as NotificationPreferences;
+  }
+
+  /**
+   * Update user preferences - PUBLIC METHOD
+   */
+  async updatePreferences(
+    userId: string,
+    preferences: Partial<NotificationPreferences>
+  ): Promise<void> {
+    const { error } = await supabase
+      .from('notification_preferences')
+      .upsert({
+        user_id: userId,
+        ...preferences,
+        updated_at: new Date().toISOString(),
+      });
+
+    if (error) {
+      console.error('Error updating preferences:', error);
+      throw error;
+    }
+
+    // Restart monitoring with new preferences
+    this.stopMonitoring();
+    const newPreferences = await this.getUserPreferences(userId);
+    if (newPreferences.enabled) {
+      this.startMonitoring(userId, newPreferences);
+    }
+  }
+
+  /**
    * Initialize the climate notification service
    */
   async initialize(userId: string): Promise<void> {
@@ -59,32 +113,6 @@ class ClimateNotificationService {
     }
 
     return false;
-  }
-
-  /**
-   * Get user's notification preferences
-   */
-  private async getUserPreferences(userId: string): Promise<NotificationPreferences> {
-    const { data, error } = await supabase
-      .from('notification_preferences')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-
-    if (error || !data) {
-      // Return default preferences
-      return {
-        enabled: true,
-        temperatureThreshold: 28,
-        humidityThreshold: 70,
-        uvThreshold: 6,
-        quietHoursStart: '22:00',
-        quietHoursEnd: '07:00',
-        locationEnabled: true,
-      };
-    }
-
-    return data as NotificationPreferences;
   }
 
   /**
@@ -353,34 +381,6 @@ class ClimateNotificationService {
       .from('climate_notifications')
       .update({ read: true })
       .eq('id', notificationId);
-  }
-
-  /**
-   * Update user preferences
-   */
-  async updatePreferences(
-    userId: string,
-    preferences: Partial<NotificationPreferences>
-  ): Promise<void> {
-    const { error } = await supabase
-      .from('notification_preferences')
-      .upsert({
-        user_id: userId,
-        ...preferences,
-        updated_at: new Date().toISOString(),
-      });
-
-    if (error) {
-      console.error('Error updating preferences:', error);
-      throw error;
-    }
-
-    // Restart monitoring with new preferences
-    this.stopMonitoring();
-    const newPreferences = await this.getUserPreferences(userId);
-    if (newPreferences.enabled) {
-      this.startMonitoring(userId, newPreferences);
-    }
   }
 }
 
