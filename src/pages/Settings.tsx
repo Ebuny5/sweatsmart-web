@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import AppLayout from "@/components/layout/AppLayout";
 import { useToast } from "@/hooks/use-toast";
 import { enhancedMobileNotificationService } from "@/services/EnhancedMobileNotificationService";
+import { soundManager } from "@/utils/soundManager";
 import { Bell, Clock, Volume2, VolumeX, TestTube, Smartphone, AlertTriangle, Info } from "lucide-react";
 
 const Settings = () => {
@@ -29,7 +29,7 @@ const Settings = () => {
         setRemindersEnabled(true);
       }
     }
-
+    
     // Load sound preference
     const soundPref = localStorage.getItem('sweatsmart_sound_enabled');
     if (soundPref !== null) {
@@ -45,7 +45,7 @@ const Settings = () => {
 
   const handleReminderToggle = (enabled: boolean) => {
     setRemindersEnabled(enabled);
-    
+
     if (enabled && reminderTime) {
       enhancedMobileNotificationService.scheduleReminder(reminderTime);
     } else {
@@ -55,7 +55,7 @@ const Settings = () => {
 
   const handleTimeChange = (time: string) => {
     setReminderTime(time);
-    
+
     if (remindersEnabled && time) {
       enhancedMobileNotificationService.scheduleReminder(time);
     }
@@ -69,7 +69,6 @@ const Settings = () => {
       title: enabled ? "Professional sound enabled" : "Sound disabled",
       description: `Professional medical notification sounds are now ${enabled ? 'on' : 'off'}`,
     });
-
   };
 
   const handleDebugToggle = (enabled: boolean) => {
@@ -95,7 +94,7 @@ const Settings = () => {
       title: `Testing Professional ${label}...`,
       description: `Playing ${label.toLowerCase()} with sustained tunnel-like sound`,
     });
-    
+
     await soundManager.testSound(severity);
   };
 
@@ -114,6 +113,7 @@ const Settings = () => {
           )}
         </div>
 
+        <Card>
           <CardHeader>
             <CardTitle>Debug Mode</CardTitle>
             <p className="text-sm text-muted-foreground">Enable verbose logging for AI analysis and connectivity checks.</p>
@@ -125,7 +125,6 @@ const Settings = () => {
             </div>
           </CardContent>
         </Card>
-
       </div>
     </AppLayout>
   );
