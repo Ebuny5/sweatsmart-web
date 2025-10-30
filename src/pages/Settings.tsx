@@ -10,8 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import AppLayout from "@/components/layout/AppLayout";
 import { useToast } from "@/hooks/use-toast";
 import { enhancedMobileNotificationService } from "@/services/EnhancedMobileNotificationService";
-import { soundManager } from "@/utils/soundManager";
-import DataManagement from "@/components/settings/DataManagement";
 import { Bell, Clock, Volume2, VolumeX, TestTube, Smartphone, AlertTriangle, Info } from "lucide-react";
 
 const Settings = () => {
@@ -116,7 +114,6 @@ const Settings = () => {
           )}
         </div>
 
-        <Card>
           <CardHeader>
             <CardTitle>Debug Mode</CardTitle>
             <p className="text-sm text-muted-foreground">Enable verbose logging for AI analysis and connectivity checks.</p>
@@ -129,7 +126,6 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        <DataManagement />
       </div>
     </AppLayout>
   );
