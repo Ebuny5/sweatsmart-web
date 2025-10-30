@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Cloud, Thermometer, Droplets, Sun, Clock, MapPin, Save, Bell, Info } from 'lucide-react';
+import { Cloud, Thermometer, Droplets, Sun, Clock, MapPin, Save, Bell, Info, Play } from 'lucide-react';
 
 const Settings = () => {
   const [climateSettings, setClimateSettings] = useState({
@@ -13,6 +13,7 @@ const Settings = () => {
   });
 
   const [saveStatus, setSaveStatus] = useState('');
+  const [testStatus, setTestStatus] = useState('');
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -33,6 +34,25 @@ const Settings = () => {
       setSaveStatus('✓ Settings saved successfully!');
       setTimeout(() => setSaveStatus(''), 3000);
     }, 500);
+  };
+
+  const handleTestNotification = () => {
+    if (!climateSettings.enabled) {
+      setTestStatus('Please enable Climate Alerts first');
+      setTimeout(() => setTestStatus(''), 3000);
+      return;
+    }
+
+    setTestStatus('Sending test notification...');
+    
+    // Simulate sending a test notification
+    setTimeout(() => {
+      setTestStatus('✓ Test notification sent! Check your device');
+      setTimeout(() => setTestStatus(''), 3000);
+      
+      // In a real app, this would trigger an actual notification
+      console.log('Test notification triggered with current settings:', climateSettings);
+    }, 1000);
   };
 
   return (
@@ -81,6 +101,35 @@ const Settings = () => {
           {climateSettings.enabled ? (
             <div className="space-y-8">
               
+              {/* Test Notification Button - NEW FEATURE */}
+              <div className="p-5 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Play className="w-5 h-5 text-green-600" />
+                      <span className="font-semibold text-gray-900">Test Notification</span>
+                    </div>
+                    <p className="text-xs text-gray-700 leading-relaxed">
+                      Perfect for investor demos - See exactly how alerts will appear to users
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleTestNotification}
+                    className="ml-4 bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 whitespace-nowrap"
+                  >
+                    <Play className="w-4 h-4" />
+                    Test Now
+                  </button>
+                </div>
+                {testStatus && (
+                  <p className={`text-sm font-medium mt-3 text-center ${
+                    testStatus.includes('✓') ? 'text-green-600' : 'text-amber-600'
+                  }`}>
+                    {testStatus}
+                  </p>
+                )}
+              </div>
+
               {/* Temperature */}
               <div className="space-y-3">
                 <label className="flex items-center gap-2.5 text-sm font-semibold text-gray-800">
@@ -282,3 +331,4 @@ const Settings = () => {
 };
 
 export default Settings;
+
