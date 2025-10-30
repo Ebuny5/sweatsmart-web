@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Cloud, Thermometer, Droplets, Sun, Clock, MapPin, Save, Bell, Info, Play } from 'lucide-react';
+import { Cloud, Thermometer, Droplets, Sun, Clock, MapPin, Save, Bell, Info } from 'lucide-react';
 
 const Settings = () => {
   const [climateSettings, setClimateSettings] = useState({
@@ -13,7 +13,6 @@ const Settings = () => {
   });
 
   const [saveStatus, setSaveStatus] = useState('');
-  const [testStatus, setTestStatus] = useState('');
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -34,47 +33,6 @@ const Settings = () => {
       setSaveStatus('✓ Settings saved successfully!');
       setTimeout(() => setSaveStatus(''), 3000);
     }, 500);
-  };
-
-  const handleTestNotification = async () => {
-    if (!climateSettings.enabled) {
-      setTestStatus('Please enable Climate Alerts first');
-      setTimeout(() => setTestStatus(''), 3000);
-      return;
-    }
-
-    if (!("Notification" in window)) {
-      setTestStatus('Browser does not support notifications');
-      setTimeout(() => setTestStatus(''), 3000);
-      return;
-    }
-
-    let permission = Notification.permission;
-
-    if (permission === "default") {
-      setTestStatus('Requesting permission...');
-      permission = await Notification.requestPermission();
-    }
-
-    if (permission === "denied") {
-      setTestStatus('❌ Notifications blocked. Enable in browser settings.');
-      setTimeout(() => setTestStatus(''), 5000);
-      return;
-    }
-
-    if (permission === "granted") {
-      setTestStatus('Sending notification...');
-      new Notification("SweatSmart Climate Alert", {
-        body: "🌡️ Temperature: 32°C - Consider taking precautions",
-        icon: "/favicon.ico"
-      });
-      setTestStatus('✓ Test notification sent!');
-      setTimeout(() => setTestStatus(''), 3000);
-    }
-  };
-    } else {
-      setTestStatus('Permission denied');
-    }
   };
 
   return (
@@ -123,35 +81,6 @@ const Settings = () => {
           {climateSettings.enabled ? (
             <div className="space-y-8">
               
-              {/* Test Notification Button */}
-              <div className="p-5 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Play className="w-5 h-5 text-green-600" />
-                      <span className="font-semibold text-gray-900">Test Notification</span>
-                    </div>
-                    <p className="text-xs text-gray-700 leading-relaxed">
-                      Test how alerts will appear on your device
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleTestNotification}
-                    className="ml-4 bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 whitespace-nowrap"
-                  >
-                    <Play className="w-4 h-4" />
-                    Test Now
-                  </button>
-                </div>
-                {testStatus && (
-                  <p className={`text-sm font-medium mt-3 text-center ${
-                    testStatus.includes('✓') ? 'text-green-600' : 'text-amber-600'
-                  }`}>
-                    {testStatus}
-                  </p>
-                )}
-              </div>
-
               {/* Temperature */}
               <div className="space-y-3">
                 <label className="flex items-center gap-2.5 text-sm font-semibold text-gray-800">
