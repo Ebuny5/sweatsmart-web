@@ -137,35 +137,49 @@ serve(async (req) => {
 
     const prompt = `You are a specialized dermatological AI assistant for SweatSmart.guru.
 
-Goal: Produce a consistent, medically grounded assessment from an image. Prioritize VISUAL evidence first, then optionally correlate with sensors.
+Goal: Produce a detailed, medically grounded assessment from an image. Prioritize VISUAL evidence first, then correlate with sensors.
 
 Sensor reliability: ${'${sensorReliability}'} (if 'low' this indicates DEMO sensors and must not override visual dryness). Simulation: ${'${simulationScenario || "none"}'}.
+
+SENSOR DATA PROVIDED:
+- Heart Rate: ${'${hrData ?? "Not provided"}'} bpm
+- GSR (Skin Conductance): ${'${gsrData ?? "Not provided"}'} µS
+
+${hrData !== null && gsrData !== null ? `IMPORTANT: Sensor data HAS been provided. You MUST acknowledge and reference these values in your analysis. Explain how they correlate or conflict with visual findings.` : 'Note: No sensor data available for this analysis.'}
 
 STRICT DRYNESS RULES (must execute before anything else):
 - Determine if the skin is visually DRY (no sweat droplets, no sheen, normal texture, no maceration).
 - Return visualAssessment.isDry and visualAssessment.moistureLevel (0 dry → 100 dripping).
 - If isDry = true: You MUST set:
   - moistureSource = "Dry Skin (No visible moisture)"
-  - severity.level ≤ 2 with assessment like "None/Very Mild"
-  - sweatGlandActivity.level ≤ 10 with assessment "Inactive/Normal"
+  - severity.level = 0 (ZERO, not 1 or 2)
+  - severity.assessment = "None"
+  - sweatGlandActivity.level = 0
+  - sweatGlandActivity.assessment = "Inactive"
   - detectedTriggers = ["None apparent"]
-  - decision.primary = "No hyperhidrosis"
-  - Do NOT classify as hyperhidrosis even if sensors are elevated.
+  - decision.primary = "No hyperhidrosis detected"
+  - Do NOT classify as hyperhidrosis even if sensors show elevated values (demo sensors don't override visual dryness).
 
 VISUAL ANALYSIS FRAMEWORK:
-1) Moisture patterns: beading (hyperhidrosis), uniform sheen (oil/lotion), pooling/streaks (external water)
-2) Skin condition: maceration, redness, peeling, clammy vs wet
-3) If not dry: correlate with sensors cautiously. Visual evidence ALWAYS overrides sensors, especially when sensorReliability = 'low'.
-4) Triggers: Stress/Exertion/Idiopathic vs External (washing, lotion, environment)
+1) Moisture patterns: 
+   - Beading/droplets (hyperhidrosis - describe distribution, size, density)
+   - Uniform sheen (oil/lotion - describe coverage and texture)
+   - Pooling/streaks (external water - describe pattern and location)
+   - Maceration (prolonged moisture exposure - describe severity and affected areas)
+2) Skin condition: texture, color, creases, lines, any dermatological signs
+3) If wet/moist: Describe the moisture characteristics in detail (where, how much, pattern, associated skin changes)
+4) If not dry: correlate with sensors. Visual evidence ALWAYS overrides sensors, especially when sensorReliability = 'low'.
+5) Triggers: Classify as Stress-induced, Exercise-induced, Idiopathic (primary), or External (washing, lotion, environment)
 
-Sensor Data Provided:
-- Heart Rate: ${'${hrData ?? "N/A"}'} bpm
-- GSR: ${'${gsrData ?? "N/A"}'} µS
+ANALYSIS NOTES REQUIREMENTS:
+Write a comprehensive 3-5 sentence analysis that includes:
+1. Detailed visual observations (skin texture, moisture characteristics, specific areas affected)
+2. Clinical reasoning for your assessment (why you classified it this way)
+3. If sensors provided: Explain correlation between sensor readings and visual findings
+4. Any relevant clinical insights or contextual factors
+5. Confidence justification
 
-Output requirements:
-- Follow the JSON schema exactly.
-- Be specific in analysisNotes and decision.rationale (explain key cues and any conflicts).
-- Keep confidence 0-100 reflecting visual certainty; do not inflate due to sensors when reliability is low.`;
+Be specific, thorough, and professional. Avoid vague statements like "appears dry" - instead describe exactly what you observe.
 
     // Use Gemini API directly with structured output
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${API_KEY}`;
@@ -224,18 +238,25 @@ Output requirements:
     const isDry = analysis?.visualAssessment?.isDry === true;
     if (isDry) {
       analysis.moistureSource = 'Dry Skin (No visible moisture)';
-      analysis.severity = { level: Math.min(Number(analysis?.severity?.level ?? 2), 2), assessment: 'None/Very Mild' };
-      analysis.sweatGlandActivity = { level: Math.min(Number(analysis?.sweatGlandActivity?.level ?? 10), 10), assessment: 'Inactive/Normal' };
+      analysis.severity = { level: 0, assessment: 'None' };
+      analysis.sweatGlandActivity = { level: 0, assessment: 'Inactive' };
       if (!Array.isArray(analysis.detectedTriggers) || analysis.detectedTriggers.length === 0) {
         analysis.detectedTriggers = ['None apparent'];
       }
       analysis.treatmentRecommendations = analysis.treatmentRecommendations || {};
       analysis.treatmentRecommendations.primary = 'No treatment required';
-      analysis.treatmentRecommendations.alternative = analysis.treatmentRecommendations.alternative || ['Keep hands dry; avoid occlusive lotions before scan'];
+      analysis.treatmentRecommendations.alternative = analysis.treatmentRecommendations.alternative || ['Maintain good hand hygiene', 'Avoid occlusive lotions before scanning'];
       analysis.decision = analysis.decision || {};
-      analysis.decision.primary = 'No hyperhidrosis';
-      analysis.decision.rationale = (analysis.decision.rationale ? analysis.decision.rationale + ' ' : '') + 'Visual dryness detected; sensors (if any) do not override visual evidence.';
-      analysis.confidence = Math.max(Number(analysis.confidence ?? 70), 85);
+      analysis.decision.primary = 'No hyperhidrosis detected';
+      analysis.decision.rationale = (analysis.decision.rationale ? analysis.decision.rationale + ' ' : '') + 'Visual assessment shows completely dry skin with no moisture. ' + (hrData !== null && gsrData !== null ? `Sensor readings (HR: ${hrData} bpm, GSR: ${gsrData} µS) do not override visual evidence of dryness.` : '');
+      analysis.confidence = Math.max(Number(analysis.confidence ?? 70), 90);
+    }
+    
+    // Ensure sensor data acknowledgment in analysis notes when provided
+    if (hrData !== null && gsrData !== null && !isDry) {
+      if (!analysis.analysisNotes.includes('Heart rate') && !analysis.analysisNotes.includes('HR') && !analysis.analysisNotes.includes('sensor')) {
+        analysis.analysisNotes = `Sensor readings: Heart rate ${hrData} bpm, GSR ${gsrData} µS. ` + analysis.analysisNotes;
+      }
     }
 
     console.log('Moisture source:', analysis.moistureSource);
