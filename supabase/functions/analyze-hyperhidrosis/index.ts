@@ -135,17 +135,21 @@ serve(async (req) => {
     console.log('Base64 length:', base64Data.length);
     console.log('MIME type:', mimeType);
 
+    const sensorNote = hrData !== null && gsrData !== null 
+      ? 'IMPORTANT: Sensor data HAS been provided. You MUST acknowledge and reference these values in your analysis. Explain how they correlate or conflict with visual findings.'
+      : 'Note: No sensor data available for this analysis.';
+
     const prompt = `You are a specialized dermatological AI assistant for SweatSmart.guru.
 
 Goal: Produce a detailed, medically grounded assessment from an image. Prioritize VISUAL evidence first, then correlate with sensors.
 
-Sensor reliability: ${'${sensorReliability}'} (if 'low' this indicates DEMO sensors and must not override visual dryness). Simulation: ${'${simulationScenario || "none"}'}.
+Sensor reliability: ${sensorReliability} (if 'low' this indicates DEMO sensors and must not override visual dryness). Simulation: ${simulationScenario || "none"}.
 
 SENSOR DATA PROVIDED:
-- Heart Rate: ${'${hrData ?? "Not provided"}'} bpm
-- GSR (Skin Conductance): ${'${gsrData ?? "Not provided"}'} µS
+- Heart Rate: ${hrData ?? "Not provided"} bpm
+- GSR (Skin Conductance): ${gsrData ?? "Not provided"} µS
 
-${hrData !== null && gsrData !== null ? `IMPORTANT: Sensor data HAS been provided. You MUST acknowledge and reference these values in your analysis. Explain how they correlate or conflict with visual findings.` : 'Note: No sensor data available for this analysis.'}
+${sensorNote}
 
 STRICT DRYNESS RULES (must execute before anything else):
 - Determine if the skin is visually DRY (no sweat droplets, no sheen, normal texture, no maceration).
@@ -179,7 +183,7 @@ Write a comprehensive 3-5 sentence analysis that includes:
 4. Any relevant clinical insights or contextual factors
 5. Confidence justification
 
-Be specific, thorough, and professional. Avoid vague statements like "appears dry" - instead describe exactly what you observe.
+Be specific, thorough, and professional. Avoid vague statements like "appears dry" - instead describe exactly what you observe.`;
 
     // Use Gemini API directly with structured output
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${API_KEY}`;
