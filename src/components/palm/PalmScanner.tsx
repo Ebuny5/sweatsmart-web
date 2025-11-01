@@ -81,7 +81,10 @@ export function PalmScanner() {
           body: { 
             imageData: base64ImageDataUrl,
             hrData,
-            gsrData
+            gsrData,
+            // Treat current sensors as demo/low-reliability so visual dryness takes precedence
+            sensorReliability: 'low',
+            simulationScenario
           } 
         }
       );
@@ -130,6 +133,9 @@ export function PalmScanner() {
             simulationScenario={simulationScenario}
             setSimulationScenario={setSimulationScenario}
           />
+          <div className="text-sm text-muted-foreground">
+            Demo sensors are shown for presentation; visual analysis determines dryness and sensors will not override it.
+          </div>
           <FileUpload onImageCapture={handleImageCapture} />
         </>
       )}
