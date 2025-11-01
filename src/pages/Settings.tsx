@@ -4,22 +4,44 @@ import { Cloud, Thermometer, Droplets, Sun, Clock, MapPin, Save, Bell, Info } fr
 const Settings = () => {
   const [climateSettings, setClimateSettings] = useState({
     enabled: true,
-    temperatureThreshold: 28,
-    humidityThreshold: 70,
-    uvThreshold: 6,
+    temperatureThreshold: 26, // Lower threshold - most people start sweating at 25-27°C
+    humidityThreshold: 65, // Lower threshold - 65%+ humidity significantly increases sweating
+    uvThreshold: 5, // Lower threshold - moderate UV (5-6) can trigger episodes
     quietHoursStart: '22:00',
     quietHoursEnd: '07:00',
     locationEnabled: true,
   });
 
   const [saveStatus, setSaveStatus] = useState('');
+  const [notificationStatus, setNotificationStatus] = useState<'checking' | 'granted' | 'denied' | 'unsupported'>('checking');
 
   useEffect(() => {
     const saved = localStorage.getItem('climateSettings');
     if (saved) {
       setClimateSettings(JSON.parse(saved));
     }
+    
+    // Check notification permission status on load
+    checkNotificationPermission();
   }, []);
+
+  const checkNotificationPermission = () => {
+    if (!('Notification' in window)) {
+      setNotificationStatus('unsupported');
+      return;
+    }
+    
+    const permission = Notification.permission;
+    console.log('Current notification permission:', permission);
+    
+    if (permission === 'granted') {
+      setNotificationStatus('granted');
+    } else if (permission === 'denied') {
+      setNotificationStatus('denied');
+    } else {
+      setNotificationStatus('checking');
+    }
+  };
 
   const handleSave = () => {
     setSaveStatus('Saving...');
@@ -31,24 +53,60 @@ const Settings = () => {
   };
 
   const handleTestNotification = async () => {
+    console.log('Test notification button clicked');
+    setSaveStatus('Requesting permission...');
+    
     try {
+      // Check if notifications are supported
+      if (!('Notification' in window)) {
+        console.error('Notifications not supported in this browser');
+        setSaveStatus('⚠️ Browser does not support notifications');
+        setNotificationStatus('unsupported');
+        setTimeout(() => setSaveStatus(''), 4000);
+        return;
+      }
+
+      console.log('Current permission:', Notification.permission);
+      
+      // Request permission
       const permission = await Notification.requestPermission();
+      console.log('Permission result:', permission);
+      
       if (permission === 'granted') {
-        new Notification('🌡️ Climate Alert - Log Your Episode', {
-          body: `High temperature (${climateSettings.temperatureThreshold}°C), humidity (${climateSettings.humidityThreshold}%) detected. Tap to log your sweating episode now.`,
-          icon: '/icon-192x192.png',
-          badge: '/badge-72x72.png',
+        setNotificationStatus('granted');
+        
+        // Show test notification
+        const notification = new Notification('🌡️ Climate Alert - SweatSmart', {
+          body: `High temperature (${climateSettings.temperatureThreshold}°C) and humidity (${climateSettings.humidityThreshold}%) detected. This is how alerts will appear!`,
+          icon: '/icon-192.png',
+          badge: '/icon-192.png',
           requireInteraction: true,
+          tag: 'test-notification',
         });
-        setSaveStatus('✓ Test notification sent!');
-        setTimeout(() => setSaveStatus(''), 3000);
+        
+        notification.onclick = () => {
+          console.log('Notification clicked');
+          window.focus();
+          notification.close();
+        };
+        
+        console.log('Test notification created successfully');
+        setSaveStatus('✓ Test notification sent successfully!');
+        setTimeout(() => setSaveStatus(''), 4000);
+      } else if (permission === 'denied') {
+        setNotificationStatus('denied');
+        console.error('Notification permission denied');
+        setSaveStatus('⚠️ Notifications blocked. Please enable in browser settings.');
+        setTimeout(() => setSaveStatus(''), 5000);
       } else {
-        setSaveStatus('⚠️ Please allow notifications');
-        setTimeout(() => setSaveStatus(''), 3000);
+        console.warn('Notification permission not granted');
+        setSaveStatus('⚠️ Please allow notifications to receive alerts');
+        setTimeout(() => setSaveStatus(''), 4000);
       }
     } catch (error) {
-      setSaveStatus('⚠️ Notifications not supported');
-      setTimeout(() => setSaveStatus(''), 3000);
+      console.error('Error with test notification:', error);
+      setSaveStatus('⚠️ Error: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      setTimeout(() => setSaveStatus(''), 5000);
     }
   };
 
@@ -94,24 +152,64 @@ const Settings = () => {
           {climateSettings.enabled ? (
             <div className="space-y-8">
               
-              <div className="p-4 bg-green-50 rounded-xl border-2 border-green-200">
+              <div className={`p-4 rounded-xl border-2 ${
+                notificationStatus === 'granted' ? 'bg-green-50 border-green-200' : 
+                notificationStatus === 'denied' ? 'bg-red-50 border-red-200' :
+                notificationStatus === 'unsupported' ? 'bg-gray-50 border-gray-200' :
+                'bg-yellow-50 border-yellow-200'
+              }`}>
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <Bell className="w-5 h-5 text-green-600" />
+                      <Bell className={`w-5 h-5 ${
+                        notificationStatus === 'granted' ? 'text-green-600' :
+                        notificationStatus === 'denied' ? 'text-red-600' :
+                        notificationStatus === 'unsupported' ? 'text-gray-600' :
+                        'text-yellow-600'
+                      }`} />
                       <h4 className="font-semibold text-gray-900">Test Notification</h4>
+                      {notificationStatus === 'granted' && (
+                        <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded-full">✓ Enabled</span>
+                      )}
+                      {notificationStatus === 'denied' && (
+                        <span className="text-xs bg-red-600 text-white px-2 py-0.5 rounded-full">✗ Blocked</span>
+                      )}
                     </div>
                     <p className="text-xs text-gray-600">
-                      See how climate alerts will appear when weather conditions exceed thresholds
+                      {notificationStatus === 'granted' 
+                        ? 'Perfect! See exactly how climate alerts will appear to users.'
+                        : notificationStatus === 'denied'
+                        ? 'Notifications blocked. Please enable in your browser/phone settings.'
+                        : notificationStatus === 'unsupported'
+                        ? 'This browser does not support notifications.'
+                        : 'Click Test Now to enable notifications and see how alerts appear.'
+                      }
                     </p>
                   </div>
                   <button
                     onClick={handleTestNotification}
-                    className="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors shadow-sm"
+                    disabled={notificationStatus === 'unsupported'}
+                    className={`px-6 py-3 rounded-lg font-semibold transition-colors shadow-sm ${
+                      notificationStatus === 'unsupported'
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : notificationStatus === 'granted'
+                        ? 'bg-green-600 text-white hover:bg-green-700'
+                        : 'bg-blue-600 text-white hover:bg-blue-700 animate-pulse'
+                    }`}
                   >
-                    ▶ Test Now
+                    {notificationStatus === 'granted' ? '▶ Test Now' : '🔔 Enable Alerts'}
                   </button>
                 </div>
+                {notificationStatus === 'denied' && (
+                  <div className="mt-3 p-3 bg-white rounded-lg border border-red-200">
+                    <p className="text-xs text-gray-700 font-medium mb-2">To enable notifications:</p>
+                    <ul className="text-xs text-gray-600 space-y-1 pl-4">
+                      <li>• Android: Tap the 3 dots → Site settings → Notifications → Allow</li>
+                      <li>• iPhone: Settings → Safari → Website Settings → sweatsmart.guru → Allow</li>
+                      <li>• Desktop: Click the lock/info icon in address bar → Allow notifications</li>
+                    </ul>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-3">
@@ -136,7 +234,9 @@ const Settings = () => {
                     </div>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 pl-2">Alert when temperature exceeds this value</p>
+                <p className="text-xs text-gray-500 pl-2">
+                  Alert when temperature exceeds this value. Most people start sweating at 25-27°C. Recommended: 26°C
+                </p>
               </div>
 
               <div className="space-y-3">
@@ -161,7 +261,9 @@ const Settings = () => {
                     </div>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 pl-2">Alert when humidity exceeds this percentage</p>
+                <p className="text-xs text-gray-500 pl-2">
+                  Alert when humidity exceeds this percentage. High humidity (65%+) significantly increases sweating. Recommended: 65%
+                </p>
               </div>
 
               <div className="space-y-3">
@@ -189,7 +291,7 @@ const Settings = () => {
                 <div className="flex items-start gap-2 pl-2">
                   <Info className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
                   <p className="text-xs text-gray-500">
-                    6-7: High | 8-10: Very High | 11+: Extreme
+                    5-6: Moderate (caution needed) | 6-7: High | 8-10: Very High | 11+: Extreme. Recommended: 5
                   </p>
                 </div>
               </div>
