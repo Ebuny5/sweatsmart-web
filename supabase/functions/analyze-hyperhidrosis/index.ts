@@ -199,21 +199,17 @@ Provide your final assessment in valid JSON format that adheres to the provided 
     });
 
   } catch (error: any) {
-    console.error('=== ERROR DETAILS ===');
-    console.error('Error type:', error?.constructor?.name);
-    console.error('Error message:', error?.message);
-    console.error('Error stack:', error?.stack);
-    console.error('=== END ERROR DETAILS ===');
+    console.error('Analysis error:', error?.message);
 
     const errorResponse = { 
-      error: error?.message ?? 'Unknown error',
+      error: 'Unable to complete analysis. Please try again.',
       confidence: 0,
       severity: { level: 1, assessment: "Analysis unavailable" },
       sweatGlandActivity: { level: 1, assessment: "Unable to analyze" },
       moistureSource: "Uncertain",
       detectedTriggers: [],
       treatmentRecommendations: { primary: "Consult healthcare provider", alternative: [] },
-      analysisNotes: `Analysis failed: ${error?.message}`
+      analysisNotes: 'Analysis temporarily unavailable'
     };
     
     return new Response(JSON.stringify(errorResponse), {

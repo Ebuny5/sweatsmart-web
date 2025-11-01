@@ -38,7 +38,6 @@ const Settings = () => {
           body: `High temperature (${climateSettings.temperatureThreshold}°C), humidity (${climateSettings.humidityThreshold}%) detected. Tap to log your sweating episode now.`,
           icon: '/icon-192x192.png',
           badge: '/badge-72x72.png',
-          vibrate: [200, 100, 200],
           requireInteraction: true,
         });
         setSaveStatus('✓ Test notification sent!');

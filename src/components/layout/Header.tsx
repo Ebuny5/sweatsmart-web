@@ -11,9 +11,6 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
-import NotificationCenter from "@/components/NotificationCenter";
-import { useEffect } from "react";
-import { climateNotificationService } from "@/services/climateNotificationService";
 
 interface HeaderProps {
   isAuthenticated?: boolean;
@@ -23,18 +20,6 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated }) => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
-
-  useEffect(() => {
-    if (user?.id) {
-      // Initialize climate notification service when user is logged in
-      climateNotificationService.initialize(user.id);
-    }
-
-    return () => {
-      // Cleanup when component unmounts
-      climateNotificationService.stopMonitoring();
-    };
-  }, [user?.id]);
 
   const handleLogin = () => {
     navigate('/login');
@@ -67,10 +52,6 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated }) => {
         <div className="flex items-center gap-4">
           {user ? (
             <>
-              {/* Climate Notification Center */}
-              <NotificationCenter userId={user.id} />
-              
-              {/* User Avatar Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full">

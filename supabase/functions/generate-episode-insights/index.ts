@@ -90,9 +90,8 @@ Be specific, medical, and evidence-based. Avoid vague advice like "remove yourse
     );
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Gemini API error:', response.status, errorText);
-      throw new Error(`Gemini API error: ${response.status}`);
+      console.error('AI service error:', response.status);
+      throw new Error('AI service unavailable');
     }
 
     const data = await response.json();
@@ -127,9 +126,9 @@ Be specific, medical, and evidence-based. Avoid vague advice like "remove yourse
     );
 
   } catch (error) {
-    console.error('Error in generate-episode-insights:', error);
+    console.error('Insight generation error:', error instanceof Error ? error.message : 'Unknown');
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: 'Unable to generate insights. Please try again.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
