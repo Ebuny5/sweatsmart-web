@@ -5,3 +5,12 @@ verify_jwt = true
 
 [functions.generate-episode-insights]
 verify_jwt = true
+
+[functions.generate-sensor-reading]
+verify_jwt = false
+
+[functions.analyze-palm-image]
+verify_jwt = false
+
+[functions.get-fused-status]
+verify_jwt = false
