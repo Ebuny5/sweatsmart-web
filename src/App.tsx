@@ -31,6 +31,8 @@ import Terms from "./pages/Terms";
 import About from "./pages/About";
 import Cookies from "./pages/Cookies";
 import Legal from "./pages/Legal";
+import ClimateMonitor from "./pages/ClimateMonitor";
+import ClimateSettings from "./pages/ClimateSettings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -156,6 +158,16 @@ const AppRoutes = () => (
     <Route path="/palm-scanner" element={
       <ProtectedRoute>
         <PalmScanner />
+      </ProtectedRoute>
+    } />
+    <Route path="/climate-monitor" element={
+      <ProtectedRoute>
+        <ClimateMonitor />
+      </ProtectedRoute>
+    } />
+    <Route path="/climate-settings" element={
+      <ProtectedRoute>
+        <ClimateSettings />
       </ProtectedRoute>
     } />
     <Route path="/contact" element={<Contact />} />

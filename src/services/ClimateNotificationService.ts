@@ -45,8 +45,15 @@ class ClimateNotificationService {
   /**
    * Start monitoring climate conditions
    */
-  startMonitoring(): void {
+  startMonitoring(settings?: Partial<ClimateSettings>): void {
     console.log('🌡️ Starting climate monitoring...');
+    
+    // Update settings if provided
+    if (settings) {
+      const currentSettings = this.getSettings();
+      const updatedSettings = { ...currentSettings, ...settings };
+      localStorage.setItem('climate_settings', JSON.stringify(updatedSettings));
+    }
     
     // Initial check
     this.checkClimateConditions();
@@ -59,6 +66,42 @@ class ClimateNotificationService {
     this.checkInterval = setInterval(() => {
       this.checkClimateConditions();
     }, this.CHECK_INTERVAL);
+  }
+
+  /**
+   * Check if monitoring is active
+   */
+  isMonitoring(): boolean {
+    return this.checkInterval !== null;
+  }
+
+  /**
+   * Fetch weather data for a specific location
+   */
+  async fetchWeatherData(latitude: number, longitude: number): Promise<{ temperature: number; humidity: number; uvIndex: number; locationName?: string } | null> {
+    try {
+      const weatherUrl = `${this.WEATHER_API_BASE}/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${this.WEATHER_API_KEY}`;
+      const weatherResponse = await fetch(weatherUrl);
+      
+      if (!weatherResponse.ok) {
+        return null;
+      }
+
+      const weatherJson = await weatherResponse.json();
+      const uvUrl = `${this.WEATHER_API_BASE}/uvi?lat=${latitude}&lon=${longitude}&appid=${this.WEATHER_API_KEY}`;
+      const uvResponse = await fetch(uvUrl);
+      const uvData = uvResponse.ok ? await uvResponse.json() : { value: 0 };
+
+      return {
+        temperature: weatherJson.main?.temp || 0,
+        humidity: weatherJson.main?.humidity || 0,
+        uvIndex: uvData.value || 0,
+        locationName: weatherJson.name
+      };
+    } catch (error) {
+      console.error('Error fetching weather data:', error);
+      return null;
+    }
   }
 
   /**
