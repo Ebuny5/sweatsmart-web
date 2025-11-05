@@ -213,19 +213,29 @@ const Settings = () => {
                       }
                     </p>
                   </div>
-                  <button
-                    onClick={handleTestNotification}
-                    disabled={notificationStatus === 'unsupported'}
-                    className={`px-6 py-3 rounded-lg font-semibold transition-colors shadow-sm ${
-                      notificationStatus === 'unsupported'
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : notificationStatus === 'granted'
-                        ? 'bg-green-600 text-white hover:bg-green-700'
-                        : 'bg-blue-600 text-white hover:bg-blue-700 animate-pulse'
-                    }`}
-                  >
-                    {notificationStatus === 'granted' ? '▶ Test Now' : '🔔 Enable Alerts'}
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button
+                      onClick={handleCheckClimateNow}
+                      disabled={!climateSettings.locationEnabled}
+                      className="px-4 py-2.5 rounded-lg font-semibold text-sm bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-sm flex items-center justify-center gap-2 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+                    >
+                      <Play className="w-4 h-4" />
+                      Check Now
+                    </button>
+                    <button
+                      onClick={handleTestNotification}
+                      disabled={notificationStatus === 'unsupported'}
+                      className={`px-4 py-2.5 rounded-lg font-semibold text-sm transition-colors shadow-sm ${
+                        notificationStatus === 'unsupported'
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : notificationStatus === 'granted'
+                          ? 'bg-green-600 text-white hover:bg-green-700'
+                          : 'bg-blue-600 text-white hover:bg-blue-700 animate-pulse'
+                      }`}
+                    >
+                      {notificationStatus === 'granted' ? '▶ Test Alert' : '🔔 Enable Alerts'}
+                    </button>
+                  </div>
                 </div>
                 {notificationStatus === 'denied' && (
                   <div className="mt-3 p-3 bg-white rounded-lg border border-red-200">
