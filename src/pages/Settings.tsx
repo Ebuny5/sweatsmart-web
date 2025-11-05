@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Cloud, Thermometer, Droplets, Sun, Clock, MapPin, Save, Bell, Info } from 'lucide-react';
+import { Cloud, Thermometer, Droplets, Sun, Clock, MapPin, Save, Bell, Info, Play } from 'lucide-react';
+import { climateNotificationService } from '@/services/ClimateNotificationService';
 
 const Settings = () => {
   const [climateSettings, setClimateSettings] = useState({
@@ -23,6 +24,16 @@ const Settings = () => {
     
     // Check notification permission status on load
     checkNotificationPermission();
+    
+    // Start climate monitoring if enabled
+    if (climateSettings.enabled) {
+      climateNotificationService.startMonitoring();
+    }
+    
+    return () => {
+      // Cleanup on unmount
+      climateNotificationService.stopMonitoring();
+    };
   }, []);
 
   const checkNotificationPermission = () => {
@@ -46,10 +57,26 @@ const Settings = () => {
   const handleSave = () => {
     setSaveStatus('Saving...');
     localStorage.setItem('climateSettings', JSON.stringify(climateSettings));
+    
+    // Restart monitoring with new settings
+    if (climateSettings.enabled) {
+      climateNotificationService.stopMonitoring();
+      climateNotificationService.startMonitoring();
+    } else {
+      climateNotificationService.stopMonitoring();
+    }
+    
     setTimeout(() => {
       setSaveStatus('✓ Settings saved successfully!');
       setTimeout(() => setSaveStatus(''), 3000);
     }, 500);
+  };
+
+  const handleCheckClimateNow = async () => {
+    setSaveStatus('🌡️ Checking climate conditions...');
+    await climateNotificationService.checkNow();
+    setTimeout(() => setSaveStatus('✓ Climate check complete!'), 1000);
+    setTimeout(() => setSaveStatus(''), 3000);
   };
 
   const handleTestNotification = async () => {
