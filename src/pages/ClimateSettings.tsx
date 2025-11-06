@@ -167,6 +167,10 @@ export default function ClimateSettings() {
     }
   };
 
+  const handleTestNotification = async () => {
+    await climateNotificationService.sendTestNotification();
+  };
+
   const getSensitivityInfo = (level: 'high' | 'standard' | 'low') => {
     const info = {
       high: {
@@ -248,9 +252,18 @@ export default function ClimateSettings() {
               <p className="text-sm text-muted-foreground mb-1">
                 Automatically monitor conditions that may trigger hyperhidrosis episodes
               </p>
-              <p className="text-xs text-muted-foreground">
-                Checks every 30 minutes • 4-hour cooldown between alerts
+              <p className="text-xs text-muted-foreground mb-3">
+                Checks every 4 hours • 4-hour cooldown between alerts
               </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTestNotification}
+                disabled={!notificationPermission || notificationPermission === 'denied'}
+              >
+                <Bell className="w-4 h-4 mr-2" />
+                Test Notification
+              </Button>
             </div>
           </div>
         </Card>
@@ -389,7 +402,7 @@ export default function ClimateSettings() {
           <div className="space-y-3">
             <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="font-medium text-blue-900 mb-1">
-                ✓ Real-time monitoring every 30 minutes
+                ✓ Real-time monitoring every 4 hours
               </div>
             </div>
 

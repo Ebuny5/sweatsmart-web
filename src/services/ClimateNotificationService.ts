@@ -25,7 +25,7 @@ class ClimateNotificationService {
   private checkInterval: NodeJS.Timeout | null = null;
   private lastNotificationTime: number = 0;
   private readonly NOTIFICATION_COOLDOWN = 4 * 60 * 60 * 1000; // 4 hours
-  private readonly CHECK_INTERVAL = 30 * 60 * 1000; // Check every 30 minutes
+  private readonly CHECK_INTERVAL = 4 * 60 * 60 * 1000; // Check every 4 hours
   
   // Using OpenWeatherMap free tier API
   private readonly WEATHER_API_KEY = 'da885c59976d67ec00d9e44a3b3f15f5'; // Free tier key for SweatSmart
@@ -410,6 +410,50 @@ class ClimateNotificationService {
   clearHistory(): void {
     localStorage.removeItem('climate_notifications');
     console.log('🌡️ Notification history cleared');
+  }
+
+  /**
+   * Send a test notification
+   */
+  async sendTestNotification(): Promise<void> {
+    console.log('🌡️ Sending test notification...');
+    
+    if ('Notification' in window) {
+      if (Notification.permission !== 'granted') {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          console.warn('🌡️ Notifications blocked by user');
+          return;
+        }
+      }
+
+      try {
+        const notification = new Notification('🧪 Test Notification', {
+          body: 'Climate Aware Notifications are working! You\'ll receive alerts when weather conditions may trigger episodes.',
+          icon: '/icon-192.png',
+          badge: '/icon-192.png',
+          tag: 'climate-test',
+        });
+
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+
+        // Also dispatch custom event
+        window.dispatchEvent(new CustomEvent('sweatsmart-notification', {
+          detail: {
+            title: '🧪 Test Notification',
+            body: 'Climate Aware Notifications are working correctly!',
+            type: 'default'
+          }
+        }));
+
+        console.log('🌡️ Test notification sent successfully');
+      } catch (error) {
+        console.error('🌡️ Error sending test notification:', error);
+      }
+    }
   }
 }
 
