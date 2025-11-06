@@ -23,11 +23,38 @@ export default function ClimateSettings() {
   const [quietHoursEnd, setQuietHoursEnd] = useState('07:00');
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [currentLocation, setCurrentLocation] = useState('');
+  const [notificationPermission, setNotificationPermission] = useState<'granted' | 'denied' | 'default'>('default');
 
   useEffect(() => {
     checkLocationPermission();
+    checkNotificationPermission();
     loadSavedSettings();
   }, []);
+
+  const checkNotificationPermission = () => {
+    if ('Notification' in window) {
+      setNotificationPermission(Notification.permission);
+    }
+  };
+
+  const requestNotificationPermission = async () => {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+      
+      if (permission === 'granted') {
+        toast.success('Notifications enabled!');
+        // Send test notification
+        new Notification('🌡️ Climate Monitoring Active', {
+          body: 'You\'ll now receive alerts when conditions may trigger episodes',
+          icon: '/icon-192.png',
+          badge: '/icon-192.png',
+        });
+      } else if (permission === 'denied') {
+        toast.error('Notifications blocked. Please enable in browser settings.');
+      }
+    }
+  };
 
   const checkLocationPermission = async () => {
     try {
@@ -52,7 +79,7 @@ export default function ClimateSettings() {
   const reverseGeocode = async (lat: number, lon: number) => {
     try {
       const response = await fetch(
-        `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=YOUR_API_KEY`
+        `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=da885c59976d67ec00d9e44a3b3f15f5`
       );
       const data = await response.json();
       if (data && data.length > 0) {
@@ -81,6 +108,12 @@ export default function ClimateSettings() {
   };
 
   const handleSaveSettings = async () => {
+    // Check notification permission first
+    if (climateEnabled && notificationPermission !== 'granted') {
+      await requestNotificationPermission();
+      return;
+    }
+
     const climateSettings = {
       enabled: climateEnabled,
       sensitivity,
@@ -94,20 +127,21 @@ export default function ClimateSettings() {
 
     localStorage.setItem('climateSettings', JSON.stringify(climateSettings));
 
-    // Update user settings
     if (updateSettings) {
       await updateSettings({ daily_reminders: episodeReminders });
     }
 
     // Start/stop monitoring based on settings
-    if (climateEnabled && locationEnabled) {
+    if (climateEnabled && locationEnabled && notificationPermission === 'granted') {
       if (!climateNotificationService.isMonitoring()) {
         climateNotificationService.startMonitoring({
+          enabled: true,
           temperatureThreshold,
           humidityThreshold,
           uvThreshold,
           quietHoursStart,
-          quietHoursEnd
+          quietHoursEnd,
+          locationEnabled: true
         });
       }
     } else {
@@ -167,13 +201,36 @@ export default function ClimateSettings() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Settings</h1>
-            <p className="text-sm text-muted-foreground">Customize your hyperhidrosis management</p>
+            <h1 className="text-2xl font-bold">Climate Aware Notifications</h1>
+            <p className="text-sm text-muted-foreground">Smart weather monitoring for episode prevention</p>
           </div>
         </div>
       </header>
 
       <div className="max-w-2xl mx-auto p-4 space-y-4 pb-24">
+        {/* Notification Permission Alert */}
+        {climateEnabled && notificationPermission !== 'granted' && (
+          <Card className="p-4 bg-amber-50 border-amber-200">
+            <div className="flex items-start gap-3">
+              <Bell className="w-5 h-5 text-amber-600 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-amber-900 mb-1">
+                  Notifications Required
+                </h3>
+                <p className="text-sm text-amber-800 mb-3">
+                  Climate monitoring needs notification permission to alert you about triggering conditions.
+                </p>
+                <Button 
+                  onClick={requestNotificationPermission}
+                  className="bg-amber-600 hover:bg-amber-700"
+                >
+                  Enable Notifications
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* Climate Monitoring */}
         <Card className="p-6">
           <div className="flex items-start gap-4">
@@ -191,7 +248,9 @@ export default function ClimateSettings() {
               <p className="text-sm text-muted-foreground mb-1">
                 Automatically monitor conditions that may trigger hyperhidrosis episodes
               </p>
-              <p className="text-xs text-muted-foreground">Requires notification permissions</p>
+              <p className="text-xs text-muted-foreground">
+                Checks every 30 minutes • 4-hour cooldown between alerts
+              </p>
             </div>
           </div>
         </Card>
@@ -319,28 +378,30 @@ export default function ClimateSettings() {
           </div>
         </Card>
 
-        {/* About SweatSmart */}
+        {/* How It Works */}
         <Card className="p-6">
-          <h2 className="text-xl font-bold mb-4">About SweatSmart</h2>
+          <h2 className="text-xl font-bold mb-4">How It Works</h2>
           
           <p className="text-sm text-muted-foreground mb-4">
-            SweatSmart is designed to help hyperhidrosis warriors manage their condition by providing 
-            climate-aware notifications. The app monitors weather conditions and alerts you when heat levels 
-            may trigger excessive sweating episodes.
+            Climate Aware Notifications monitors real-time weather conditions and alerts you when conditions may trigger hyperhidrosis episodes.
           </p>
 
           <div className="space-y-3">
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <div className="font-medium text-amber-900 mb-1">
-                Dual Heat Detection: Alerts for both humid heat (Heat Index) and dry heat (40°C+ with low humidity) 
-                to help you prepare and manage triggers effectively.
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="font-medium text-blue-900 mb-1">
+                ✓ Real-time monitoring every 30 minutes
               </div>
             </div>
 
             <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
               <div className="font-medium text-green-900 mb-1">
-                Episode Tracking: Regular logging helps identify patterns, track improvement, and build personalized 
-                management strategies.
+                ✓ Smart cooldown prevents alert fatigue (4 hours between notifications)
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="font-medium text-amber-900 mb-1">
+                ✓ Respects quiet hours - no alerts during sleep
               </div>
             </div>
           </div>

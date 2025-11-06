@@ -84,19 +84,27 @@ class ClimateNotificationService {
       const weatherResponse = await fetch(weatherUrl);
       
       if (!weatherResponse.ok) {
+        console.error('Weather API error:', weatherResponse.status);
         return null;
       }
 
       const weatherJson = await weatherResponse.json();
+      
+      // Validate data
+      if (!weatherJson.main || typeof weatherJson.main.temp !== 'number') {
+        console.error('Invalid weather data received:', weatherJson);
+        return null;
+      }
+
       const uvUrl = `${this.WEATHER_API_BASE}/uvi?lat=${latitude}&lon=${longitude}&appid=${this.WEATHER_API_KEY}`;
       const uvResponse = await fetch(uvUrl);
       const uvData = uvResponse.ok ? await uvResponse.json() : { value: 0 };
 
       return {
-        temperature: weatherJson.main?.temp || 0,
-        humidity: weatherJson.main?.humidity || 0,
-        uvIndex: uvData.value || 0,
-        locationName: weatherJson.name
+        temperature: Math.round(weatherJson.main.temp),
+        humidity: Math.round(weatherJson.main.humidity || 0),
+        uvIndex: Math.round(uvData.value || 0),
+        locationName: weatherJson.name || 'Unknown Location'
       };
     } catch (error) {
       console.error('Error fetching weather data:', error);
@@ -277,13 +285,47 @@ class ClimateNotificationService {
   /**
    * Send climate alert notification
    */
-  private sendClimateAlert(alerts: string[], weather: WeatherData): void {
+  private async sendClimateAlert(alerts: string[], weather: WeatherData): Promise<void> {
     const title = '⚠️ Climate Alert - SweatSmart';
     const body = `High ${alerts.join(', ')} detected. Current conditions may trigger hyperhidrosis episodes. Stay prepared!`;
 
     console.log('🌡️ Sending climate alert:', { alerts, weather });
 
-    // Send notification through custom event system
+    // Request permission if needed
+    if ('Notification' in window) {
+      if (Notification.permission === 'default') {
+        console.log('🌡️ Requesting notification permission...');
+        const permission = await Notification.requestPermission();
+        console.log('🌡️ Permission result:', permission);
+      }
+
+      // Send notification if permitted
+      if (Notification.permission === 'granted') {
+        try {
+          const notification = new Notification(title, {
+            body,
+            icon: '/icon-192.png',
+            badge: '/icon-192.png',
+            tag: 'climate-alert',
+            requireInteraction: true,
+            data: { weather, alerts }
+          });
+          
+          notification.onclick = () => {
+            window.focus();
+            notification.close();
+          };
+          
+          console.log('🌡️ Notification sent successfully');
+        } catch (error) {
+          console.error('🌡️ Error sending notification:', error);
+        }
+      } else {
+        console.warn('🌡️ Notification permission not granted:', Notification.permission);
+      }
+    }
+
+    // Send notification through custom event system as backup
     const event = new CustomEvent('sweatsmart-notification', {
       detail: {
         title,
@@ -292,18 +334,6 @@ class ClimateNotificationService {
       }
     });
     window.dispatchEvent(event);
-
-    // Try native notification as well
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, {
-        body,
-        icon: '/icon-192.png',
-        badge: '/icon-192.png',
-        tag: 'climate-alert',
-        requireInteraction: true,
-        data: { weather, alerts }
-      });
-    }
 
     // Store notification in localStorage
     this.storeNotification(title, body, weather, alerts);
