@@ -84,19 +84,12 @@ export default function ClimateMonitor() {
   };
 
   const handleTestNotification = async () => {
-    const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
-      new Notification('SweatSmart Test Alert', {
-        body: 'Your climate notifications are working perfectly!',
-        icon: '/icon-192.png',
-        badge: '/icon-192.png'
-      });
-      toast.success('Test notification sent!');
-    } else {
-      toast.error('Notification permission denied');
+    try {
+      await climateNotificationService.sendTestNotification();
+    } catch (e) {
+      console.error(e);
     }
   };
-
   const checkConditionsSafety = () => {
     if (!weather) return true;
     
@@ -146,7 +139,7 @@ export default function ClimateMonitor() {
               variant="ghost"
               size="icon"
               className="text-primary-foreground hover:bg-primary-foreground/10"
-              onClick={() => navigate('/history')}
+              onClick={() => navigate('/climate/history')}
             >
               <Clock className="h-5 w-5" />
             </Button>
@@ -154,7 +147,7 @@ export default function ClimateMonitor() {
               variant="ghost"
               size="icon"
               className="text-primary-foreground hover:bg-primary-foreground/10"
-              onClick={() => navigate('/climate-settings')}
+              onClick={() => navigate('/climate/settings')}
             >
               <Settings className="h-5 w-5" />
             </Button>

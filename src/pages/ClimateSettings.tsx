@@ -259,7 +259,6 @@ export default function ClimateSettings() {
                 variant="outline"
                 size="sm"
                 onClick={handleTestNotification}
-                disabled={!notificationPermission || notificationPermission === 'denied'}
               >
                 <Bell className="w-4 h-4 mr-2" />
                 Test Notification
