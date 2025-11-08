@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Clock, Calendar, BarChart2 } from "lucide-react";
+import { Plus, Clock, Calendar, BarChart2, CloudSun } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const QuickActions = () => {
@@ -65,6 +65,19 @@ const QuickActions = () => {
           <div className="text-left">
             <div className="font-medium">View Insights</div>
             <div className="text-xs text-muted-foreground">See patterns and recommendations</div>
+          </div>
+        </Button>
+        
+        <Button 
+          className="flex items-center justify-start gap-2 h-auto py-4 bg-gradient-to-r from-primary to-primary/80"
+          onClick={() => navigate("/climate")}
+        >
+          <div className="bg-primary-foreground p-2 rounded-full">
+            <CloudSun className="h-4 w-4 text-primary" />
+          </div>
+          <div className="text-left">
+            <div className="font-medium">Climate Aware Notifications</div>
+            <div className="text-xs text-primary-foreground/80">Smart weather alerts for episodes</div>
           </div>
         </Button>
       </CardContent>
