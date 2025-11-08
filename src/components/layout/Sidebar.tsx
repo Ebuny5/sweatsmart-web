@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { 
   Sidebar as SidebarComponent,
@@ -54,6 +53,11 @@ const Sidebar = () => {
       title: "Palm Scanner",
       url: "/palm-scanner",
       icon: Camera,
+    },
+    {
+      title: "Climate Notifications",
+      url: "/climate-notifications",
+      icon: Thermometer,
     },
     {
       title: "Community",
