@@ -140,3 +140,30 @@ export interface TriggerFrequency {
   averageSeverity: number;
   percentage: number;
 }
+
+// Sweat Smart Climate & Logging Alerts types
+export interface WeatherData {
+  temperature: number;
+  humidity: number;
+  uvIndex: number;
+}
+
+export interface PhysiologicalData {
+  eda: number; // Electrodermal Activity in microSiemens (µS)
+}
+
+export interface Thresholds {
+  temperature: number;
+  humidity: number;
+  uvIndex: number;
+}
+
+export type HDSSLevel = 1 | 2 | 3 | 4;
+
+export interface LogEntry {
+  id: string;
+  timestamp: number;
+  hdssLevel: HDSSLevel;
+  weather: WeatherData;
+  physiologicalData: PhysiologicalData;
+}
