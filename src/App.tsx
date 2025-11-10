@@ -7,7 +7,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import NotificationListener from "@/components/notifications/NotificationListener";
-import ClimateNotificationSidebar from "@/components/ClimateNotificationSidebar"; // New import
 import Index from "./pages/Index";
 import NewIndex from "./pages/NewIndex";
 import Login from "./pages/Login";
@@ -170,12 +169,6 @@ const AppRoutes = () => (
 );
 
 const App = () => {
-  const [isClimateSidebarOpen, setIsClimateSidebarOpen] = useState(false);
-
-  const handleCloseClimateSidebar = () => {
-    setIsClimateSidebarOpen(false);
-  };
-
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
@@ -184,10 +177,6 @@ const App = () => {
             <NotificationListener />
             <Toaster />
             <Sonner />
-            <ClimateNotificationSidebar
-              isOpen={isClimateSidebarOpen}
-              onClose={handleCloseClimateSidebar}
-            />
             <BrowserRouter>
               <AppRoutes />
             </BrowserRouter>
