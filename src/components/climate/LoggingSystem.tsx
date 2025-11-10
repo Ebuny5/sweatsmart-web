@@ -134,7 +134,7 @@ export const LoggingSystem: React.FC<LoggingSystemProps> = ({ logs, isModalOpen,
                     <div>
                         <p className="font-semibold text-white">{HDSS_DESCRIPTIONS[log.hdssLevel].title}</p>
                         <p className="text-xs text-gray-400">
-                            {log.weather.temperature}Â°C, {log.weather.humidity}% H, {log.weather.uvIndex} UV, {log.physiologicalData.eda.toFixed(1)} ÂµS
+                            {log.weather.temperature}°C, {log.weather.humidity}% H, {log.weather.uvIndex} UV, {log.physiologicalData.eda.toFixed(1)} µS
                         </p>
                     </div>
                 </div>
