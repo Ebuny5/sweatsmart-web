@@ -3,36 +3,11 @@
  * Uses OpenWeatherMap API for accurate weather data
  */
 
-interface ClimateSettings {
-  enabled: boolean;
-  temperatureThreshold: number;
-  humidityThreshold: number;
-  uvThreshold: number;
-  quietHoursStart: string;
-  quietHoursEnd: string;
-  locationEnabled: boolean;
-}
-
-interface WeatherData {
-  temperature: number;
-  humidity: number;
-  uvIndex: number;
-  description: string;
-}
-
 class ClimateNotificationService {
   private static instance: ClimateNotificationService;
-  private checkInterval: NodeJS.Timeout | null = null;
-  private lastNotificationTime: number = 0;
-  private readonly NOTIFICATION_COOLDOWN = 4 * 60 * 60 * 1000; // 4 hours
-  private readonly CHECK_INTERVAL = 4 * 60 * 60 * 1000; // Check every 4 hours
-  
-  // Using OpenWeatherMap free tier API
-  private readonly WEATHER_API_KEY = 'da885c59976d67ec00d9e44a3b3f15f5'; // Free tier key for SweatSmart
-  private readonly WEATHER_API_BASE = 'https://api.openweathermap.org/data/2.5';
 
   private constructor() {
-    console.log('🌡️ ClimateNotificationService initialized');
+    // All original initialization logic removed as the service is being removed.
   }
 
   static getInstance(): ClimateNotificationService {
@@ -43,417 +18,124 @@ class ClimateNotificationService {
   }
 
   /**
-   * Start monitoring climate conditions
+   * Start monitoring climate conditions (functionality removed)
    */
-  startMonitoring(settings?: Partial<ClimateSettings>): void {
-    console.log('🌡️ Starting climate monitoring...');
-    
-    // Update settings if provided
-    if (settings) {
-      const currentSettings = this.getSettings();
-      const updatedSettings = { ...currentSettings, ...settings };
-      localStorage.setItem('climate_settings', JSON.stringify(updatedSettings));
-    }
-    
-    // Initial check
-    this.checkClimateConditions();
-    
-    // Set up periodic checks
-    if (this.checkInterval) {
-      clearInterval(this.checkInterval);
-    }
-    
-    this.checkInterval = setInterval(() => {
-      this.checkClimateConditions();
-    }, this.CHECK_INTERVAL);
+  startMonitoring(settings?: Partial<any>): void {
+    // Service functionality has been removed.
   }
 
   /**
-   * Check if monitoring is active
+   * Check if monitoring is active (functionality removed)
    */
   isMonitoring(): boolean {
-    return this.checkInterval !== null;
+    return false; // Monitoring is always false as the service is no longer active.
   }
 
   /**
-   * Fetch weather data for a specific location
+   * Fetch weather data for a specific location (functionality removed)
    */
-  async fetchWeatherData(latitude: number, longitude: number): Promise<{ temperature: number; humidity: number; uvIndex: number; locationName?: string } | null> {
-    try {
-      const weatherUrl = `${this.WEATHER_API_BASE}/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${this.WEATHER_API_KEY}`;
-      const weatherResponse = await fetch(weatherUrl);
-      
-      if (!weatherResponse.ok) {
-        console.error('Weather API error:', weatherResponse.status);
-        return null;
-      }
-
-      const weatherJson = await weatherResponse.json();
-      
-      // Validate data
-      if (!weatherJson.main || typeof weatherJson.main.temp !== 'number') {
-        console.error('Invalid weather data received:', weatherJson);
-        return null;
-      }
-
-      const uvUrl = `${this.WEATHER_API_BASE}/uvi?lat=${latitude}&lon=${longitude}&appid=${this.WEATHER_API_KEY}`;
-      const uvResponse = await fetch(uvUrl);
-      const uvData = uvResponse.ok ? await uvResponse.json() : { value: 0 };
-
-      return {
-        temperature: Math.round(weatherJson.main.temp),
-        humidity: Math.round(weatherJson.main.humidity || 0),
-        uvIndex: Math.round(uvData.value || 0),
-        locationName: weatherJson.name || 'Unknown Location'
-      };
-    } catch (error) {
-      console.error('Error fetching weather data:', error);
-      return null;
-    }
+  async fetchWeatherData(latitude: number, longitude: number): Promise<any | null> {
+    return null; // No weather data will be fetched.
   }
 
   /**
-   * Stop monitoring climate conditions
+   * Stop monitoring climate conditions (functionality removed)
    */
   stopMonitoring(): void {
-    console.log('🌡️ Stopping climate monitoring');
-    if (this.checkInterval) {
-      clearInterval(this.checkInterval);
-      this.checkInterval = null;
-    }
+    // Service functionality has been removed.
   }
 
   /**
-   * Check current climate conditions against user thresholds
+   * Check current climate conditions against user thresholds (functionality removed)
    */
   private async checkClimateConditions(): Promise<void> {
-    try {
-      const settings = this.getSettings();
-      
-      if (!settings.enabled) {
-        console.log('🌡️ Climate alerts disabled');
-        return;
-      }
-
-      if (this.isQuietHours(settings)) {
-        console.log('🌡️ Quiet hours active - skipping check');
-        return;
-      }
-
-      // Check notification cooldown (4 hours minimum between notifications)
-      const now = Date.now();
-      if (now - this.lastNotificationTime < this.NOTIFICATION_COOLDOWN) {
-        const remainingMinutes = Math.ceil((this.NOTIFICATION_COOLDOWN - (now - this.lastNotificationTime)) / 60000);
-        console.log(`🌡️ Notification cooldown active - ${remainingMinutes} minutes remaining`);
-        return;
-      }
-
-      // Get weather data
-      const weatherData = await this.getCurrentWeather(settings);
-      
-      if (!weatherData) {
-        console.log('🌡️ Unable to fetch weather data');
-        return;
-      }
-
-      console.log('🌡️ Current conditions:', weatherData);
-
-      // Check thresholds
-      const alerts = this.checkThresholds(weatherData, settings);
-
-      if (alerts.length > 0) {
-        this.sendClimateAlert(alerts, weatherData);
-        this.lastNotificationTime = now;
-      } else {
-        console.log('🌡️ Conditions within safe thresholds');
-      }
-    } catch (error) {
-      console.error('🌡️ Error checking climate conditions:', error);
-    }
+    // Service functionality has been removed.
   }
 
   /**
-   * Get current weather data from API
+   * Get current weather data from API (functionality removed)
    */
-  private async getCurrentWeather(settings: ClimateSettings): Promise<WeatherData | null> {
-    try {
-      if (!settings.locationEnabled) {
-        console.log('🌡️ Location services disabled');
-        return null;
-      }
-
-      // Get user's location
-      const position = await this.getUserLocation();
-      
-      if (!position) {
-        console.log('🌡️ Unable to get user location');
-        return null;
-      }
-
-      const { latitude, longitude } = position.coords;
-      console.log(`🌡️ Location: ${latitude}, ${longitude}`);
-
-      // Fetch current weather
-      const weatherUrl = `${this.WEATHER_API_BASE}/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${this.WEATHER_API_KEY}`;
-      const weatherResponse = await fetch(weatherUrl);
-      
-      if (!weatherResponse.ok) {
-        console.error('🌡️ Weather API error:', weatherResponse.status);
-        return null;
-      }
-
-      const weatherJson = await weatherResponse.json();
-
-      // Fetch UV index
-      const uvUrl = `${this.WEATHER_API_BASE}/uvi?lat=${latitude}&lon=${longitude}&appid=${this.WEATHER_API_KEY}`;
-      const uvResponse = await fetch(uvUrl);
-      const uvJson = await uvResponse.json();
-
-      return {
-        temperature: Math.round(weatherJson.main.temp),
-        humidity: weatherJson.main.humidity,
-        uvIndex: uvJson.value || 0,
-        description: weatherJson.weather[0].description,
-      };
-    } catch (error) {
-      console.error('🌡️ Error fetching weather:', error);
-      return null;
-    }
+  private async getCurrentWeather(settings: any): Promise<any | null> {
+    return null; // No weather data will be fetched.
   }
 
   /**
-   * Get user's geolocation
+   * Get user's geolocation (functionality removed)
    */
   private getUserLocation(): Promise<GeolocationPosition | null> {
-    return new Promise((resolve) => {
-      if (!('geolocation' in navigator)) {
-        console.error('🌡️ Geolocation not supported');
-        resolve(null);
-        return;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => resolve(position),
-        (error) => {
-          console.error('🌡️ Geolocation error:', error);
-          resolve(null);
-        },
-        { timeout: 10000, enableHighAccuracy: true }
-      );
-    });
+    return Promise.resolve(null); // No user location will be retrieved.
   }
 
   /**
-   * Check if current conditions exceed thresholds
+   * Check if current conditions exceed thresholds (functionality removed)
    */
-  private checkThresholds(weather: WeatherData, settings: ClimateSettings): string[] {
-    const alerts: string[] = [];
-
-    if (weather.temperature >= settings.temperatureThreshold) {
-      alerts.push(`Temperature (${weather.temperature}°C)`);
-    }
-
-    if (weather.humidity >= settings.humidityThreshold) {
-      alerts.push(`Humidity (${weather.humidity}%)`);
-    }
-
-    if (weather.uvIndex >= settings.uvThreshold) {
-      alerts.push(`UV Index (${weather.uvIndex})`);
-    }
-
-    return alerts;
+  private checkThresholds(weather: any, settings: any): string[] {
+    return []; // No thresholds will be checked.
   }
 
   /**
-   * Check if current time is within quiet hours
+   * Check if current time is within quiet hours (functionality removed)
    */
-  private isQuietHours(settings: ClimateSettings): boolean {
-    const now = new Date();
-    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    
-    const { quietHoursStart, quietHoursEnd } = settings;
-
-    // Handle overnight quiet hours (e.g., 22:00 to 07:00)
-    if (quietHoursStart > quietHoursEnd) {
-      return currentTime >= quietHoursStart || currentTime < quietHoursEnd;
-    }
-    
-    // Regular quiet hours
-    return currentTime >= quietHoursStart && currentTime < quietHoursEnd;
+  private isQuietHours(settings: any): boolean {
+    return false; // Quiet hours logic has been removed.
   }
 
   /**
-   * Send climate alert notification
+   * Send climate alert notification (functionality removed)
    */
-  private async sendClimateAlert(alerts: string[], weather: WeatherData): Promise<void> {
-    const title = '⚠️ Climate Alert - SweatSmart';
-    const body = `High ${alerts.join(', ')} detected. Current conditions may trigger hyperhidrosis episodes. Stay prepared!`;
-
-    console.log('🌡️ Sending climate alert:', { alerts, weather });
-
-    // Request permission if needed
-    if ('Notification' in window) {
-      if (Notification.permission === 'default') {
-        console.log('🌡️ Requesting notification permission...');
-        const permission = await Notification.requestPermission();
-        console.log('🌡️ Permission result:', permission);
-      }
-
-      // Send notification if permitted
-      if (Notification.permission === 'granted') {
-        try {
-          const notification = new Notification(title, {
-            body,
-            icon: '/icon-192.png',
-            badge: '/icon-192.png',
-            tag: 'climate-alert',
-            requireInteraction: true,
-            data: { weather, alerts }
-          });
-          
-          notification.onclick = () => {
-            window.focus();
-            notification.close();
-          };
-          
-          console.log('🌡️ Notification sent successfully');
-        } catch (error) {
-          console.error('🌡️ Error sending notification:', error);
-        }
-      } else {
-        console.warn('🌡️ Notification permission not granted:', Notification.permission);
-      }
-    }
-
-    // Send notification through custom event system as backup
-    const event = new CustomEvent('sweatsmart-notification', {
-      detail: {
-        title,
-        body,
-        type: 'warning'
-      }
-    });
-    window.dispatchEvent(event);
-
-    // Store notification in localStorage
-    this.storeNotification(title, body, weather, alerts);
+  private async sendClimateAlert(alerts: string[], weather: any): Promise<void> {
+    // Notification sending functionality has been removed.
   }
 
   /**
-   * Store notification for history
+   * Store notification for history (functionality removed)
    */
-  private storeNotification(title: string, body: string, weather: WeatherData, alerts: string[]): void {
-    try {
-      const notifications = JSON.parse(localStorage.getItem('climate_notifications') || '[]');
-      notifications.push({
-        title,
-        body,
-        weather,
-        alerts,
-        timestamp: new Date().toISOString()
-      });
-      
-      // Keep last 50 notifications
-      localStorage.setItem('climate_notifications', JSON.stringify(notifications.slice(-50)));
-    } catch (error) {
-      console.error('🌡️ Error storing notification:', error);
-    }
+  private storeNotification(title: string, body: string, weather: any, alerts: string[]): void {
+    // Notification storage functionality has been removed.
   }
 
   /**
-   * Get saved climate settings
+   * Get saved climate settings (returns inactive defaults)
    */
-  private getSettings(): ClimateSettings {
-    try {
-      const saved = localStorage.getItem('climateSettings');
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (error) {
-      console.error('🌡️ Error loading settings:', error);
-    }
-
-    // Default settings
+  private getSettings(): any {
+    // Return default inactive settings since the service is defunct.
     return {
-      enabled: true,
-      temperatureThreshold: 26,
-      humidityThreshold: 65,
-      uvThreshold: 5,
-      quietHoursStart: '22:00',
-      quietHoursEnd: '07:00',
-      locationEnabled: true,
+      enabled: false,
+      temperatureThreshold: 0,
+      humidityThreshold: 0,
+      uvThreshold: 0,
+      quietHoursStart: '00:00',
+      quietHoursEnd: '00:00',
+      locationEnabled: false,
     };
   }
 
   /**
-   * Manual check for testing
+   * Manual check for testing (functionality removed)
    */
   async checkNow(): Promise<void> {
-    console.log('🌡️ Manual climate check triggered');
-    await this.checkClimateConditions();
+    // Service functionality has been removed.
   }
 
   /**
-   * Get notification history
+   * Get notification history (functionality removed)
    */
   getNotificationHistory(): any[] {
-    try {
-      return JSON.parse(localStorage.getItem('climate_notifications') || '[]');
-    } catch {
-      return [];
-    }
+    return []; // No notification history is available.
   }
 
   /**
-   * Clear notification history
+   * Clear notification history (functionality removed)
    */
   clearHistory(): void {
-    localStorage.removeItem('climate_notifications');
-    console.log('🌡️ Notification history cleared');
+    // Service functionality has been removed.
   }
 
   /**
-   * Send a test notification
+   * Send a test notification (functionality removed)
    */
   async sendTestNotification(): Promise<void> {
-    console.log('🌡️ Sending test notification...');
-    
-    if ('Notification' in window) {
-      if (Notification.permission !== 'granted') {
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') {
-          console.warn('🌡️ Notifications blocked by user');
-          return;
-        }
-      }
-
-      try {
-        const notification = new Notification('🧪 Test Notification', {
-          body: 'Climate Aware Notifications are working! You\'ll receive alerts when weather conditions may trigger episodes.',
-          icon: '/icon-192.png',
-          badge: '/icon-192.png',
-          tag: 'climate-test',
-        });
-
-        notification.onclick = () => {
-          window.focus();
-          notification.close();
-        };
-
-        // Also dispatch custom event
-        window.dispatchEvent(new CustomEvent('sweatsmart-notification', {
-          detail: {
-            title: '🧪 Test Notification',
-            body: 'Climate Aware Notifications are working correctly!',
-            type: 'default'
-          }
-        }));
-
-        console.log('🌡️ Test notification sent successfully');
-      } catch (error) {
-        console.error('🌡️ Error sending test notification:', error);
-      }
-    }
+    // Test notification functionality has been removed.
   }
 }
 

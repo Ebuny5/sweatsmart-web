@@ -1,1 +1,4 @@
-import ClimateAlerts from '@/components/ClimateAlerts/ClimateAlerts'; const ClimateMonitor = () => { return (<ClimateAlerts />); }; export default ClimateMonitor;
+const ClimateMonitor = () => {
+  return null;
+};
+export default ClimateMonitor;
