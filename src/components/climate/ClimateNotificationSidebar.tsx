@@ -9,7 +9,7 @@ export interface WeatherData {
 }
 
 export interface PhysiologicalData {
-  eda: number; // in µS (microsiemens)
+  eda: number; // in ÂµS (microsiemens)
 }
 
 export interface Thresholds {
@@ -69,7 +69,7 @@ const RefreshIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 );
 // --- End of inlined icons content ---
 
-const PHYSIOLOGICAL_EDA_THRESHOLD = 5.0; // in µS
+const PHYSIOLOGICAL_EDA_THRESHOLD = 5.0; // in ÂµS
 const LOG_INTERVAL = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
 const DATA_SIMULATION_INTERVAL = 5000; // 5 seconds
 const LOG_CHECK_INTERVAL = 60000; // 1 minute
@@ -208,7 +208,7 @@ export const LoggingSystem: React.FC<LoggingSystemProps> = ({ logs, isModalOpen,
                     <div>
                         <p className="font-semibold text-white">{HDSS_DESCRIPTIONS[log.hdssLevel].title}</p>
                         <p className="text-xs text-gray-400">
-                            {log.weather.temperature}Â°C, {log.weather.humidity}% H, {log.weather.uvIndex} UV, {log.physiologicalData.eda.toFixed(1)} µS
+                            {log.weather.temperature}Â°C, {log.weather.humidity}% H, {log.weather.uvIndex} UV, {log.physiologicalData.eda.toFixed(1)} ÂµS
                         </p>
                     </div>
                 </div>
@@ -316,10 +316,10 @@ const CurrentStatusCard: React.FC<{
             )}
             <h3 className="text-lg font-bold text-cyan-300">Current Status</h3>
             <div className="grid grid-cols-2 gap-4 text-center"> {/* Reduced to 2 columns for sidebar width */}
-                <div className="bg-gray-900 p-3 rounded-lg"><ThermometerIcon className="w-6 h-6 mx-auto text-red-400 mb-1" /><p className="text-lg font-bold">{weather.temperature.toFixed(1)}°C</p><p className="text-xs text-gray-400">Temp</p></div>
+                <div className="bg-gray-900 p-3 rounded-lg"><ThermometerIcon className="w-6 h-6 mx-auto text-red-400 mb-1" /><p className="text-lg font-bold">{weather.temperature.toFixed(1)}Â°C</p><p className="text-xs text-gray-400">Temp</p></div>
                 <div className="bg-gray-900 p-3 rounded-lg"><DropletIcon className="w-6 h-6 mx-auto text-blue-400 mb-1" /><p className="text-lg font-bold">{weather.humidity.toFixed(0)}%</p><p className="text-xs text-gray-400">Humidity</p></div>
                 <div className="bg-gray-900 p-3 rounded-lg"><SunIcon className="w-6 h-6 mx-auto text-yellow-400 mb-1" /><p className="text-lg font-bold">{weather.uvIndex.toFixed(1)}</p><p className="text-xs text-gray-400">UV Index</p></div>
-                <div className="bg-gray-900 p-3 rounded-lg"><ZapIcon className="w-6 h-6 mx-auto text-purple-400 mb-1" /><p className="text-lg font-bold">{physiological.eda.toFixed(1)} µS</p><p className="text-xs text-gray-400">EDA</p></div>
+                <div className="bg-gray-900 p-3 rounded-lg"><ZapIcon className="w-6 h-6 mx-auto text-purple-400 mb-1" /><p className="text-lg font-bold">{physiological.eda.toFixed(1)} ÂµS</p><p className="text-xs text-gray-400">EDA</p></div>
             </div>
             <div className={`bg-gray-900 p-3 rounded-lg text-center ${statusColor}`}>
                 <p className="font-semibold">{alertStatus}</p>
@@ -337,7 +337,7 @@ const SettingsPanel: React.FC<{
             <h3 className="text-lg font-bold text-cyan-300">Alert Thresholds</h3>
             <div className="space-y-4">
                 <div>
-                    <label className="flex justify-between text-sm font-medium text-gray-300"><span>Temperature</span><span className="font-bold text-white">{thresholds.temperature}°C</span></label>
+                    <label className="flex justify-between text-sm font-medium text-gray-300"><span>Temperature</span><span className="font-bold text-white">{thresholds.temperature}Â°C</span></label>
                     <input type="range" min="15" max="40" value={thresholds.temperature} onChange={(e) => onThresholdChange('temperature', +e.target.value)} className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer" />
                 </div>
                 <div>
