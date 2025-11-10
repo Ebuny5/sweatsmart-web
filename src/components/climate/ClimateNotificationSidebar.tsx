@@ -20,33 +20,8 @@ const ClimateNotificationSidebar: React.FC<ClimateNotificationSidebarProps> = ({
                 )}
             </div>
 
+            {/* The main content area is now completely empty as per user's request. */}
             <div className="space-y-4 overflow-y-auto h-[calc(100%-4rem)] pr-2">
-                {/*
-                    As per user's request, the previous climate notification content has been removed.
-                    This section is now a placeholder for the "repository" content.
-                    It is styled to integrate with the existing sidebar design.
-                */}
-                <div className="bg-gray-800/50 border border-cyan-700/50 text-white p-4 rounded-xl flex flex-col space-y-4 shadow-lg">
-                    <h3 className="text-xl font-bold text-cyan-300">Sweat Smart Data Repository</h3>
-                    <p className="text-sm text-gray-400">
-                        This area is designated for integrating and displaying your application's
-                        data repository content. Below are placeholder elements.
-                    </p>
-                    <div className="bg-gray-900 p-3 rounded-lg flex items-center justify-between">
-                        <span className="font-semibold text-gray-300">Data Source:</span>
-                        <span className="text-sm text-white">External API</span>
-                    </div>
-                    <div className="bg-gray-900 p-3 rounded-lg flex items-center justify-between">
-                        <span className="font-semibold text-gray-300">Status:</span>
-                        <span className="text-sm text-green-400">Connected</span>
-                    </div>
-                    <button className="bg-cyan-600 text-white text-sm font-bold px-4 py-2 rounded-md hover:bg-cyan-500 transition">
-                        Synchronize Data
-                    </button>
-                    <p className="text-xs text-gray-500 italic">
-                        Your specific repository component will be placed here to maintain design consistency and functionality.
-                    </p>
-                </div>
             </div>
         </div>
     );

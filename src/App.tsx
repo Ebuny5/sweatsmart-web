@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import NotificationListener from "@/components/notifications/NotificationListener";
+import ClimateNotificationSidebar from "@/components/ClimateNotificationSidebar"; // New import
 import Index from "./pages/Index";
 import NewIndex from "./pages/NewIndex";
 import Login from "./pages/Login";
@@ -167,21 +169,33 @@ const AppRoutes = () => (
   </Routes>
 );
 
-const App = () => (
-  <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <NotificationListener />
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </QueryClientProvider>
-  </ErrorBoundary>
-);
+const App = () => {
+  const [isClimateSidebarOpen, setIsClimateSidebarOpen] = useState(false);
+
+  const handleCloseClimateSidebar = () => {
+    setIsClimateSidebarOpen(false);
+  };
+
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <TooltipProvider>
+            <NotificationListener />
+            <Toaster />
+            <Sonner />
+            <ClimateNotificationSidebar
+              isOpen={isClimateSidebarOpen}
+              onClose={handleCloseClimateSidebar}
+            />
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
+  );
+};
 
 export default App;
