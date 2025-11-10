@@ -5,31 +5,31 @@ const Sidebar: React.FC = () => {
       <h2>SweatSmart</h2>
       <ul>
         <li>
-          <a href="/dashboard">Ã°Å¸â€œÅ  Dashboard</a>
+          <a href="/dashboard"><i className="fas fa-tachometer-alt"></i> Dashboard</a>
         </li>
         <li>
-          <a href="/log-episode">+ Log Episode</a>
+          <a href="/log-episode"><i className="fas fa-plus-circle"></i> Log Episode</a>
         </li>
         <li>
-          <a href="/history">Ã°Å¸â€œâ€¦ History</a>
+          <a href="/history"><i className="fas fa-history"></i> History</a>
         </li>
         <li>
-          <a href="/insights">Ã°Å¸â€™Â¡ Insights</a>
+          <a href="/insights"><i className="fas fa-chart-pie"></i> Insights</a>
         </li>
         <li>
-          <a href="/palm-scanner">Ã°Å¸â€œÂ¸ Palm Scanner</a>
+          <a href="/palm-scanner"><i className="fas fa-fingerprint"></i> Palm Scanner</a>
         </li>
         <li>
-          <a href="/climate-alert">â›…ï¸  Climate Alert</a>
+          <a href="/climate-alert"><i className="fas fa-cloud-sun-rain"></i> Climate Alert</a>
         </li>
         <li>
-          <a href="/community">Ã°Å¸â€™Â¬ Community</a>
+          <a href="/community"><i className="fas fa-users"></i> Community</a>
         </li>
         <li>
-          <a href="/feedback">Ã°Å¸â€”Â£Ã¯Â¸  Feedback</a>
+          <a href="/feedback"><i className="fas fa-comment-dots"></i> Feedback</a>
         </li>
         <li>
-          <a href="/settings">Ã¢Å¡â„¢Ã¯Â¸  Settings</a>
+          <a href="/settings"><i className="fas fa-cog"></i> Settings</a>
         </li>
       </ul>
     </nav>
