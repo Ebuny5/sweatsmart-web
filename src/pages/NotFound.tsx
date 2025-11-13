@@ -1,4 +1,3 @@
-
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -10,24 +9,12 @@ const NotFound = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    console.error(
-      "404 Error: User attempted to access non-existent route:",
-      location.pathname
-    );
-    
-    // For mobile apps, if user is authenticated but lands on 404, redirect to dashboard
-    if (user && location.pathname !== '/') {
-      console.log("Authenticated user on 404, redirecting to dashboard");
-      navigate("/dashboard", { replace: true });
-    }
-  }, [location.pathname, user, navigate]);
+    // TEMP: log 404s but do not auto-redirect while we add /climate route
+    console.error('404 Error: User attempted to access non-existent route:', location.pathname);
+  }, [location.pathname]);
 
   const handleGoHome = () => {
-    if (user) {
-      navigate("/dashboard");
-    } else {
-      navigate("/");
-    }
+    if (user) navigate('/dashboard'); else navigate('/');
   };
 
   return (
@@ -36,32 +23,11 @@ const NotFound = () => {
         <div className="space-y-2">
           <h1 className="text-6xl font-bold text-primary">404</h1>
           <h2 className="text-2xl font-semibold">Page Not Found</h2>
-          <p className="text-muted-foreground">
-            The page you're looking for doesn't exist or has been moved.
-          </p>
+          <p className="text-muted-foreground">The page you're looking for doesn't exist or has been moved.</p>
         </div>
-        
         <div className="space-y-3">
-          <Button onClick={handleGoHome} className="w-full">
-            {user ? "Go to Dashboard" : "Return to Home"}
-          </Button>
-          
-          {user && (
-            <Button 
-              variant="outline" 
-              onClick={() => navigate("/log-episode")}
-              className="w-full"
-            >
-              Log New Episode
-            </Button>
-          )}
-        </div>
-        
-        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-          <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center">
-            <span className="text-white text-xs font-bold">S</span>
-          </div>
-          <span>SweatSmart</span>
+          <Button onClick={handleGoHome} className="w-full">{user ? "Go to Dashboard" : "Return to Home"}</Button>
+          {user && <Button variant="outline" onClick={() => navigate("/log-episode")} className="w-full">Log New Episode</Button>}
         </div>
       </div>
     </div>
