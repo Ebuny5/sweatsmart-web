@@ -15,3 +15,8 @@ export const markNotificationAsRead = async (notificationId: string): Promise<vo
   // Placeholder implementation
   console.log('Marking notification as read:', notificationId);
 };
+
+export const climateNotificationService = {
+  getClimateNotifications,
+  markNotificationAsRead,
+};
