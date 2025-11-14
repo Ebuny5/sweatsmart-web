@@ -11,9 +11,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
-import NotificationListener from "@/components/notifications/NotificationListener";
 import { useEffect } from "react";
-import { climateNotificationService } from "@/services/climateNotificationService";
 
 interface HeaderProps {
   isAuthenticated?: boolean;
@@ -27,12 +25,10 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated }) => {
   useEffect(() => {
     if (user?.id) {
       // Initialize climate notification service when user is logged in
-      climateNotificationService.initialize(user.id);
     }
 
     return () => {
       // Cleanup when component unmounts
-      climateNotificationService.stopMonitoring();
     };
   }, [user?.id]);
 
@@ -68,7 +64,6 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated }) => {
           {user ? (
             <>
               {/* Climate Notification Center */}
-              <NotificationListener userId={user.id} />
               
               {/* User Avatar Dropdown */}
               <DropdownMenu>
