@@ -44,9 +44,15 @@ const Sidebar = () => {
     { title: "Settings", url: "/settings", icon: Settings },
   ];
 
-  // Hide Dashboard while viewing any climate route
-  const isClimateRoute = location.pathname.startsWith("/climate");
-  const visibleMenuItems = menuItems.filter((item) => !(isClimateRoute && item.title === "Dashboard"));
+  // Hide Dashboard when on any climate-related route
+  const isClimateRoute =
+    location.pathname.startsWith("/climate") ||
+    location.pathname.startsWith("/climate-alert") ||
+    location.pathname.startsWith("/climate-notifications");
+
+  const visibleMenuItems = menuItems.filter(
+    (item) => !(isClimateRoute && item.title === "Dashboard")
+  );
 
   const handleNavigation = (url: string, external?: boolean) => {
     if (external) {
@@ -56,13 +62,14 @@ const Sidebar = () => {
     try {
       navigate(url);
     } catch (error) {
-      console.error("Navigation error:", error);
+      // fallback
       window.location.href = url;
     }
   };
 
   return (
     <>
+      {/* Mobile trigger */}
       <Button
         variant="ghost"
         size="sm"
