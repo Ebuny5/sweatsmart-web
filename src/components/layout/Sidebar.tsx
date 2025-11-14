@@ -16,11 +16,11 @@ import {
   Plus,
   Settings,
   MessageSquare,
-  Thermometer,
+  Activity,
   Menu,
   MessageCircle,
   Camera,
-  Cloud
+  CloudRain
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -33,8 +33,8 @@ const Sidebar = () => {
     { title: "Dashboard", url: "/dashboard", icon: BarChart2 },
     { title: "Log Episode", url: "/log-episode", icon: Plus },
     { title: "History", url: "/history", icon: Calendar },
-    { title: "Insights", url: "/insights", icon: Thermometer },
-    { title: "Climate Alerts", url: "/climate-alert", icon: Cloud },
+    { title: "Insights", url: "/insights", icon: Activity },
+    { title: "Climate Alerts", url: "/climate-alert", icon: CloudRain },
     { title: "Palm Scanner", url: "/palm-scanner", icon: Camera },
     { title: "Community", url: "/community", icon: MessageSquare },
     {
@@ -76,18 +76,18 @@ const Sidebar = () => {
       <SidebarComponent className="border-r bg-background">
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel className="text-primary font-bold px-2 mb-4 text-lg">
+            <SidebarGroupLabel className="text-primary font-bold px-2 mb-6 text-lg">
               SweatSmart
             </SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu className="space-y-1">
+              <SidebarMenu className="space-y-2">
                 {menuItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       className={cn(
-                        "w-full justify-start transition-colors duration-200 cursor-pointer",
+                        "w-full justify-start transition-all duration-200 cursor-pointer h-11 px-3",
                         location.pathname === item.url
-                          ? "bg-primary text-primary-foreground font-medium"
+                          ? "bg-primary text-primary-foreground font-medium shadow-sm"
                           : "hover:bg-muted hover:text-foreground"
                       )}
                       onClick={(e) => {
@@ -97,9 +97,9 @@ const Sidebar = () => {
                       }}
                       asChild={false}
                     >
-                      <div className="flex items-center w-full">
-                        <item.icon className="h-5 w-5 mr-3 flex-shrink-0" />
-                        <span className="flex-1">{item.title}</span>
+                      <div className="flex items-center w-full gap-3">
+                        <item.icon className="h-5 w-5 flex-shrink-0" />
+                        <span className="flex-1 text-sm font-medium">{item.title}</span>
                       </div>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
