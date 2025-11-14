@@ -24,7 +24,6 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated }) => {
 
   useEffect(() => {
     if (user?.id) {
-      // Initialize climate notification service when user is logged in
     }
 
     return () => {
