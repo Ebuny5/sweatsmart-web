@@ -309,3 +309,6 @@ const Settings = () => {
 };
 
 
+
+// Added by fix: export default Settings
+export default Settings;
