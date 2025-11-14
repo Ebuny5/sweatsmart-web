@@ -32,6 +32,7 @@ import About from "./pages/About";
 import Cookies from "./pages/Cookies";
 import Legal from "./pages/Legal";
 
+import ClimateApp from "@/pages/ClimateApp";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
