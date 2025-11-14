@@ -11,7 +11,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
-import NotificationCenter from "@/components/NotificationCenter";
+import NotificationListener from "@/components/notifications/NotificationListener";
 import { useEffect } from "react";
 import { climateNotificationService } from "@/services/climateNotificationService";
 
@@ -68,7 +68,7 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated }) => {
           {user ? (
             <>
               {/* Climate Notification Center */}
-              <NotificationCenter userId={user.id} />
+              <NotificationListener userId={user.id} />
               
               {/* User Avatar Dropdown */}
               <DropdownMenu>
