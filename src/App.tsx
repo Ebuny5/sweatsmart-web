@@ -31,8 +31,8 @@ import Terms from "./pages/Terms";
 import About from "./pages/About";
 import Cookies from "./pages/Cookies";
 import Legal from "./pages/Legal";
+import ClimateAlert from "./pages/ClimateAlert";
 
-import ClimateApp from "@/pages/ClimateApp";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -154,6 +154,13 @@ const AppRoutes = () => (
         <Settings />
       </ProtectedRoute>
     } />
+
+    <Route path="/climate-alert" element={
+      <ProtectedRoute>
+        <ClimateAlert />
+      </ProtectedRoute>
+    } />
+
     <Route path="/palm-scanner" element={
       <ProtectedRoute>
         <PalmScanner />

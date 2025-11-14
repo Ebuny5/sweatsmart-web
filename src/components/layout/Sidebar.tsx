@@ -19,7 +19,8 @@ import {
   Thermometer,
   Menu,
   MessageCircle,
-  Camera
+  Camera,
+  Cloud
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ const Sidebar = () => {
     { title: "Log Episode", url: "/log-episode", icon: Plus },
     { title: "History", url: "/history", icon: Calendar },
     { title: "Insights", url: "/insights", icon: Thermometer },
+    { title: "Climate Alerts", url: "/climate-alert", icon: Cloud },
     { title: "Palm Scanner", url: "/palm-scanner", icon: Camera },
     { title: "Community", url: "/community", icon: MessageSquare },
     {
@@ -44,16 +46,6 @@ const Sidebar = () => {
     { title: "Settings", url: "/settings", icon: Settings },
   ];
 
-  // Hide Dashboard when on any climate-related route
-  const isClimateRoute =
-    location.pathname.startsWith("/climate") ||
-    location.pathname.startsWith("/climate-alert") ||
-    location.pathname.startsWith("/climate-notifications");
-
-  const visibleMenuItems = menuItems.filter(
-    (item) => !(isClimateRoute && item.title === "Dashboard")
-  );
-
   const handleNavigation = (url: string, external?: boolean) => {
     if (external) {
       window.open(url, "_blank", "noopener,noreferrer");
@@ -62,14 +54,12 @@ const Sidebar = () => {
     try {
       navigate(url);
     } catch (error) {
-      // fallback
       window.location.href = url;
     }
   };
 
   return (
     <>
-      {/* Mobile trigger */}
       <Button
         variant="ghost"
         size="sm"
@@ -91,7 +81,7 @@ const Sidebar = () => {
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu className="space-y-1">
-                {visibleMenuItems.map((item) => (
+                {menuItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       className={cn(
