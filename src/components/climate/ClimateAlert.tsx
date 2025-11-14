@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { WeatherData, PhysiologicalData, Thresholds, LogEntry, HDSSLevel } from '@/types/climate';
 import { LoggingSystem } from '@/components/climate/LoggingSystem';
-import { ThermometerIcon, DropletIcon, SunIcon, ZapIcon, BellIcon, MapPinIcon, RefreshIcon } from '@/components/climate/icons';
+import { ThermometerIcon, DropletIcon, SunIcon, ZapIcon, BellIcon, MapPinIcon, RefreshIcon } from '@/components/climate/icons.tsx';
 
 const PHYSIOLOGICAL_EDA_THRESHOLD = 5.0;
 const LOG_INTERVAL = 4 * 60 * 60 * 1000;
