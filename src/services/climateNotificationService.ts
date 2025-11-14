@@ -20,3 +20,8 @@ export const climateNotificationService = {
   getClimateNotifications,
   markNotificationAsRead,
 };
+
+export const climateNotificationService = {
+  getClimateNotifications,
+  markNotificationAsRead,
+};
