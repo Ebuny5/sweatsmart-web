@@ -6,7 +6,7 @@ import RecentEpisodes from "@/components/dashboard/RecentEpisodes";
 import TriggerSummary from "@/components/dashboard/TriggerSummary";
 import BodyAreaHeatmap from "@/components/dashboard/BodyAreaHeatmap";
 import QuickActions from "@/components/dashboard/QuickActions";
-import { TriggerFrequency, BodyAreaFrequency } from "@/types";
+import { TriggerFrequency, BodyAreaFrequency, BodyArea } from "@/types";
 import { useEpisodes } from "@/hooks/useEpisodes";
 
 const Dashboard = () => {
@@ -35,14 +35,9 @@ const Dashboard = () => {
         : 0;
       
       return {
-        trigger: { 
-          label, 
-          type: 'environmental' as const, 
-          value: label 
-        },
+        name: label,
+        category: 'environmental',
         count: data.count,
-        averageSeverity,
-        percentage: allEpisodes.length > 0 ? Math.round((data.count / allEpisodes.length) * 100) : 0
       };
     }).sort((a, b) => b.count - a.count);
     
@@ -63,12 +58,12 @@ const Dashboard = () => {
         : 0;
         
       return {
-        area,
+        area: area as BodyArea,
         count: data.count,
-        averageSeverity,
-        percentage: allEpisodes.length > 0 ? Math.round((data.count / allEpisodes.length) * 100) : 0
+        percentage: allEpisodes.length > 0 ? Math.round((data.count / allEpisodes.length) * 100) : 0,
+        averageSeverity
       };
-    });
+    }).sort((a, b) => b.count - a.count);
     
     return {
       triggerFrequencies,

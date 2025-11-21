@@ -67,25 +67,35 @@ export const useEpisodes = () => {
 
           return {
             id: ep.id,
-            userId: ep.user_id,
+            date: ep.date,
             datetime: new Date(ep.date),
+            severity: ep.severity as SeverityLevel,
             severityLevel: ep.severity as SeverityLevel,
+            body_areas: (ep.body_areas || []) as BodyArea[],
             bodyAreas: (ep.body_areas || []) as BodyArea[],
             triggers: parsedTriggers,
             notes: ep.notes || undefined,
+            created_at: ep.created_at,
             createdAt: new Date(ep.created_at),
+            updated_at: ep.updated_at,
+            userId: ep.user_id,
           };
         } catch (error) {
           console.error('Error processing episode:', ep.id, error);
           return {
             id: ep.id,
-            userId: ep.user_id,
+            date: ep.date,
             datetime: new Date(ep.date),
+            severity: ep.severity as SeverityLevel,
             severityLevel: ep.severity as SeverityLevel,
+            body_areas: (ep.body_areas || []) as BodyArea[],
             bodyAreas: (ep.body_areas || []) as BodyArea[],
             triggers: [],
             notes: ep.notes || undefined,
+            created_at: ep.created_at,
             createdAt: new Date(ep.created_at),
+            updated_at: ep.updated_at,
+            userId: ep.user_id,
           };
         }
       });
