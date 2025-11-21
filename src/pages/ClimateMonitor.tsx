@@ -235,6 +235,12 @@ const ClimateMonitor = () => {
 
   useEffect(() => {
     checkPermissions();
+    // Auto-request permissions on mount
+    if (locationPermission === 'prompt' || notificationPermission === 'prompt') {
+      if (locationPermission === 'prompt') {
+        handleRequestLocation();
+      }
+    }
   }, [checkPermissions]);
 
   useEffect(() => {
@@ -387,6 +393,10 @@ const ClimateMonitor = () => {
       (position) => {
         setLocation(position.coords);
         setLocationPermission('granted');
+        // After location granted, request notification
+        if (notificationPermission === 'prompt') {
+          requestNotificationPermission();
+        }
       },
       (error) => {
         console.error("Geolocation error:", error);
@@ -423,7 +433,7 @@ const ClimateMonitor = () => {
             <p className="text-gray-400 mt-1">Real-time weather monitoring and personalized alerts</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate('/climate/history')}>
+            <Button variant="outline" onClick={() => navigate('/history')}>
               <History className="h-4 w-4 mr-2" />
               History
             </Button>
@@ -456,7 +466,12 @@ const ClimateMonitor = () => {
           />
 
           <button
-            onClick={() => setPhysiologicalData({ eda: physiologicalData.eda + 5 })}
+            onClick={() => {
+              const newEda = physiologicalData.eda + 5;
+              setPhysiologicalData({ eda: newEda });
+              // Store in localStorage so Palm Scanner can read it
+              localStorage.setItem('simulatedEDA', newEda.toString());
+            }}
             className="w-full py-3 bg-purple-600 hover:bg-purple-500 rounded-lg transition-colors font-semibold"
           >
             Simulate EDA Spike
@@ -469,7 +484,7 @@ const ClimateMonitor = () => {
             isModalOpen={isLoggingModalOpen}
             onCloseModal={() => setIsLoggingModalOpen(false)}
             onSubmitLog={handleLogSubmit}
-            onLogNow={() => setIsLoggingModalOpen(true)}
+            onLogNow={() => navigate('/log-episode')}
             nextLogTime={nextLogTime}
           />
         </div>
