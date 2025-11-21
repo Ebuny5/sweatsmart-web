@@ -122,9 +122,9 @@ const EpisodeDetail = () => {
                 <div className="space-y-2">
                   {episode.triggers.map((trigger, index) => (
                     <div key={index} className="flex items-center justify-between p-2 sm:p-3 bg-muted rounded-lg">
-                      <span className="text-sm sm:text-base">{trigger.label}</span>
+                      <span className="text-sm sm:text-base">{trigger?.label || trigger?.value || 'Unknown'}</span>
                       <Badge variant="outline" className="text-xs capitalize">
-                        {trigger.type}
+                        {trigger?.type || 'environmental'}
                       </Badge>
                     </div>
                   ))}

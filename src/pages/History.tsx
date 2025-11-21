@@ -45,7 +45,7 @@ const History = () => {
     .filter(episode => {
       const matchesSearch = episode.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           episode.bodyAreas.some(area => area.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                          episode.triggers.some(trigger => trigger.label.toLowerCase().includes(searchTerm.toLowerCase()));
+                          episode.triggers.some(trigger => (trigger?.label || '').toLowerCase().includes(searchTerm.toLowerCase()));
       
       const matchesSeverity = severityFilter === "all" || episode.severityLevel.toString() === severityFilter;
       
