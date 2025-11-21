@@ -36,7 +36,10 @@ const EpisodeInsights: React.FC<EpisodeInsightsProps> = ({ episode }) => {
           description: "Episode details have been shared.",
         });
       } else {
-        await navigator.clipboard.writeText(`SweatSmart Episode Report\nDate: ${episode.datetime.toLocaleDateString()}\nSeverity: ${episode.severityLevel}/5\nBody Areas: ${episode.bodyAreas.join(', ')}\nTriggers: ${episode.triggers.map(t => t.label).join(', ')}\n\nView details: ${window.location.href}`);
+        const triggerSummary = episode.triggers
+          .map(t => t?.label || t?.value || 'Unknown')
+          .join(', ');
+        await navigator.clipboard.writeText(`SweatSmart Episode Report\nDate: ${episode.datetime.toLocaleDateString()}\nSeverity: ${episode.severityLevel}/5\nBody Areas: ${episode.bodyAreas.join(', ')}\nTriggers: ${triggerSummary}\n\nView details: ${window.location.href}`);
         toast({
           title: "Copied to clipboard",
           description: "Episode details have been copied to your clipboard.",
