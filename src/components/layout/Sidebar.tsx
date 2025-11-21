@@ -1,38 +1,62 @@
 import React from 'react';
+import { NavLink } from 'react-router-dom';
+import { 
+  LayoutDashboard, 
+  PlusCircle, 
+  History, 
+  TrendingUp, 
+  Hand, 
+  CloudRainWind, 
+  Users, 
+  MessageSquare, 
+  Settings 
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+const menuItems = [
+  { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { path: '/log-episode', icon: PlusCircle, label: 'Log Episode' },
+  { path: '/history', icon: History, label: 'History' },
+  { path: '/insights', icon: TrendingUp, label: 'Insights' },
+  { path: '/palm-scanner', icon: Hand, label: 'Palm Scanner' },
+  { path: '/climate', icon: CloudRainWind, label: 'Climate Alert' },
+  { path: '/community', icon: Users, label: 'Community' },
+  { path: '/contact', icon: MessageSquare, label: 'Feedback' },
+  { path: '/settings', icon: Settings, label: 'Settings' },
+];
+
 const Sidebar: React.FC = () => {
   return (
-    <nav>
-      <h2>SweatSmart</h2>
-      <ul>
-        <li>
-          <a href="/dashboard"><i className="fas fa-tachometer-alt"></i> Dashboard</a>
-        </li>
-        <li>
-          <a href="/log-episode"><i className="fas fa-plus-circle"></i> Log Episode</a>
-        </li>
-        <li>
-          <a href="/history"><i className="fas fa-history"></i> History</a>
-        </li>
-        <li>
-          <a href="/insights"><i className="fas fa-chart-pie"></i> Insights</a>
-        </li>
-        <li>
-          <a href="/palm-scanner"><i className="fas fa-fingerprint"></i> Palm Scanner</a>
-        </li>
-        <li>
-          <a href="/climate-alert"><i className="fas fa-cloud-sun-rain"></i> Climate Alert</a>
-        </li>
-        <li>
-          <a href="/community"><i className="fas fa-users"></i> Community</a>
-        </li>
-        <li>
-          <a href="/feedback"><i className="fas fa-comment-dots"></i> Feedback</a>
-        </li>
-        <li>
-          <a href="/settings"><i className="fas fa-cog"></i> Settings</a>
-        </li>
-      </ul>
-    </nav>
+    <aside className="w-64 bg-background border-r border-border flex flex-col">
+      <div className="p-6 border-b border-border">
+        <h2 className="text-xl font-bold text-foreground">SweatSmart</h2>
+      </div>
+      
+      <nav className="flex-1 p-4">
+        <ul className="space-y-2">
+          {menuItems.map((item) => (
+            <li key={item.path}>
+              <NavLink
+                to={item.path}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors',
+                    'hover:bg-accent hover:text-accent-foreground',
+                    isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground'
+                  )
+                }
+              >
+                <item.icon className="h-5 w-5" />
+                <span>{item.label}</span>
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </aside>
   );
 };
+
 export default Sidebar;
