@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { SensorReading, SimulationMode, PalmScanResult, FusedAnalysis } from './types';
 import SensorDisplayCard from './SensorDisplayCard';
 import JsonOutput from './JsonOutput';
@@ -8,8 +9,13 @@ import PalmScannerModal from './PalmScannerModal';
 import { HeartIcon, EdaIcon, MODE_DETAILS } from './constants';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { edaManager } from '@/utils/edaManager';
 
 const PalmScannerApp: React.FC = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get('returnTo');
+
   const [sensorData, setSensorData] = useState<SensorReading | null>(null);
   const [loadingMode, setLoadingMode] = useState<SimulationMode | null>('Resting');
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +37,19 @@ const PalmScannerApp: React.FC = () => {
       
       if (error) throw error;
       setSensorData(data);
+      
+      // Save EDA to shared storage
+      edaManager.saveEDA(data.EDA_uS, 'palm-scanner');
+      
       toast.success(`${mode} simulation generated`);
+      
+      // Auto-return to Climate Alert if returnTo parameter exists
+      if (returnTo) {
+        setTimeout(() => {
+          toast.info('Returning to Climate Alert...');
+          navigate(returnTo);
+        }, 1500);
+      }
     } catch (err: any) {
       setError(err.message || 'An unknown error occurred.');
       setSensorData(null);

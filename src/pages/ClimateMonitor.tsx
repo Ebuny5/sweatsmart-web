@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { GoogleGenAI, Type } from "@google/genai";
 import { LoggingSystem } from "@/components/climate/LoggingSystem";
 import { SettingsPanel } from "@/components/climate/SettingsPanel";
 import { History, Settings as SettingsIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from '@/integrations/supabase/client';
+import { edaManager } from '@/utils/edaManager';
 import type { WeatherData, PhysiologicalData, Thresholds, LogEntry, HDSSLevel } from "@/types";
 
 // Icons
@@ -235,13 +236,16 @@ const ClimateMonitor = () => {
 
   useEffect(() => {
     checkPermissions();
-    // Auto-request permissions on mount
-    if (locationPermission === 'prompt' || notificationPermission === 'prompt') {
-      if (locationPermission === 'prompt') {
-        handleRequestLocation();
-      }
-    }
   }, [checkPermissions]);
+
+  // Load EDA from Palm Scanner on mount
+  useEffect(() => {
+    const storedEDA = edaManager.getEDA();
+    if (storedEDA && edaManager.isFresh()) {
+      setPhysiologicalData({ eda: storedEDA.value });
+      console.log('Loaded fresh EDA from Palm Scanner:', storedEDA);
+    }
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('sweatSmartThresholds', JSON.stringify(thresholds));
@@ -256,32 +260,23 @@ const ClimateMonitor = () => {
     setIsFetchingWeather(true);
     setWeatherError(null);
     try {
-      const apiKey = import.meta.env.VITE_GOOGLE_AI_API_KEY;
-      if (!apiKey) {
-        throw new Error("API Key for Google GenAI is not defined.");
-      }
-      const ai = new GoogleGenAI({ apiKey });
-      const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash-exp",
-        contents: `What is the current temperature in Celsius, humidity percentage, and UV index for latitude ${coords.latitude} and longitude ${coords.longitude}? Provide only the JSON object.`,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              temperature: { type: Type.NUMBER },
-              humidity: { type: Type.NUMBER },
-              uvIndex: { type: Type.NUMBER },
-            },
-            required: ["temperature", "humidity", "uvIndex"],
-          },
-        },
+      const { data, error } = await supabase.functions.invoke('get-weather-data', {
+        body: { latitude: coords.latitude, longitude: coords.longitude }
       });
-      const weather = JSON.parse(response.text) as WeatherData;
-      setWeatherData(weather);
+      
+      if (error) throw error;
+      
+      if (data.simulated) {
+        setWeatherError(data.error || 'Using simulated data');
+        setWeatherData(data.data);
+      } else {
+        setWeatherData(data);
+      }
     } catch (error) {
       console.error("Error fetching weather:", error);
       setWeatherError("Could not fetch weather. Using simulated data.");
+      // Fallback to simulation
+      setWeatherData({ temperature: 22, humidity: 60, uvIndex: 4 });
     } finally {
       setIsFetchingWeather(false);
     }
@@ -465,17 +460,48 @@ const ClimateMonitor = () => {
             weatherError={weatherError}
           />
 
-          <button
-            onClick={() => {
-              const newEda = physiologicalData.eda + 5;
-              setPhysiologicalData({ eda: newEda });
-              // Store in localStorage so Palm Scanner can read it
-              localStorage.setItem('simulatedEDA', newEda.toString());
-            }}
-            className="w-full py-3 bg-purple-600 hover:bg-purple-500 rounded-lg transition-colors font-semibold"
-          >
-            Simulate EDA Spike
-          </button>
+          <div className="space-y-4">
+            {/* EDA Status Badge */}
+            <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-400">Electrodermal Activity (EDA)</p>
+                  <p className="text-2xl font-bold text-purple-400">{physiologicalData.eda.toFixed(1)} µS</p>
+                </div>
+                {(() => {
+                  const storedEDA = edaManager.getEDA();
+                  const isFresh = edaManager.isFresh();
+                  if (storedEDA && isFresh) {
+                    return (
+                      <span className="text-xs bg-green-500/20 text-green-400 px-3 py-1 rounded-full border border-green-500/50">
+                        Fresh • {storedEDA.source}
+                      </span>
+                    );
+                  } else if (storedEDA && !isFresh) {
+                    return (
+                      <span className="text-xs bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full border border-yellow-500/50">
+                        Stale • Generate new
+                      </span>
+                    );
+                  }
+                  return (
+                    <span className="text-xs bg-gray-500/20 text-gray-400 px-3 py-1 rounded-full border border-gray-500/50">
+                      No data
+                    </span>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* Go to Palm Scanner Button */}
+            <button
+              onClick={() => navigate('/palm-scanner?returnTo=/climate')}
+              className="w-full py-3 bg-purple-600 hover:bg-purple-500 rounded-lg transition-colors font-semibold flex items-center justify-center gap-2"
+            >
+              <ZapIcon className="w-5 h-5" />
+              Go to Palm Scanner
+            </button>
+          </div>
 
           <SettingsPanel thresholds={thresholds} onThresholdChange={handleThresholdChange} />
 
