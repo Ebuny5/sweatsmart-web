@@ -79,7 +79,8 @@ The notes field should briefly describe the simulation, reflecting the '${mode}'
     });
   } catch (error) {
     console.error('Error in generate-sensor-reading:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
