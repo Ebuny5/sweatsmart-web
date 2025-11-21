@@ -20,13 +20,17 @@ const Dashboard = () => {
     const triggerCounts = new Map<string, { count: number; severities: number[] }>();
     
     allEpisodes.forEach(episode => {
-      episode.triggers.forEach(trigger => {
-        const key = trigger.label || trigger.value || 'Unknown';
-        const existing = triggerCounts.get(key) || { count: 0, severities: [] };
-        existing.count += 1;
-        existing.severities.push(episode.severityLevel);
-        triggerCounts.set(key, existing);
-      });
+      if (episode.triggers && Array.isArray(episode.triggers)) {
+        episode.triggers.forEach(trigger => {
+          if (trigger && (trigger.label || trigger.value)) {
+            const key = trigger.label || trigger.value || 'Unknown';
+            const existing = triggerCounts.get(key) || { count: 0, severities: [] };
+            existing.count += 1;
+            existing.severities.push(episode.severityLevel);
+            triggerCounts.set(key, existing);
+          }
+        });
+      }
     });
 
     const triggerFrequencies: TriggerFrequency[] = Array.from(triggerCounts.entries()).map(([label, data]) => {
@@ -44,12 +48,14 @@ const Dashboard = () => {
     const bodyAreaCounts = new Map<string, { count: number; severities: number[] }>();
     
     allEpisodes.forEach(episode => {
-      episode.bodyAreas.forEach(area => {
-        const existing = bodyAreaCounts.get(area) || { count: 0, severities: [] };
-        existing.count += 1;
-        existing.severities.push(episode.severityLevel);
-        bodyAreaCounts.set(area, existing);
-      });
+      if (episode.bodyAreas && Array.isArray(episode.bodyAreas)) {
+        episode.bodyAreas.forEach(area => {
+          const existing = bodyAreaCounts.get(area) || { count: 0, severities: [] };
+          existing.count += 1;
+          existing.severities.push(episode.severityLevel);
+          bodyAreaCounts.set(area, existing);
+        });
+      }
     });
 
     const bodyAreas: BodyAreaFrequency[] = Array.from(bodyAreaCounts.entries()).map(([area, data]) => {
