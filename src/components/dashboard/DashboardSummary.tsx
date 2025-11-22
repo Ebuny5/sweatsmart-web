@@ -108,9 +108,20 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         .sort((a, b) => a.timestamp - b.timestamp);
     };
 
+    const weekly = generateWeeklyData();
+    const monthly = generateMonthlyData();
+
+    console.log('DashboardSummary chart data', {
+      episodeCount: allEpisodes.length,
+      weeklyPoints: weekly.length,
+      monthlyPoints: monthly.length,
+      sampleWeekly: weekly[0],
+      sampleMonthly: monthly[0],
+    });
+
     return {
-      processedWeeklyData: generateWeeklyData(),
-      processedMonthlyData: generateMonthlyData()
+      processedWeeklyData: weekly,
+      processedMonthlyData: monthly
     };
   }, [weeklyData, monthlyData, allEpisodes]);
 
