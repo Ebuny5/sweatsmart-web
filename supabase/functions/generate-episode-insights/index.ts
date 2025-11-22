@@ -71,7 +71,7 @@ Format your response as a JSON object with these exact keys:
 Be specific, medical, and evidence-based. Avoid vague advice like "remove yourself if possible." Provide concrete, actionable guidance that a hyperhidrosis patient can actually use.`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
