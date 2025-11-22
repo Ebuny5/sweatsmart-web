@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.get-weather-data]
 verify_jwt = false
+
+[functions.hyper-ai-chat]
+verify_jwt = true

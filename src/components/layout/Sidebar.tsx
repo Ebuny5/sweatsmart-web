@@ -9,7 +9,8 @@ import {
   CloudRainWind, 
   Users, 
   MessageSquare, 
-  Settings 
+  Settings,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -19,6 +20,7 @@ const menuItems = [
   { path: '/history', icon: History, label: 'History' },
   { path: '/insights', icon: TrendingUp, label: 'Insights' },
   { path: '/palm-scanner', icon: Hand, label: 'Palm Scanner' },
+  { path: '/hyper-ai', icon: Sparkles, label: 'Hyper AI' },
   { path: '/climate', icon: CloudRainWind, label: 'Climate Alert' },
   { path: '/community', icon: Users, label: 'Community' },
   { path: '/contact', icon: MessageSquare, label: 'Feedback' },
