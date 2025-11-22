@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const API_KEY = Deno.env.get('GOOGLE_AI_STUDIO_API_KEY');
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -17,8 +17,8 @@ serve(async (req) => {
 
     console.log('Generating insights for episode:', { severity, bodyAreas, triggers, notes });
 
-    if (!API_KEY) {
-      throw new Error('GOOGLE_AI_STUDIO_API_KEY is not configured');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY is not configured');
     }
 
     // Build a detailed prompt with hyperhidrosis medical knowledge
@@ -71,21 +71,27 @@ Format your response as a JSON object with these exact keys:
 Be specific, medical, and evidence-based. Avoid vague advice like "remove yourself if possible." Provide concrete, actionable guidance that a hyperhidrosis patient can actually use.`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
+      'https://ai.gateway.lovable.dev/v1/chat/completions',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        },
         body: JSON.stringify({
-          contents: [{
-            parts: [{ text: prompt }]
-          }],
-          generationConfig: {
-            temperature: 0.4,
-            topK: 32,
-            topP: 0.95,
-            maxOutputTokens: 2048,
-          }
-        })
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            {
+              role: 'system',
+              content:
+                'You are a specialized medical AI assistant focused on hyperhidrosis. Provide educational, non-diagnostic guidance only and always respond with strict JSON following the user\'s instructions.',
+            },
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+        }),
       }
     );
 
