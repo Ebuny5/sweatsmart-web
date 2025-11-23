@@ -365,18 +365,25 @@ const ClimateMonitor = () => {
     }
   }, [weatherData, physiologicalData, thresholds, sendNotification, arePermissionsGranted]);
 
-  // Logging logic with fixed 4-hour schedule (00:00, 04:00, 08:00, ...)
+  // Logging logic with fixed 4-hour schedule (00:00, 04:00, 08:00, 12:00, 16:00, 20:00)
   const updateNextLogTime = useCallback(() => {
     const now = new Date();
+    const currentHour = now.getHours();
+    
+    // Fixed 4-hour blocks
+    const blocks = [0, 4, 8, 12, 16, 20];
+    
+    // Find the next block
+    let nextBlockHour = blocks.find(block => block > currentHour);
+    
+    // If no block found today, use first block of tomorrow
     const next = new Date(now);
-    next.setMinutes(0, 0, 0);
-
-    const stepHours = LOG_INTERVAL / (60 * 60 * 1000);
-
-    // Move forward in 4-hour blocks until we are strictly in the future
-    while (next.getTime() <= now.getTime()) {
-      next.setHours(next.getHours() + stepHours);
+    if (nextBlockHour === undefined) {
+      next.setDate(next.getDate() + 1);
+      nextBlockHour = 0;
     }
+    
+    next.setHours(nextBlockHour, 0, 0, 0);
 
     const nextTime = next.getTime();
     setNextLogTime(nextTime);
@@ -558,6 +565,30 @@ const ClimateMonitor = () => {
             onLogNow={() => navigate('/log-episode')}
             nextLogTime={nextLogTime}
           />
+
+          {/* Test Alert Button */}
+          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-cyan-300">Test Alerts</p>
+                <p className="text-xs text-gray-400">Verify sound and notifications are working</p>
+              </div>
+              <Button
+                onClick={() => {
+                  playAlertSound('WARNING');
+                  if (notificationPermission === 'granted') {
+                    new Notification('Test Alert', {
+                      body: 'Your alerts are working correctly! 🎉',
+                      icon: '/favicon.ico'
+                    });
+                  }
+                }}
+                className="bg-cyan-600 hover:bg-cyan-500 text-white"
+              >
+                Test Alert
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     </AppLayout>
