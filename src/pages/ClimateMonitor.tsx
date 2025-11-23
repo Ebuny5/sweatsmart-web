@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { LoggingSystem } from "@/components/climate/LoggingSystem";
-import { SettingsPanel } from "@/components/climate/SettingsPanel";
+import { LoggingSystem } from "../components/climate/LoggingSystem";
+import { SettingsPanel } from "../components/climate/SettingsPanel";
 import { History, Settings as SettingsIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from '@/integrations/supabase/client';
