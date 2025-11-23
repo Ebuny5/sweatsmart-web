@@ -119,33 +119,6 @@ export const LoggingSystem: React.FC<LoggingSystemProps> = ({ logs, isModalOpen,
             <p className="text-sm text-gray-400">Next scheduled log</p>
             <p className="text-2xl font-bold text-white">{formatNextLogTime(nextLogTime)}</p>
         </div>
-        
-        <h4 className="text-md font-semibold text-gray-300 pt-2">Log History</h4>
-        <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-          {logs.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No logs yet.</p>
-          ) : (
-            [...logs].reverse().map(log => (
-              <div key={log.id} className="bg-gray-700/50 p-3 rounded-lg flex justify-between items-center">
-                <div className="flex items-center space-x-3">
-                    <div className={`w-10 h-10 flex items-center justify-center rounded-full font-bold text-xl text-black bg-cyan-${(5-log.hdssLevel)*100}`}>
-                        {log.hdssLevel}
-                    </div>
-                    <div>
-                        <p className="font-semibold text-white">{HDSS_DESCRIPTIONS[log.hdssLevel].title}</p>
-                        <p className="text-xs text-gray-400">
-                            {log.weather.temperature}°C, {log.weather.humidity}% H, {log.weather.uvIndex} UV, {log.physiologicalData.eda.toFixed(1)} µS
-                        </p>
-                    </div>
-                </div>
-                <div className="text-right">
-                    <p className="text-sm font-semibold text-gray-300">{formatTime(log.timestamp)}</p>
-                    <p className="text-xs text-gray-500">{formatDate(log.timestamp)}</p>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
       </div>
     </>
   );

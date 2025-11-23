@@ -335,12 +335,16 @@ const ClimateMonitor = () => {
     }
   }, [notificationPermission, playNotificationSound]);
 
-  // Alert logic
+  // Alert logic with sound alerts
   useEffect(() => {
     if (!arePermissionsGranted) {
       setAlertStatus("Complete setup to begin.");
       return;
     }
+
+    // Check if sound alerts are enabled
+    const settings = localStorage.getItem('climateAppSettings');
+    const soundEnabled = settings ? JSON.parse(settings).soundAlerts !== false : true;
 
     const isEnvTrigger = weatherData.temperature > thresholds.temperature || 
                          weatherData.humidity > thresholds.humidity || 
@@ -349,32 +353,67 @@ const ClimateMonitor = () => {
 
     if (isEnvTrigger && isPhysioTrigger) {
       setAlertStatus("High Risk: Conditions and physiology indicate high sweat risk.");
-      sendNotification('Sweat Smart Alert', 'High sweat risk detected based on climate and body signals.');
+      if (soundEnabled) {
+        sendNotification('Sweat Smart Alert', 'High sweat risk detected based on climate and body signals.');
+      }
     } else if (isEnvTrigger) {
       setAlertStatus("Moderate Risk: Climate conditions may trigger sweating.");
+      // Play sound alert for moderate risk too
+      if (soundEnabled) {
+        playNotificationSound();
+        if (notificationPermission === 'granted') {
+          new Notification('Sweat Smart Alert', { 
+            body: 'Moderate sweat risk detected. Consider logging your episode.', 
+            icon: '/favicon.ico' 
+          });
+        }
+      }
     } else {
       setAlertStatus("Conditions Optimal: Low sweat risk detected.");
     }
-  }, [weatherData, physiologicalData, thresholds, sendNotification, arePermissionsGranted]);
+  }, [weatherData, physiologicalData, thresholds, sendNotification, playNotificationSound, notificationPermission, arePermissionsGranted]);
 
-  // Logging logic
+  // Logging logic with persistent state
   const updateNextLogTime = useCallback(() => {
     const lastLog = logs.length > 0 ? logs[logs.length - 1].timestamp : 0;
     const startTime = lastLog > 0 ? lastLog : Date.now();
-    setNextLogTime(startTime + LOG_INTERVAL);
+    const nextTime = startTime + LOG_INTERVAL;
+    setNextLogTime(nextTime);
+    localStorage.setItem('climateNextLogTime', nextTime.toString());
   }, [logs]);
 
   useEffect(() => {
+    // Load next log time from storage
+    const stored = localStorage.getItem('climateNextLogTime');
+    if (stored) {
+      setNextLogTime(parseInt(stored));
+    } else {
+      updateNextLogTime();
+    }
+  }, []);
+
+  useEffect(() => {
     updateNextLogTime();
+  }, [logs, updateNextLogTime]);
+
+  useEffect(() => {
     const interval = setInterval(() => {
       if (nextLogTime && Date.now() >= nextLogTime && arePermissionsGranted) {
-        sendNotification('Time to Log', 'Please record your sweat level for the last 4 hours.');
+        playNotificationSound();
+        if (notificationPermission === 'granted') {
+          new Notification('Time to Log', { 
+            body: 'Please record your sweat level for the last 4 hours.', 
+            icon: '/favicon.ico',
+            requireInteraction: true
+          });
+        }
         setIsLoggingModalOpen(true);
+        updateNextLogTime();
       }
     }, LOG_CHECK_INTERVAL);
 
     return () => clearInterval(interval);
-  }, [logs, nextLogTime, sendNotification, updateNextLogTime, arePermissionsGranted]);
+  }, [nextLogTime, arePermissionsGranted, playNotificationSound, notificationPermission, updateNextLogTime]);
 
   // Handlers
   const requestNotificationPermission = async () => {
@@ -420,7 +459,7 @@ const ClimateMonitor = () => {
 
   return (
     <AppLayout>
-      <div className="max-w-7xl mx-auto space-y-6 animate-fade-in bg-gray-900 text-white p-6 rounded-xl">
+      <div className="max-w-7xl mx-auto space-y-6 animate-fade-in bg-black text-white p-6 rounded-xl min-h-screen">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -428,11 +467,17 @@ const ClimateMonitor = () => {
             <p className="text-gray-400 mt-1">Real-time weather monitoring and personalized alerts</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate('/history')}>
+            <Button 
+              className="bg-gray-900 text-white border-gray-700 hover:bg-gray-800" 
+              onClick={() => navigate('/climate/history')}
+            >
               <History className="h-4 w-4 mr-2" />
               History
             </Button>
-            <Button variant="outline" onClick={() => navigate('/climate/settings')}>
+            <Button 
+              className="bg-gray-900 text-white border-gray-700 hover:bg-gray-800" 
+              onClick={() => navigate('/climate/settings')}
+            >
               <SettingsIcon className="h-4 w-4 mr-2" />
               Settings
             </Button>
