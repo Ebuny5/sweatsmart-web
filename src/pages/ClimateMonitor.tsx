@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from '@/integrations/supabase/client';
 import { edaManager } from '@/utils/edaManager';
 import type { WeatherData, PhysiologicalData, Thresholds, LogEntry, HDSSLevel } from "@/types";
+import { soundManager } from '@/utils/soundManager';
 
 // Icons
 const ThermometerIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
@@ -60,14 +61,7 @@ const LOG_CHECK_INTERVAL = 60000;
 
 type PermissionStatus = 'prompt' | 'granted' | 'denied';
 
-// Store AudioContext globally
-let audioContext: AudioContext | null = null;
-const initAudioContext = () => {
-  if (!audioContext) {
-    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-  }
-  return audioContext;
-};
+// Using shared SoundManager for all alert sounds (see utils/soundManager).
 
 // Permissions Wizard Component
 const PermissionsWizard: React.FC<{
@@ -312,28 +306,25 @@ const ClimateMonitor = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Sound
-  const playNotificationSound = useCallback(() => {
-    const ctx = initAudioContext();
-    if (ctx.state === 'suspended') ctx.resume();
-    const oscillator = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-    oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(880, ctx.currentTime);
-    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-    oscillator.start(ctx.currentTime);
-    oscillator.stop(ctx.currentTime + 0.5);
-  }, []);
+  // Sound using shared SoundManager
+  const playAlertSound = useCallback(
+    (severity: 'CRITICAL' | 'WARNING' | 'REMINDER' = 'WARNING') => {
+      soundManager.triggerMedicalAlert(severity);
+    },
+    []
+  );
 
-  const sendNotification = useCallback((title: string, body: string) => {
-    if (notificationPermission === 'granted') {
-      new Notification(title, { body, icon: '/favicon.ico' });
-      playNotificationSound();
-    }
-  }, [notificationPermission, playNotificationSound]);
+  const sendNotification = useCallback(
+    (title: string, body: string, severity: 'CRITICAL' | 'WARNING' | 'REMINDER' = 'WARNING') => {
+      // Always attempt to play sound, even if system notifications are blocked
+      playAlertSound(severity);
+
+      if (notificationPermission === 'granted') {
+        new Notification(title, { body, icon: '/favicon.ico' });
+      }
+    },
+    [notificationPermission, playAlertSound]
+  );
 
   // Alert logic with sound alerts
   useEffect(() => {
@@ -354,55 +345,64 @@ const ClimateMonitor = () => {
     if (isEnvTrigger && isPhysioTrigger) {
       setAlertStatus("High Risk: Conditions and physiology indicate high sweat risk.");
       if (soundEnabled) {
-        sendNotification('Sweat Smart Alert', 'High sweat risk detected based on climate and body signals.');
+        sendNotification(
+          'Sweat Smart Alert',
+          'High sweat risk detected based on climate and body signals.',
+          'CRITICAL'
+        );
       }
     } else if (isEnvTrigger) {
       setAlertStatus("Moderate Risk: Climate conditions may trigger sweating.");
-      // Play sound alert for moderate risk too
       if (soundEnabled) {
-        playNotificationSound();
-        if (notificationPermission === 'granted') {
-          new Notification('Sweat Smart Alert', { 
-            body: 'Moderate sweat risk detected. Consider logging your episode.', 
-            icon: '/favicon.ico' 
-          });
-        }
+        sendNotification(
+          'Sweat Smart Alert',
+          'Moderate sweat risk detected. Consider logging your episode.',
+          'WARNING'
+        );
       }
     } else {
       setAlertStatus("Conditions Optimal: Low sweat risk detected.");
     }
-  }, [weatherData, physiologicalData, thresholds, sendNotification, playNotificationSound, notificationPermission, arePermissionsGranted]);
+  }, [weatherData, physiologicalData, thresholds, sendNotification, arePermissionsGranted]);
 
-  // Logging logic with persistent state
+  // Logging logic with fixed 4-hour schedule (00:00, 04:00, 08:00, ...)
   const updateNextLogTime = useCallback(() => {
-    const lastLog = logs.length > 0 ? logs[logs.length - 1].timestamp : 0;
-    const startTime = lastLog > 0 ? lastLog : Date.now();
-    const nextTime = startTime + LOG_INTERVAL;
+    const now = new Date();
+    const next = new Date(now);
+    next.setMinutes(0, 0, 0);
+
+    const stepHours = LOG_INTERVAL / (60 * 60 * 1000);
+
+    // Move forward in 4-hour blocks until we are strictly in the future
+    while (next.getTime() <= now.getTime()) {
+      next.setHours(next.getHours() + stepHours);
+    }
+
+    const nextTime = next.getTime();
     setNextLogTime(nextTime);
     localStorage.setItem('climateNextLogTime', nextTime.toString());
-  }, [logs]);
-
-  useEffect(() => {
-    // Load next log time from storage
-    const stored = localStorage.getItem('climateNextLogTime');
-    if (stored) {
-      setNextLogTime(parseInt(stored));
-    } else {
-      updateNextLogTime();
-    }
   }, []);
 
   useEffect(() => {
-    updateNextLogTime();
-  }, [logs, updateNextLogTime]);
+    const stored = localStorage.getItem('climateNextLogTime');
+    const storedTime = stored ? parseInt(stored, 10) : NaN;
+
+    if (storedTime && storedTime > Date.now()) {
+      setNextLogTime(storedTime);
+    } else {
+      updateNextLogTime();
+    }
+  }, [updateNextLogTime]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       if (nextLogTime && Date.now() >= nextLogTime && arePermissionsGranted) {
-        playNotificationSound();
+        // Professional reminder sound for compulsory logging
+        playAlertSound('REMINDER');
+
         if (notificationPermission === 'granted') {
-          new Notification('Time to Log', { 
-            body: 'Please record your sweat level for the last 4 hours.', 
+          new Notification('Time to Log', {
+            body: 'Please record your sweat level for the last 4 hours.',
             icon: '/favicon.ico',
             requireInteraction: true
           });
@@ -413,7 +413,7 @@ const ClimateMonitor = () => {
     }, LOG_CHECK_INTERVAL);
 
     return () => clearInterval(interval);
-  }, [nextLogTime, arePermissionsGranted, playNotificationSound, notificationPermission, updateNextLogTime]);
+  }, [nextLogTime, arePermissionsGranted, playAlertSound, notificationPermission, updateNextLogTime]);
 
   // Handlers
   const requestNotificationPermission = async () => {
