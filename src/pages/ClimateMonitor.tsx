@@ -145,8 +145,12 @@ const CurrentStatusCard: React.FC<{
     return "text-green-400";
   }, [alertStatus]);
 
+  const isAlertActive = alertStatus.includes("High Risk") || alertStatus.includes("Moderate Risk");
+
   return (
-    <div className="relative bg-gray-800/50 border border-gray-700 rounded-xl p-6 space-y-4">
+    <div className={`relative bg-gray-800/50 border rounded-xl p-6 space-y-4 ${
+      isAlertActive ? 'border-red-500 animate-pulse' : 'border-gray-700'
+    }`}>
       {(isFetching || weatherError) && (
         <div className="absolute inset-0 bg-gray-800/90 flex flex-col items-center justify-center rounded-xl z-10">
           {isFetching && <p className="text-white font-semibold animate-pulse">Fetching local weather...</p>}
@@ -207,6 +211,7 @@ const ClimateMonitor = () => {
   const [isLoggingModalOpen, setIsLoggingModalOpen] = useState(false);
   const [nextLogTime, setNextLogTime] = useState<number | null>(null);
   const [alertStatus, setAlertStatus] = useState("Complete setup to begin.");
+  const [previousAlertStatus, setPreviousAlertStatus] = useState<string>("");
 
   const arePermissionsGranted = locationPermission === 'granted' && notificationPermission === 'granted';
 
@@ -326,7 +331,7 @@ const ClimateMonitor = () => {
     [notificationPermission, playAlertSound]
   );
 
-  // Alert logic with sound alerts
+  // Alert logic with sound alerts - ONLY triggers when status CHANGES
   useEffect(() => {
     if (!arePermissionsGranted) {
       setAlertStatus("Complete setup to begin.");
@@ -342,33 +347,49 @@ const ClimateMonitor = () => {
                          weatherData.uvIndex > thresholds.uvIndex;
     const isPhysioTrigger = physiologicalData.eda > PHYSIOLOGICAL_EDA_THRESHOLD;
 
+    let newStatus = "";
     if (isEnvTrigger && isPhysioTrigger) {
-      setAlertStatus("High Risk: Conditions and physiology indicate high sweat risk.");
-      if (soundEnabled) {
-        sendNotification(
-          'Sweat Smart Alert',
-          'High sweat risk detected based on climate and body signals.',
-          'CRITICAL'
-        );
-      }
+      newStatus = "High Risk: Conditions and physiology indicate high sweat risk.";
     } else if (isEnvTrigger) {
-      setAlertStatus("Moderate Risk: Climate conditions may trigger sweating.");
-      if (soundEnabled) {
-        sendNotification(
-          'Sweat Smart Alert',
-          'Moderate sweat risk detected. Consider logging your episode.',
-          'WARNING'
-        );
-      }
+      newStatus = "Moderate Risk: Climate conditions may trigger sweating.";
     } else {
-      setAlertStatus("Conditions Optimal: Low sweat risk detected.");
+      newStatus = "Conditions Optimal: Low sweat risk detected.";
     }
-  }, [weatherData, physiologicalData, thresholds, sendNotification, arePermissionsGranted]);
+
+    // Only send notification if status CHANGED to High or Moderate Risk
+    if (newStatus !== previousAlertStatus) {
+      console.log(`🚨 Alert status changed: "${previousAlertStatus}" → "${newStatus}"`);
+      
+      setAlertStatus(newStatus);
+      setPreviousAlertStatus(newStatus);
+
+      if (soundEnabled) {
+        if (newStatus.includes("High Risk")) {
+          console.log('🔴 HIGH RISK ALERT - Playing critical sound');
+          sendNotification(
+            'Sweat Smart Alert',
+            'High sweat risk detected based on climate and body signals.',
+            'CRITICAL'
+          );
+        } else if (newStatus.includes("Moderate Risk")) {
+          console.log('🟡 MODERATE RISK ALERT - Playing warning sound');
+          sendNotification(
+            'Sweat Smart Alert',
+            'Moderate sweat risk detected. Consider logging your episode.',
+            'WARNING'
+          );
+        }
+      }
+    }
+  }, [weatherData, physiologicalData, thresholds, sendNotification, arePermissionsGranted, previousAlertStatus]);
 
   // Logging logic with fixed 4-hour schedule (00:00, 04:00, 08:00, 12:00, 16:00, 20:00)
   const updateNextLogTime = useCallback(() => {
     const now = new Date();
     const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    
+    console.log(`⏰ Calculating next log time. Current: ${currentHour}:${String(currentMinute).padStart(2, '0')}`);
     
     // Fixed 4-hour blocks
     const blocks = [0, 4, 8, 12, 16, 20];
@@ -386,6 +407,12 @@ const ClimateMonitor = () => {
     next.setHours(nextBlockHour, 0, 0, 0);
 
     const nextTime = next.getTime();
+    const timeUntil = Math.round((nextTime - now.getTime()) / (1000 * 60));
+    const hours = Math.floor(timeUntil / 60);
+    const minutes = timeUntil % 60;
+    
+    console.log(`⏰ Next log: ${nextBlockHour}:00 (in ${hours}h ${minutes}m)`);
+    
     setNextLogTime(nextTime);
     localStorage.setItem('climateNextLogTime', nextTime.toString());
   }, []);
@@ -404,6 +431,7 @@ const ClimateMonitor = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       if (nextLogTime && Date.now() >= nextLogTime && arePermissionsGranted) {
+        console.log('⏰ 4-HOUR LOG REMINDER - Time to log!');
         // Professional reminder sound for compulsory logging
         playAlertSound('REMINDER');
 
@@ -426,27 +454,62 @@ const ClimateMonitor = () => {
   const requestNotificationPermission = async () => {
     if (locationPermission !== 'granted') return;
     const permission = await Notification.requestPermission();
-    setNotificationPermission(permission === 'default' ? 'prompt' : permission);
+    const finalPermission = permission === 'default' ? 'prompt' : permission;
+    setNotificationPermission(finalPermission);
+    
+    // Test sound immediately after permission granted
+    if (finalPermission === 'granted') {
+      console.log('✅ Notification permission granted - playing test sound');
+      playAlertSound('REMINDER');
+      new Notification('Sweat Smart Alert Enabled!', {
+        body: 'You will now receive sound and notification alerts. 🔔',
+        icon: '/favicon.ico'
+      });
+    }
   };
 
   const handleRequestLocation = () => {
+    console.log('📍 Requesting location permission...');
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        console.log('✅ Location permission granted:', position.coords);
         setLocation(position.coords);
         setLocationPermission('granted');
-        // After location granted, request notification
+        // After location granted, automatically request notification
         if (notificationPermission === 'prompt') {
-          requestNotificationPermission();
+          setTimeout(() => requestNotificationPermission(), 500);
         }
       },
       (error) => {
-        console.error("Geolocation error:", error);
+        console.error("❌ Geolocation error:", error);
         if (error.code === error.PERMISSION_DENIED) {
           setLocationPermission('denied');
         }
       }
     );
   };
+
+  // Auto-request permissions on first user interaction
+  useEffect(() => {
+    const autoRequestPermissions = () => {
+      if (locationPermission === 'prompt' && !location) {
+        console.log('🚀 Auto-requesting permissions on user interaction...');
+        handleRequestLocation();
+      }
+    };
+
+    // Wait for first user interaction, then auto-request
+    const events = ['click', 'touchstart', 'keydown'];
+    events.forEach(event => {
+      document.addEventListener(event, autoRequestPermissions, { once: true });
+    });
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, autoRequestPermissions);
+      });
+    };
+  }, [locationPermission, location]);
 
   const handleThresholdChange = (key: keyof Thresholds, value: number) => {
     setThresholds(prev => ({ ...prev, [key]: value }));
@@ -575,12 +638,16 @@ const ClimateMonitor = () => {
               </div>
               <Button
                 onClick={() => {
+                  console.log('🧪 TEST ALERT button clicked');
                   playAlertSound('WARNING');
                   if (notificationPermission === 'granted') {
                     new Notification('Test Alert', {
                       body: 'Your alerts are working correctly! 🎉',
                       icon: '/favicon.ico'
                     });
+                    console.log('✅ Test notification sent');
+                  } else {
+                    console.log('❌ Notification permission not granted:', notificationPermission);
                   }
                 }}
                 className="bg-cyan-600 hover:bg-cyan-500 text-white"
