@@ -419,16 +419,18 @@ const ClimateMonitor = () => {
     const settings = localStorage.getItem('climateAppSettings');
     const soundEnabled = settings ? JSON.parse(settings).soundAlerts !== false : true;
 
-    // FIXED LOGIC: Risk based on scientific hyperhidrosis triggers (not user thresholds)
-    // High Risk: Extreme conditions that definitely trigger sweating
+    // Nighttime-aware risk model using scientific hyperhidrosis triggers
+    const isNight = weatherData.uvIndex === 0;
+
+    // High Risk: clearly dangerous combinations
     const isExtremeHeat = weatherData.temperature > 29;
-    const isExtremeUV = weatherData.uvIndex > 8;
-    const isExtremeHumidity = weatherData.humidity > 85;
+    const isExtremeUV = !isNight && weatherData.uvIndex > 8;
+    const isExtremeHumidity = !isNight && weatherData.humidity > 85;
     
-    // Moderate Risk: Elevated but not extreme conditions
+    // Moderate Risk: elevated but not extreme, only when it's effectively daytime
     const isModerateHeat = weatherData.temperature > 27 && weatherData.temperature <= 29;
-    const isModerateUV = weatherData.uvIndex > 6 && weatherData.uvIndex <= 8;
-    const isModerateHumidity = weatherData.humidity > 75 && weatherData.humidity <= 85;
+    const isModerateUV = !isNight && weatherData.uvIndex > 6 && weatherData.uvIndex <= 8;
+    const isModerateHumidity = !isNight && weatherData.humidity > 75 && weatherData.humidity <= 85;
 
     let newStatus = "";
     if (isExtremeHeat || isExtremeUV || isExtremeHumidity) {
