@@ -441,18 +441,26 @@ const ClimateMonitor = () => {
   }, [updateNextLogTime]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const interval = setInterval(async () => {
       if (nextLogTime && Date.now() >= nextLogTime && arePermissionsGranted) {
         console.log('⏰ 4-HOUR LOG REMINDER - Time to log!');
         // Professional reminder sound for compulsory logging
         playAlertSound('REMINDER');
 
         if (notificationPermission === 'granted') {
-          new Notification('Time to Log', {
-            body: 'Please record your sweat level for the last 4 hours.',
-            icon: '/favicon.ico',
-            requireInteraction: true
-          });
+          try {
+            if ('serviceWorker' in navigator) {
+              const registration = await navigator.serviceWorker.ready;
+              await registration.showNotification('Time to Log', {
+                body: 'Please record your sweat level for the last 4 hours.',
+                icon: '/favicon.ico',
+                badge: '/favicon.ico',
+                requireInteraction: true
+              });
+            }
+          } catch (error) {
+            console.error('4-hour notification error:', error);
+          }
         }
         setIsLoggingModalOpen(true);
         updateNextLogTime();
@@ -473,10 +481,18 @@ const ClimateMonitor = () => {
     if (finalPermission === 'granted') {
       console.log('✅ Notification permission granted - playing test sound');
       playAlertSound('REMINDER');
-      new Notification('Sweat Smart Alert Enabled!', {
-        body: 'You will now receive sound and notification alerts. 🔔',
-        icon: '/favicon.ico'
-      });
+      try {
+        if ('serviceWorker' in navigator) {
+          const registration = await navigator.serviceWorker.ready;
+          await registration.showNotification('Sweat Smart Alert Enabled!', {
+            body: 'You will now receive sound and notification alerts. 🔔',
+            icon: '/favicon.ico',
+            badge: '/favicon.ico'
+          });
+        }
+      } catch (error) {
+        console.error('Permission granted notification error:', error);
+      }
     }
   };
 
@@ -649,15 +665,23 @@ const ClimateMonitor = () => {
                 <p className="text-xs text-gray-400">Verify sound and notifications are working</p>
               </div>
               <Button
-                onClick={() => {
+                onClick={async () => {
                   console.log('🧪 TEST ALERT button clicked');
                   playAlertSound('WARNING');
                   if (notificationPermission === 'granted') {
-                    new Notification('Test Alert', {
-                      body: 'Your alerts are working correctly! 🎉',
-                      icon: '/favicon.ico'
-                    });
-                    console.log('✅ Test notification sent');
+                    try {
+                      if ('serviceWorker' in navigator) {
+                        const registration = await navigator.serviceWorker.ready;
+                        await registration.showNotification('Test Alert', {
+                          body: 'Your alerts are working correctly! 🎉',
+                          icon: '/favicon.ico',
+                          badge: '/favicon.ico'
+                        });
+                      }
+                      console.log('✅ Test notification sent');
+                    } catch (error) {
+                      console.error('Test notification error:', error);
+                    }
                   } else {
                     console.log('❌ Notification permission not granted:', notificationPermission);
                   }

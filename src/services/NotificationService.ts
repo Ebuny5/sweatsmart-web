@@ -98,20 +98,7 @@ class NotificationService {
         return true;
       }
 
-      // Fallback to regular notification for non-PWA
-      const notification = new Notification(title, {
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
-        requireInteraction: true,
-        ...options
-      });
-
-      notification.onclick = () => {
-        window.focus();
-        notification.close();
-      };
-
-      console.log('Notification shown successfully:', title);
+      console.log('PWA Notification shown successfully:', title);
       return true;
     } catch (error) {
       console.error('Error showing notification:', error);
