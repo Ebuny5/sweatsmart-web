@@ -54,10 +54,10 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated }) => {
             <>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                    <Avatar>
+                  <Button variant="ghost" className="relative h-12 w-12 rounded-full">
+                    <Avatar className="h-12 w-12">
                       <AvatarImage src="" alt={userName} />
-                      <AvatarFallback>{userInitials}</AvatarFallback>
+                      <AvatarFallback className="text-lg">{userInitials}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
