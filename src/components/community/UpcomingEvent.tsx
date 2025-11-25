@@ -8,6 +8,7 @@ interface UpcomingEventProps {
   day: string;
   title: string;
   description: string;
+  link?: string;
 }
 
 export const UpcomingEvent: React.FC<UpcomingEventProps> = ({
@@ -15,6 +16,7 @@ export const UpcomingEvent: React.FC<UpcomingEventProps> = ({
   day,
   title,
   description,
+  link,
 }) => {
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -27,7 +29,15 @@ export const UpcomingEvent: React.FC<UpcomingEventProps> = ({
           <h4 className="font-semibold text-foreground mb-1">{title}</h4>
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
-        <Button size="sm">Join</Button>
+        {link ? (
+          <Button size="sm" asChild>
+            <a href={link} target="_blank" rel="noopener noreferrer">
+              Join
+            </a>
+          </Button>
+        ) : (
+          <Button size="sm">Join</Button>
+        )}
       </CardContent>
     </Card>
   );

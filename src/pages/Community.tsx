@@ -46,12 +46,14 @@ const upcomingEvents = [
     day: '09',
     title: 'Monthly Support Group Meeting',
     description: 'Join us for our monthly virtual support group meeting.',
+    link: 'https://chat.whatsapp.com/BKgrDMOttm76Jva6fSZUMi?mode=ac_t',
   },
   {
     month: 'OCT',
     day: '15',
     title: 'Treatment Options Workshop',
     description: 'Learn about the latest treatment options with Dr. Smith.',
+    link: 'https://chat.whatsapp.com/BKgrDMOttm76Jva6fSZUMi?mode=ac_t',
   },
 ];
 
@@ -119,6 +121,30 @@ const Community: React.FC = () => {
                 />
                 <Button>Subscribe</Button>
               </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Feedback Section */}
+        <div className="space-y-4">
+          <h2 className="text-2xl font-semibold text-foreground">
+            Feedback
+          </h2>
+          <Card>
+            <CardContent className="p-8 text-center space-y-4">
+              <p className="text-lg font-medium text-foreground">Help Us Improve</p>
+              <p className="text-muted-foreground">
+                Your feedback is valuable to us. Please fill out this form to help us with growth and development of the SweatSmart app. Thank you!
+              </p>
+              <Button asChild className="mt-4">
+                <a 
+                  href="https://docs.google.com/forms/u/0/d/e/1FAIpQLSfHBkUOMxFhB03UyfpnrEQk5VlszVUFN2n-TqjRwJ1ehqSeTw/viewform?pli=1&authuser=0" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  Fill Feedback Form
+                </a>
+              </Button>
             </CardContent>
           </Card>
         </div>
