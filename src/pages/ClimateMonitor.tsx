@@ -685,18 +685,16 @@ const ClimateMonitor = () => {
 
         {/* Main Content */}
         <div className={`space-y-6 transition-opacity duration-500 ${arePermissionsGranted ? 'opacity-100' : 'opacity-40 blur-sm pointer-events-none'}`}>
-          {weatherData && (
-            <CurrentStatusCard 
-              weather={weatherData} 
-              physiological={physiologicalData} 
-              alertStatus={alertStatus}
-              isFetching={isFetchingWeather}
-              weatherError={weatherError}
-              edaFreshness={edaFreshness}
-              onRefreshWeather={handleRefreshWeather}
-              onQuickScan={handleQuickScan}
-            />
-          )}
+          <CurrentStatusCard 
+            weather={weatherData || { temperature: 0, humidity: 0, uvIndex: 0 }} 
+            physiological={physiologicalData} 
+            alertStatus={alertStatus}
+            isFetching={isFetchingWeather}
+            weatherError={weatherError}
+            edaFreshness={edaFreshness}
+            onRefreshWeather={handleRefreshWeather}
+            onQuickScan={handleQuickScan}
+          />
 
           <div className="space-y-4">
             {/* EDA Status Badge */}
