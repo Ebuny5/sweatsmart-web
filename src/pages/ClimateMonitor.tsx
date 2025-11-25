@@ -56,8 +56,9 @@ const RefreshIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 
 const PHYSIOLOGICAL_EDA_THRESHOLD = 5.0;
 const LOG_INTERVAL = 4 * 60 * 60 * 1000;
-const DATA_SIMULATION_INTERVAL = 5000;
+const WEATHER_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
 const LOG_CHECK_INTERVAL = 60000;
+const EDA_STALE_TIME = 5 * 60 * 1000; // 5 minutes
 
 type PermissionStatus = 'prompt' | 'granted' | 'denied';
 
@@ -138,7 +139,10 @@ const CurrentStatusCard: React.FC<{
   alertStatus: string;
   isFetching: boolean;
   weatherError: string | null;
-}> = ({ weather, physiological, alertStatus, isFetching, weatherError }) => {
+  edaFreshness: 'fresh' | 'stale' | 'estimated';
+  onRefreshWeather: () => void;
+  onQuickScan: () => void;
+}> = ({ weather, physiological, alertStatus, isFetching, weatherError, edaFreshness, onRefreshWeather, onQuickScan }) => {
   const statusColor = useMemo(() => {
     if (alertStatus.includes("High Risk")) return "text-red-400";
     if (alertStatus.includes("Moderate Risk")) return "text-yellow-400";
@@ -146,6 +150,10 @@ const CurrentStatusCard: React.FC<{
   }, [alertStatus]);
 
   const isAlertActive = alertStatus.includes("High Risk") || alertStatus.includes("Moderate Risk");
+
+  const edaBadgeColor = edaFreshness === 'fresh' ? 'bg-green-500/20 text-green-400' : 
+                        edaFreshness === 'stale' ? 'bg-yellow-500/20 text-yellow-400' : 
+                        'bg-blue-500/20 text-blue-400';
 
   return (
     <div className={`relative bg-gray-800/50 border rounded-xl p-6 space-y-4 ${
@@ -157,7 +165,17 @@ const CurrentStatusCard: React.FC<{
           {weatherError && <p className="text-red-400 font-semibold">{weatherError}</p>}
         </div>
       )}
-      <h3 className="text-xl font-bold text-cyan-300">Current Status</h3>
+      <div className="flex justify-between items-center">
+        <h3 className="text-xl font-bold text-cyan-300">Current Status</h3>
+        <button
+          onClick={onRefreshWeather}
+          disabled={isFetching}
+          className="p-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition disabled:opacity-50"
+          title="Refresh weather"
+        >
+          <RefreshIcon className={`w-5 h-5 text-cyan-400 ${isFetching ? 'animate-spin' : ''}`} />
+        </button>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-gray-900 p-4 rounded-lg text-center">
           <ThermometerIcon className="w-8 h-8 mx-auto text-red-400 mb-2" />
@@ -174,15 +192,27 @@ const CurrentStatusCard: React.FC<{
           <p className="text-2xl font-bold">{weather.uvIndex.toFixed(1)}</p>
           <p className="text-xs text-gray-400">UV Index</p>
         </div>
-        <div className="bg-gray-900 p-4 rounded-lg text-center">
+        <div className="bg-gray-900 p-4 rounded-lg text-center relative">
           <ZapIcon className="w-8 h-8 mx-auto text-purple-400 mb-2" />
           <p className="text-2xl font-bold">{physiological.eda.toFixed(1)} µS</p>
           <p className="text-xs text-gray-400">EDA</p>
+          <span className={`absolute top-2 right-2 text-[10px] px-2 py-0.5 rounded-full font-bold ${edaBadgeColor}`}>
+            {edaFreshness === 'fresh' ? '✓ Fresh' : edaFreshness === 'stale' ? '⚠ Stale' : '≈ Est.'}
+          </span>
         </div>
       </div>
       <div className={`bg-gray-900 p-4 rounded-lg text-center ${statusColor}`}>
         <p className="text-lg font-semibold">{alertStatus}</p>
       </div>
+      {isAlertActive && edaFreshness !== 'fresh' && (
+        <button
+          onClick={onQuickScan}
+          className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg transition flex items-center justify-center gap-2"
+        >
+          <ZapIcon className="w-5 h-5" />
+          Quick Palm Scan for Accurate EDA
+        </button>
+      )}
     </div>
   );
 };
@@ -195,8 +225,10 @@ const ClimateMonitor = () => {
 
   const [isFetchingWeather, setIsFetchingWeather] = useState(false);
   const [weatherError, setWeatherError] = useState<string | null>(null);
-  const [weatherData, setWeatherData] = useState<WeatherData>({ temperature: 20, humidity: 50, uvIndex: 3 });
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [physiologicalData, setPhysiologicalData] = useState<PhysiologicalData>({ eda: 2.5 });
+  const [edaTimestamp, setEdaTimestamp] = useState<number>(Date.now());
+  const [edaSource, setEdaSource] = useState<'palm-scanner' | 'estimated'>('estimated');
 
   const [thresholds, setThresholds] = useState<Thresholds>(() => {
     const saved = localStorage.getItem('sweatSmartThresholds');
@@ -237,12 +269,24 @@ const ClimateMonitor = () => {
     checkPermissions();
   }, [checkPermissions]);
 
+  // Load cached location on mount
+  useEffect(() => {
+    const cachedLocation = localStorage.getItem('cachedLocation');
+    if (cachedLocation) {
+      const coords = JSON.parse(cachedLocation);
+      setLocation(coords);
+      console.log('✅ Loaded cached location:', coords);
+    }
+  }, []);
+
   // Load EDA from Palm Scanner on mount
   useEffect(() => {
     const storedEDA = edaManager.getEDA();
     if (storedEDA && edaManager.isFresh()) {
       setPhysiologicalData({ eda: storedEDA.value });
-      console.log('Loaded fresh EDA from Palm Scanner:', storedEDA);
+      setEdaTimestamp(new Date(storedEDA.timestamp).getTime());
+      setEdaSource('palm-scanner');
+      console.log('✅ Loaded fresh EDA from Palm Scanner:', storedEDA);
     }
   }, []);
 
@@ -270,46 +314,68 @@ const ClimateMonitor = () => {
         setWeatherData(data.data);
       } else {
         setWeatherData(data);
+        setWeatherError(null);
+        console.log('✅ Real weather data fetched:', data);
       }
     } catch (error) {
-      console.error("Error fetching weather:", error);
-      setWeatherError("Could not fetch weather. Using simulated data.");
-      // Fallback to simulation
-      setWeatherData({ temperature: 22, humidity: 60, uvIndex: 4 });
+      console.error("❌ Error fetching weather:", error);
+      setWeatherError("Could not fetch weather data.");
     } finally {
       setIsFetchingWeather(false);
     }
   }, []);
 
+  // Initial weather fetch
   useEffect(() => {
     if (location) {
       fetchWeatherData(location);
     }
   }, [location, fetchWeatherData]);
 
-  // Simulate data when not connected
+  // Periodic weather refresh every 5 minutes
   useEffect(() => {
-    if (arePermissionsGranted && !weatherError) return;
+    if (!location || !arePermissionsGranted) return;
 
     const interval = setInterval(() => {
-      setWeatherData(prev => ({
-        temperature: prev.temperature + (Math.random() - 0.5) * 0.5,
-        humidity: Math.max(0, Math.min(100, prev.humidity + (Math.random() - 0.5) * 2)),
-        uvIndex: Math.max(0, Math.min(11, prev.uvIndex + (Math.random() - 0.5) * 0.2)),
-      }));
-    }, DATA_SIMULATION_INTERVAL);
-    return () => clearInterval(interval);
-  }, [arePermissionsGranted, weatherError]);
+      console.log('🔄 Auto-refreshing weather data...');
+      fetchWeatherData(location);
+    }, WEATHER_REFRESH_INTERVAL);
 
-  // Physiological simulation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPhysiologicalData(prev => ({
-        eda: Math.max(0, prev.eda + (Math.random() - 0.45) * 0.5)
-      }));
-    }, DATA_SIMULATION_INTERVAL);
     return () => clearInterval(interval);
-  }, []);
+  }, [location, arePermissionsGranted, fetchWeatherData]);
+
+  // Manual refresh handler
+  const handleRefreshWeather = useCallback(() => {
+    if (location) {
+      console.log('🔄 Manual weather refresh triggered');
+      fetchWeatherData(location);
+    }
+  }, [location, fetchWeatherData]);
+
+  // Auto-estimate EDA based on climate conditions
+  useEffect(() => {
+    if (!weatherData || edaSource === 'palm-scanner') return;
+
+    const interval = setInterval(() => {
+      const temp = weatherData.temperature;
+      const humidity = weatherData.humidity;
+      
+      // Estimate EDA based on climate severity
+      let estimatedEDA = 2.0; // baseline
+      
+      if (temp > 30) estimatedEDA += (temp - 30) * 0.3;
+      if (humidity > 70) estimatedEDA += (humidity - 70) * 0.05;
+      if (weatherData.uvIndex > 7) estimatedEDA += (weatherData.uvIndex - 7) * 0.2;
+      
+      // Add some variation
+      estimatedEDA += (Math.random() - 0.5) * 0.3;
+      estimatedEDA = Math.max(1.5, Math.min(8, estimatedEDA));
+      
+      setPhysiologicalData({ eda: estimatedEDA });
+    }, 10000); // Update every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [weatherData, edaSource]);
 
   // Sound using shared SoundManager
   const playAlertSound = useCallback(
@@ -343,32 +409,37 @@ const ClimateMonitor = () => {
     [notificationPermission, playAlertSound]
   );
 
-  // Alert logic with sound alerts - ONLY triggers when status CHANGES
+  // Enhanced alert logic - Climate-focused with extreme conditions
   useEffect(() => {
-    if (!arePermissionsGranted) {
+    if (!arePermissionsGranted || !weatherData) {
       setAlertStatus("Complete setup to begin.");
       return;
     }
 
-    // Check if sound alerts are enabled
     const settings = localStorage.getItem('climateAppSettings');
     const soundEnabled = settings ? JSON.parse(settings).soundAlerts !== false : true;
 
-    const isEnvTrigger = weatherData.temperature > thresholds.temperature || 
-                         weatherData.humidity > thresholds.humidity || 
-                         weatherData.uvIndex > thresholds.uvIndex;
-    const isPhysioTrigger = physiologicalData.eda > PHYSIOLOGICAL_EDA_THRESHOLD;
+    // NEW LOGIC: High Risk based on extreme climate alone
+    const isExtremeHeat = weatherData.temperature > thresholds.temperature + 5;
+    const isExtremeUV = weatherData.uvIndex > 8;
+    const isExtremeHumidity = weatherData.humidity > 85;
+    
+    const isModerateClimate = (
+      weatherData.temperature > thresholds.temperature ||
+      weatherData.humidity > thresholds.humidity ||
+      weatherData.uvIndex > thresholds.uvIndex
+    );
 
     let newStatus = "";
-    if (isEnvTrigger && isPhysioTrigger) {
-      newStatus = "High Risk: Conditions and physiology indicate high sweat risk.";
-    } else if (isEnvTrigger) {
+    if (isExtremeHeat || isExtremeUV || isExtremeHumidity) {
+      newStatus = "High Risk: Extreme climate conditions detected!";
+    } else if (isModerateClimate) {
       newStatus = "Moderate Risk: Climate conditions may trigger sweating.";
     } else {
       newStatus = "Conditions Optimal: Low sweat risk detected.";
     }
 
-    // Only send notification if status CHANGED to High or Moderate Risk
+    // Only send notification if status CHANGED
     if (newStatus !== previousAlertStatus) {
       console.log(`🚨 Alert status changed: "${previousAlertStatus}" → "${newStatus}"`);
       
@@ -380,7 +451,7 @@ const ClimateMonitor = () => {
           console.log('🔴 HIGH RISK ALERT - Playing critical sound');
           sendNotification(
             'Sweat Smart Alert',
-            'High sweat risk detected based on climate and body signals.',
+            'Extreme climate conditions detected! High sweat risk.',
             'CRITICAL'
           );
         } else if (newStatus.includes("Moderate Risk")) {
@@ -393,7 +464,7 @@ const ClimateMonitor = () => {
         }
       }
     }
-  }, [weatherData, physiologicalData, thresholds, sendNotification, arePermissionsGranted, previousAlertStatus]);
+  }, [weatherData, thresholds, sendNotification, arePermissionsGranted, previousAlertStatus]);
 
   // Logging logic with fixed 4-hour schedule (00:00, 04:00, 08:00, 12:00, 16:00, 20:00)
   const updateNextLogTime = useCallback(() => {
@@ -548,12 +619,31 @@ const ClimateMonitor = () => {
       id: new Date().toISOString(),
       timestamp: Date.now(),
       hdssLevel: level,
-      weather: weatherData,
+      weather: weatherData || { temperature: 0, humidity: 0, uvIndex: 0 },
       physiologicalData: physiologicalData
     };
     setLogs(prev => [...prev, newLog]);
     setIsLoggingModalOpen(false);
   };
+
+  const handleTestAlert = () => {
+    sendNotification(
+      'Test Alert',
+      'This is a test notification with sound.',
+      'WARNING'
+    );
+  };
+
+  const handleQuickScan = () => {
+    navigate('/palm-scanner');
+  };
+
+  // Calculate EDA freshness
+  const edaFreshness = useMemo<'fresh' | 'stale' | 'estimated'>(() => {
+    if (edaSource === 'estimated') return 'estimated';
+    const age = Date.now() - edaTimestamp;
+    return age < EDA_STALE_TIME ? 'fresh' : 'stale';
+  }, [edaTimestamp, edaSource]);
 
   return (
     <AppLayout>
@@ -595,13 +685,18 @@ const ClimateMonitor = () => {
 
         {/* Main Content */}
         <div className={`space-y-6 transition-opacity duration-500 ${arePermissionsGranted ? 'opacity-100' : 'opacity-40 blur-sm pointer-events-none'}`}>
-          <CurrentStatusCard
-            weather={weatherData}
-            physiological={physiologicalData}
-            alertStatus={alertStatus}
-            isFetching={isFetchingWeather}
-            weatherError={weatherError}
-          />
+          {weatherData && (
+            <CurrentStatusCard 
+              weather={weatherData} 
+              physiological={physiologicalData} 
+              alertStatus={alertStatus}
+              isFetching={isFetchingWeather}
+              weatherError={weatherError}
+              edaFreshness={edaFreshness}
+              onRefreshWeather={handleRefreshWeather}
+              onQuickScan={handleQuickScan}
+            />
+          )}
 
           <div className="space-y-4">
             {/* EDA Status Badge */}
