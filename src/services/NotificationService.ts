@@ -85,6 +85,20 @@ class NotificationService {
     }
 
     try {
+      // Try to use Service Worker API first (for PWA)
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.showNotification(title, {
+          icon: '/favicon.ico',
+          badge: '/favicon.ico',
+          requireInteraction: true,
+          ...options
+        });
+        console.log('PWA Notification shown successfully:', title);
+        return true;
+      }
+
+      // Fallback to regular notification for non-PWA
       const notification = new Notification(title, {
         icon: '/favicon.ico',
         badge: '/favicon.ico',
