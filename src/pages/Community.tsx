@@ -1,12 +1,105 @@
 import React from 'react';
+import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { CommunityPost } from '@/components/community/CommunityPost';
+import { UpcomingEvent } from '@/components/community/UpcomingEvent';
+import { CommunityBanner } from '@/components/community/CommunityBanner';
+import AppLayout from '@/components/layout/AppLayout';
+
+const communityPosts = [
+  {
+    type: 'success' as const,
+    tag: 'Success Story',
+    author: 'Sarah M.',
+    date: 'Sep 30',
+    title: 'Finally found relief!',
+    body: 'After trying different treatments for years, I finally found a combination that works for me. Clinical strength antiperspirant at night plus iontophoresis...',
+    likes: 12,
+    comments: 5,
+  },
+  {
+    type: 'question' as const,
+    tag: 'Question',
+    author: 'Anonymous',
+    date: 'Oct 1',
+    title: "Going to a job interview tomorrow and I'm so nervous about shaking hands.",
+    body: 'Any quick tips for managing palm sweating in the moment?',
+    likes: 8,
+    comments: 15,
+  },
+  {
+    type: 'tip' as const,
+    tag: 'Tip',
+    author: 'Mike T.',
+    date: 'Sep 29',
+    title: 'Great tip for social situations',
+    body: "I always carry a small towel or handkerchief in my pocket. It's been a game-changer for confidence in social situations. Also, keeping my hands slightly...",
+    likes: 15,
+    comments: 8,
+  },
+];
+
+const upcomingEvents = [
+  {
+    month: 'OCT',
+    day: '09',
+    title: 'Monthly Support Group Meeting',
+    description: 'Join us for our monthly virtual support group meeting.',
+  },
+  {
+    month: 'OCT',
+    day: '15',
+    title: 'Treatment Options Workshop',
+    description: 'Learn about the latest treatment options with Dr. Smith.',
+  },
+];
 
 const Community: React.FC = () => {
   return (
-    <div>
-      <h1>Welcome to the Community!</h1>
-      <p>This is where you can connect with other members, share ideas, and find support.</p>
-      {/* Add more community-specific content here */}
-    </div>
+    <AppLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Community</h1>
+            <p className="text-muted-foreground mt-1">
+              Connect, share, and support each other
+            </p>
+          </div>
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Share Story
+          </Button>
+        </div>
+
+        {/* Banner */}
+        <CommunityBanner />
+
+        {/* Community Posts */}
+        <div className="space-y-4">
+          <h2 className="text-2xl font-semibold text-foreground">
+            Community Posts
+          </h2>
+          <div className="space-y-4">
+            {communityPosts.map((post, index) => (
+              <CommunityPost key={index} {...post} />
+            ))}
+          </div>
+        </div>
+
+        {/* Upcoming Events */}
+        <div className="space-y-4">
+          <h2 className="text-2xl font-semibold text-foreground">
+            Upcoming Events
+          </h2>
+          <div className="space-y-4">
+            {upcomingEvents.map((event, index) => (
+              <UpcomingEvent key={index} {...event} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </AppLayout>
   );
 };
 
