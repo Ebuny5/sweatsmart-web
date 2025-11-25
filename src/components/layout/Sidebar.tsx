@@ -23,7 +23,7 @@ const menuItems = [
   { path: '/hyper-ai', icon: Sparkles, label: 'Hyper AI' },
   { path: '/climate', icon: CloudRainWind, label: 'Climate Alert' },
   { path: '/community', icon: Users, label: 'Community' },
-  { path: '/contact', icon: MessageSquare, label: 'Feedback' },
+  { path: 'https://docs.google.com/forms/u/0/d/e/1FAIpQLSfHBkUOMxFhB03UyfpnrEQk5VlszVUFN2n-TqjRwJ1ehqSeTw/viewform?pli=1&authuser=0', icon: MessageSquare, label: 'Feedback', external: true },
   { path: '/settings', icon: Settings, label: 'Settings' },
 ];
 
@@ -38,21 +38,37 @@ const Sidebar: React.FC = () => {
         <ul className="space-y-2">
           {menuItems.map((item) => (
             <li key={item.path}>
-              <NavLink
-                to={item.path}
-                className={({ isActive }) =>
-                  cn(
+              {item.external ? (
+                <a
+                  href={item.path}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
                     'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors',
                     'hover:bg-accent hover:text-accent-foreground',
-                    isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground'
-                  )
-                }
-              >
-                <item.icon className="h-5 w-5" />
-                <span>{item.label}</span>
-              </NavLink>
+                    'text-muted-foreground'
+                  )}
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span>{item.label}</span>
+                </a>
+              ) : (
+                <NavLink
+                  to={item.path}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors',
+                      'hover:bg-accent hover:text-accent-foreground',
+                      isActive
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground'
+                    )
+                  }
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span>{item.label}</span>
+                </NavLink>
+              )}
             </li>
           ))}
         </ul>
