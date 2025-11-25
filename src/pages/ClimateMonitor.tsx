@@ -320,12 +320,24 @@ const ClimateMonitor = () => {
   );
 
   const sendNotification = useCallback(
-    (title: string, body: string, severity: 'CRITICAL' | 'WARNING' | 'REMINDER' = 'WARNING') => {
+    async (title: string, body: string, severity: 'CRITICAL' | 'WARNING' | 'REMINDER' = 'WARNING') => {
       // Always attempt to play sound, even if system notifications are blocked
       playAlertSound(severity);
 
       if (notificationPermission === 'granted') {
-        new Notification(title, { body, icon: '/favicon.ico' });
+        try {
+          // Use Service Worker API for PWA compatibility
+          if ('serviceWorker' in navigator) {
+            const registration = await navigator.serviceWorker.ready;
+            await registration.showNotification(title, { 
+              body, 
+              icon: '/favicon.ico',
+              badge: '/favicon.ico'
+            });
+          }
+        } catch (error) {
+          console.error('Notification error:', error);
+        }
       }
     },
     [notificationPermission, playAlertSound]
