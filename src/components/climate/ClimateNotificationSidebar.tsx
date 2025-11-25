@@ -503,9 +503,16 @@ const ClimateNotificationSidebar: React.FC<ClimateNotificationSidebarProps> = ({
         oscillator.stop(ctx.currentTime + 0.5);
     }, []);
 
-    const sendNotification = useCallback((title: string, body: string) => {
+    const sendNotification = useCallback(async (title: string, body: string) => {
         if (notificationPermission === 'granted') {
-            new Notification(title, { body, icon: '/favicon.ico' });
+            try {
+                if ('serviceWorker' in navigator) {
+                    const registration = await navigator.serviceWorker.ready;
+                    await registration.showNotification(title, { body, icon: '/favicon.ico', badge: '/favicon.ico' });
+                }
+            } catch (error) {
+                console.error('Notification error:', error);
+            }
             playNotificationSound();
         }
     }, [notificationPermission, playNotificationSound]);
