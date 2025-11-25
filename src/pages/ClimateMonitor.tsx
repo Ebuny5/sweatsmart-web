@@ -419,21 +419,21 @@ const ClimateMonitor = () => {
     const settings = localStorage.getItem('climateAppSettings');
     const soundEnabled = settings ? JSON.parse(settings).soundAlerts !== false : true;
 
-    // NEW LOGIC: High Risk based on extreme climate alone
-    const isExtremeHeat = weatherData.temperature > thresholds.temperature + 5;
+    // FIXED LOGIC: Risk based on scientific hyperhidrosis triggers (not user thresholds)
+    // High Risk: Extreme conditions that definitely trigger sweating
+    const isExtremeHeat = weatherData.temperature > 29;
     const isExtremeUV = weatherData.uvIndex > 8;
     const isExtremeHumidity = weatherData.humidity > 85;
     
-    const isModerateClimate = (
-      weatherData.temperature > thresholds.temperature ||
-      weatherData.humidity > thresholds.humidity ||
-      weatherData.uvIndex > thresholds.uvIndex
-    );
+    // Moderate Risk: Elevated but not extreme conditions
+    const isModerateHeat = weatherData.temperature > 27 && weatherData.temperature <= 29;
+    const isModerateUV = weatherData.uvIndex > 6 && weatherData.uvIndex <= 8;
+    const isModerateHumidity = weatherData.humidity > 75 && weatherData.humidity <= 85;
 
     let newStatus = "";
     if (isExtremeHeat || isExtremeUV || isExtremeHumidity) {
       newStatus = "High Risk: Extreme climate conditions detected!";
-    } else if (isModerateClimate) {
+    } else if (isModerateHeat || isModerateUV || isModerateHumidity) {
       newStatus = "Moderate Risk: Climate conditions may trigger sweating.";
     } else {
       newStatus = "Conditions Optimal: Low sweat risk detected.";
