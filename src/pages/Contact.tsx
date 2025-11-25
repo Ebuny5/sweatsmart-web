@@ -112,6 +112,24 @@ const Contact = () => {
             SweatSmart is a tracking and management tool and should not replace professional medical advice.
           </p>
         </div>
+
+        <Card className="border-border/50 shadow-sm">
+          <CardContent className="p-8 text-center space-y-4">
+            <h2 className="text-2xl font-bold text-foreground">We Want to Hear From You</h2>
+            <p className="text-professional-gray">
+              Your feedback is valuable to us. Please fill out this form to help us with the growth and development of the SweatSmart app. Thank you!
+            </p>
+            <Button asChild className="mt-4">
+              <a 
+                href="https://docs.google.com/forms/u/0/d/e/1FAIpQLSfHBkUOMxFhB03UyfpnrEQk5VlszVUFN2n-TqjRwJ1ehqSeTw/viewform?pli=1&authuser=0" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                Fill Feedback Form
+              </a>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </AppLayout>
   );
