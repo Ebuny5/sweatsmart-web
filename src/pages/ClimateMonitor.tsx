@@ -232,7 +232,7 @@ const ClimateMonitor = () => {
 
   const [thresholds, setThresholds] = useState<Thresholds>(() => {
     const saved = localStorage.getItem('sweatSmartThresholds');
-    return saved ? JSON.parse(saved) : { temperature: 24, humidity: 70, uvIndex: 6 };
+    return saved ? JSON.parse(saved) : { temperature: 27, humidity: 75, uvIndex: 6 };
   });
 
   const [logs, setLogs] = useState<LogEntry[]>(() => {
