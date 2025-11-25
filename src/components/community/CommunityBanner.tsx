@@ -18,7 +18,15 @@ export const CommunityBanner: React.FC = () => {
             Connect with others, share experiences, and get real-time support.
           </p>
         </div>
-        <Button>Join Now</Button>
+        <Button asChild>
+          <a 
+            href="https://chat.whatsapp.com/BKgrDMOttm76Jva6fSZUMi?mode=ac_t" 
+            target="_blank" 
+            rel="noopener noreferrer"
+          >
+            Join Now
+          </a>
+        </Button>
       </CardContent>
     </Card>
   );

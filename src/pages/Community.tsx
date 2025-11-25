@@ -1,6 +1,7 @@
 import React from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { CommunityPost } from '@/components/community/CommunityPost';
 import { UpcomingEvent } from '@/components/community/UpcomingEvent';
 import { CommunityBanner } from '@/components/community/CommunityBanner';
@@ -87,16 +88,39 @@ const Community: React.FC = () => {
           </div>
         </div>
 
-        {/* Upcoming Events */}
+        {/* Past Events */}
         <div className="space-y-4">
           <h2 className="text-2xl font-semibold text-foreground">
-            Upcoming Events
+            Past Events
           </h2>
           <div className="space-y-4">
             {upcomingEvents.map((event, index) => (
               <UpcomingEvent key={index} {...event} />
             ))}
           </div>
+        </div>
+
+        {/* Upcoming Events - Stay Tuned */}
+        <div className="space-y-4">
+          <h2 className="text-2xl font-semibold text-foreground">
+            Upcoming Events
+          </h2>
+          <Card>
+            <CardContent className="p-8 text-center space-y-4">
+              <p className="text-lg font-medium text-foreground">Stay Tuned</p>
+              <p className="text-muted-foreground">
+                Subscribe to our newsletter to get updated about current technology in Hyperhidrosis, upcoming events, and foundation updates.
+              </p>
+              <div className="flex gap-2 max-w-md mx-auto mt-4">
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  className="flex-1 px-4 py-2 rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <Button>Subscribe</Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </AppLayout>
