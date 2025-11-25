@@ -38,18 +38,31 @@ serve(async (req) => {
     const weatherData = await weatherResponse.json();
     console.log('Weather data received:', JSON.stringify(weatherData));
 
-    // Fetch UV index data (separate API call)
-    const uvResponse = await fetch(
-      `https://api.openweathermap.org/data/2.5/uvi?lat=${latitude}&lon=${longitude}&appid=${OPENWEATHER_API_KEY}`
-    );
+    // Get current time and sunrise/sunset times
+    const currentTime = Math.floor(Date.now() / 1000); // Unix timestamp in seconds
+    const sunrise = weatherData.sys?.sunrise || 0;
+    const sunset = weatherData.sys?.sunset || 0;
+    const isDaytime = currentTime >= sunrise && currentTime <= sunset;
 
+    console.log(`Time check - Current: ${currentTime}, Sunrise: ${sunrise}, Sunset: ${sunset}, Is Daytime: ${isDaytime}`);
+
+    // Fetch UV index data (separate API call) - but only use if it's daytime
     let uvIndex = 0;
-    if (uvResponse.ok) {
-      const uvData = await uvResponse.json();
-      uvIndex = uvData.value || 0;
-      console.log('UV data received:', JSON.stringify(uvData));
+    
+    if (isDaytime) {
+      const uvResponse = await fetch(
+        `https://api.openweathermap.org/data/2.5/uvi?lat=${latitude}&lon=${longitude}&appid=${OPENWEATHER_API_KEY}`
+      );
+
+      if (uvResponse.ok) {
+        const uvData = await uvResponse.json();
+        uvIndex = uvData.value || 0;
+        console.log('UV data received:', JSON.stringify(uvData));
+      } else {
+        console.warn('Failed to fetch UV data, using default value 0');
+      }
     } else {
-      console.warn('Failed to fetch UV data, using default value 0');
+      console.log('Nighttime detected - UV set to 0');
     }
 
     // Extract and return the data
