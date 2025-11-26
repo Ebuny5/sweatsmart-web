@@ -191,7 +191,7 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
       <CardContent>
         <div className="h-[300px] w-full">
           {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={280}>
               <BarChart
                 data={chartData}
                 layout="vertical"
