@@ -159,9 +159,9 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               </TabsList>
               
               <TabsContent value="weekly">
-                <div className="h-[300px] w-full">
+                <div style={{ width: '100%', height: '280px' }}>
                   {processedWeeklyData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={280}>
+                    <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={processedWeeklyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
                         <XAxis 
@@ -199,9 +199,9 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               </TabsContent>
               
               <TabsContent value="monthly">
-                <div className="h-[300px] w-full">
+                <div style={{ width: '100%', height: '280px' }}>
                   {processedMonthlyData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={280}>
+                    <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={processedMonthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
                         <XAxis 
@@ -248,9 +248,9 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               </TabsList>
               
               <TabsContent value="weekly">
-                <div className="h-[300px] w-full">
+                <div style={{ width: '100%', height: '280px' }}>
                   {processedWeeklyData.length >= 2 ? (
-                    <ResponsiveContainer width="100%" height={280}>
+                    <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={processedWeeklyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
                         <XAxis 
@@ -292,9 +292,9 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               </TabsContent>
               
               <TabsContent value="monthly">
-                <div className="h-[300px] w-full">
+                <div style={{ width: '100%', height: '280px' }}>
                   {processedMonthlyData.length >= 2 ? (
-                    <ResponsiveContainer width="100%" height={280}>
+                    <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={processedMonthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
                         <XAxis 
