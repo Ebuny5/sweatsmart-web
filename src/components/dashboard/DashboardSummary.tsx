@@ -159,7 +159,7 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               </TabsList>
               
               <TabsContent value="weekly">
-                <div style={{ width: '100%', height: '280px' }}>
+                <div className="h-[300px] w-full">
                   {processedWeeklyData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={processedWeeklyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
@@ -199,7 +199,7 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               </TabsContent>
               
               <TabsContent value="monthly">
-                <div style={{ width: '100%', height: '280px' }}>
+                <div className="h-[300px] w-full">
                   {processedMonthlyData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={processedMonthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
@@ -248,7 +248,7 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               </TabsList>
               
               <TabsContent value="weekly">
-                <div style={{ width: '100%', height: '280px' }}>
+                <div className="h-[300px] w-full">
                   {processedWeeklyData.length >= 2 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={processedWeeklyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
@@ -292,7 +292,7 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               </TabsContent>
               
               <TabsContent value="monthly">
-                <div style={{ width: '100%', height: '280px' }}>
+                <div className="h-[300px] w-full">
                   {processedMonthlyData.length >= 2 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={processedMonthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
