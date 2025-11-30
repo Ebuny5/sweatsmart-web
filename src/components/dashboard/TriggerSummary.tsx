@@ -114,7 +114,7 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
     : processedTriggers;
 
   const chartData = useMemo(() => {
-    const result = displayTriggers.map((triggerFreq) => {
+    return displayTriggers.map((triggerFreq) => {
       const triggerLabel =
         triggerFreq?.trigger?.label ||
         triggerFreq?.trigger?.value ||
@@ -136,17 +136,7 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
         percentage: triggerFreq.percentage,
       };
     });
-    
-    console.log('🔍 TriggerSummary chart data:', {
-      processedTriggersCount: processedTriggers.length,
-      displayTriggersCount: displayTriggers.length,
-      chartDataLength: result.length,
-      allEpisodesCount: allEpisodes.length,
-      chartData: result,
-    });
-    
-    return result;
-  }, [displayTriggers, processedTriggers, allEpisodes]);
+  }, [displayTriggers]);
 
   const cardTitle = isInsightState ? "Your Top Triggers" : "Trigger Summary";
 
