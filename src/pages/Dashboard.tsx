@@ -6,6 +6,7 @@ import RecentEpisodes from "@/components/dashboard/RecentEpisodes";
 import TriggerSummary from "@/components/dashboard/TriggerSummary";
 import BodyAreaHeatmap from "@/components/dashboard/BodyAreaHeatmap";
 import QuickActions from "@/components/dashboard/QuickActions";
+import DebugPanel from "@/components/dashboard/DebugPanel";
 import { TriggerFrequency, BodyAreaFrequency, BodyArea } from "@/types";
 import { useEpisodes } from "@/hooks/useEpisodes";
 
@@ -133,6 +134,8 @@ const Dashboard = () => {
         </div>
         
         <QuickActions />
+        
+        <DebugPanel episodes={dashboardData.allEpisodes} />
         
         <div className="grid gap-6 md:grid-cols-3">
           <DashboardSummary 
