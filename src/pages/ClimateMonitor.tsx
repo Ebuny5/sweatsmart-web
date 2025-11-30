@@ -617,26 +617,22 @@ const ClimateMonitor = () => {
     );
   };
 
-  // Auto-request permissions on first user interaction
+  // Auto-request permissions - improved version
   useEffect(() => {
     const autoRequestPermissions = () => {
+      // Only auto-request if we're in 'prompt' state (not denied or granted)
       if (locationPermission === 'prompt' && !location) {
-        console.log('🚀 Auto-requesting permissions on user interaction...');
+        console.log('🚀 Auto-requesting permissions...');
         handleRequestLocation();
       }
     };
 
-    // Wait for first user interaction, then auto-request
-    const events = ['click', 'touchstart', 'keydown'];
-    events.forEach(event => {
-      document.addEventListener(event, autoRequestPermissions, { once: true });
-    });
+    // Delay auto-request slightly to ensure page is fully loaded
+    const timer = setTimeout(() => {
+      autoRequestPermissions();
+    }, 1000);
 
-    return () => {
-      events.forEach(event => {
-        document.removeEventListener(event, autoRequestPermissions);
-      });
-    };
+    return () => clearTimeout(timer);
   }, [locationPermission, location]);
 
   const handleThresholdChange = (key: keyof Thresholds, value: number) => {
