@@ -35,8 +35,12 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   const [isPending, startTransition] = useTransition();
   
   const { processedWeeklyData, processedMonthlyData } = useMemo(() => {
-    const safeEpisodes = normalizeEpisodeDates(allEpisodes || []);
-    console.log('[dashboard] allEpisodes', allEpisodes.length, '-> safeEpisodes', safeEpisodes.length);
+    const needEpisodes = weeklyData.length === 0 || monthlyData.length === 0;
+    const safeEpisodes = needEpisodes ? normalizeEpisodeDates(allEpisodes || []) : [];
+    
+    if (needEpisodes) {
+      console.log('[dashboard] allEpisodes', allEpisodes.length, '-> safeEpisodes', safeEpisodes.length);
+    }
 
     // Generate chart data from episodes if provided data is empty
     const generateWeeklyData = () => {
@@ -139,19 +143,6 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     };
   }, [weeklyData, monthlyData, allEpisodes]);
 
-  const maxWeeklyEpisodes =
-    processedWeeklyData.reduce(
-      (max, point: any) => Math.max(max, point.episodeCount || 0),
-      0
-    ) || 1;
-
-  const maxMonthlyEpisodes =
-    processedMonthlyData.reduce(
-      (max, point: any) => Math.max(max, point.episodeCount || 0),
-      0
-    ) || 1;
-
-  const severityScaleMax = 5;
 
   const EmptyState = ({ message }: { message: string }) => (
     <div className="flex items-center justify-center h-full text-muted-foreground text-center p-8">

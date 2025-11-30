@@ -20,7 +20,7 @@ serve(async (req) => {
       });
     }
 
-    const { messages, userId } = await req.json();
+    const { messages } = await req.json();
     
     // Verify the user is authenticated by checking the JWT
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
