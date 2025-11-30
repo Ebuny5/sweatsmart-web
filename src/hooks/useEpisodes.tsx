@@ -78,7 +78,7 @@ export const useEpisodes = () => {
 
           return {
             id: ep.id,
-            date: ep.date,
+            date: episodeDate,
             datetime: parsedDate,
             severity: ep.severity as SeverityLevel,
             severityLevel: ep.severity as SeverityLevel,
@@ -93,8 +93,11 @@ export const useEpisodes = () => {
           };
         } catch (error) {
           console.error('Error processing episode:', ep.id, error);
-          // Use created_at as fallback for datetime
-          const fallbackDate = ep.created_at ? new Date(ep.created_at) : new Date();
+          // Use created_at as fallback for datetime, but ensure we always end up with a valid Date
+          let fallbackDate = ep.created_at ? new Date(ep.created_at) : new Date();
+          if (isNaN(fallbackDate.getTime())) {
+            fallbackDate = new Date();
+          }
           
           return {
             id: ep.id,
