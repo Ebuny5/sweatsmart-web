@@ -179,10 +179,6 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               
               <TabsContent value="weekly">
                 <div className="h-[300px] w-full">
-                  {/* Debug info */}
-                  <div className="text-xs text-muted-foreground mb-2">
-                    Debug: {processedWeeklyData.length} weekly data points | {allEpisodes.length} total episodes
-                  </div>
                   {processedWeeklyData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={processedWeeklyData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
