@@ -15,6 +15,8 @@ import {
 import { TrendData, ProcessedEpisode } from "@/types";
 import { format, startOfWeek, startOfMonth } from "date-fns";
 import { useMemo } from "react";
+import { normalizeEpisodeDates } from "@/lib/episodes";
+import React from "react";
 
 interface DashboardSummaryProps {
   weeklyData: TrendData[];
@@ -29,17 +31,19 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
 }) => {
   
   const { processedWeeklyData, processedMonthlyData } = useMemo(() => {
+    const safeEpisodes = normalizeEpisodeDates(allEpisodes || []);
+    console.log('[dashboard] allEpisodes', allEpisodes.length, '-> safeEpisodes', safeEpisodes.length);
+
     // Generate chart data from episodes if provided data is empty
     const generateWeeklyData = () => {
       if (weeklyData.length > 0) return weeklyData;
-      if (allEpisodes.length === 0) return [];
+      if (safeEpisodes.length === 0) return [];
 
       const episodesByWeek = new Map();
       
-      allEpisodes.forEach(episode => {
+      safeEpisodes.forEach(episode => {
         try {
-          // Validate datetime is a valid Date object
-          if (!episode.datetime || !(episode.datetime instanceof Date) || isNaN(episode.datetime.getTime())) {
+          if (!episode.datetime) {
             console.warn('Skipping episode with invalid datetime:', episode.id);
             return;
           }
@@ -77,14 +81,13 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
 
     const generateMonthlyData = () => {
       if (monthlyData.length > 0) return monthlyData;
-      if (allEpisodes.length === 0) return [];
+      if (safeEpisodes.length === 0) return [];
 
       const episodesByMonth = new Map();
       
-      allEpisodes.forEach(episode => {
+      safeEpisodes.forEach(episode => {
         try {
-          // Validate datetime is a valid Date object
-          if (!episode.datetime || !(episode.datetime instanceof Date) || isNaN(episode.datetime.getTime())) {
+          if (!episode.datetime) {
             console.warn('Skipping episode with invalid datetime:', episode.id);
             return;
           }
@@ -123,6 +126,9 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     const weekly = generateWeeklyData();
     const monthly = generateMonthlyData();
 
+    console.log('[dashboard] processedWeeklyData sample:', weekly.slice(0, 3));
+    console.log('[dashboard] processedMonthlyData sample:', monthly.slice(0, 3));
+
     return {
       processedWeeklyData: weekly,
       processedMonthlyData: monthly
@@ -153,7 +159,7 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   );
 
   return (
-    <Card className="col-span-3">
+    <Card className="col-span-3 min-w-0">
       <CardHeader>
         <CardTitle>Trend Overview</CardTitle>
         {allEpisodes.length > 0 && (
@@ -332,4 +338,4 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   );
 };
 
-export default DashboardSummary;
+export default React.memo(DashboardSummary);

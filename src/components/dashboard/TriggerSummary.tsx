@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import { useMemo } from "react";
 import { Eye, BarChart3 } from "lucide-react";
+import React from "react";
 
 interface TriggerSummaryProps {
   triggers: TriggerFrequency[];
@@ -171,8 +172,10 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
   const maxTriggerCount =
     chartData.reduce((max, item) => Math.max(max, item.count || 0), 0) || 1;
   
+  console.log('[trigger-summary] chartData:', chartData);
+
   return (
-    <Card className="col-span-3 lg:col-span-2">
+    <Card className="col-span-3 lg:col-span-2 min-w-0">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -242,7 +245,11 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
                   name="Episodes" 
                   radius={[0, 4, 4, 0]}
                   cursor="pointer"
-                  onClick={(data) => handleTriggerClick(data.fullName)}
+                  onClick={(e: any) => {
+                    const payload = e?.payload ?? e?.payload?.payload ?? e;
+                    const targetName = payload?.fullName ?? payload?.name ?? payload?.fullLabel ?? null;
+                    handleTriggerClick(targetName);
+                  }}
                 >
                   <LabelList 
                     dataKey="count" 
@@ -302,4 +309,4 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
   );
 };
 
-export default TriggerSummary;
+export default React.memo(TriggerSummary);
