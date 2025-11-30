@@ -36,7 +36,9 @@ export const UpcomingEvent: React.FC<UpcomingEventProps> = ({
             </a>
           </Button>
         ) : (
-          <Button size="sm">Join</Button>
+          <Button size="sm" disabled title="Link coming soon">
+            Join
+          </Button>
         )}
       </CardContent>
     </Card>
