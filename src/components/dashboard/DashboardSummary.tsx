@@ -141,6 +141,20 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     };
   }, [weeklyData, monthlyData, allEpisodes]);
 
+  const maxWeeklyEpisodes =
+    processedWeeklyData.reduce(
+      (max, point: any) => Math.max(max, point.episodeCount || 0),
+      0
+    ) || 1;
+
+  const maxMonthlyEpisodes =
+    processedMonthlyData.reduce(
+      (max, point: any) => Math.max(max, point.episodeCount || 0),
+      0
+    ) || 1;
+
+  const severityScaleMax = 5;
+
   const EmptyState = ({ message }: { message: string }) => (
     <div className="flex items-center justify-center h-full text-muted-foreground text-center p-8">
       <div className="space-y-2">
@@ -177,37 +191,32 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               <TabsContent value="weekly">
                 <div className="h-[300px] w-full">
                   {processedWeeklyData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={processedWeeklyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                        <XAxis 
-                          dataKey="date" 
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                        />
-                        <YAxis 
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                        />
-                        <Tooltip 
-                          formatter={(value: any) => [value, "Episodes"]}
-                          labelFormatter={(label) => `Week of ${label}`}
-                          contentStyle={{
-                            backgroundColor: 'hsl(var(--background))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '6px'
-                          }}
-                        />
-                        <Bar
-                          dataKey="episodeCount"
-                          fill="hsl(var(--primary))"
-                          name="Episodes"
-                          radius={[4, 4, 0, 0]}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <div className="flex h-full items-end gap-4">
+                      {processedWeeklyData.map((point: any) => {
+                        const height =
+                          ((point.episodeCount || 0) / maxWeeklyEpisodes) * 100;
+
+                        return (
+                          <div
+                            key={point.timestamp || point.date}
+                            className="flex-1 flex flex-col items-center gap-2"
+                          >
+                            <div className="flex-1 flex items-end w-full rounded-t-lg bg-muted/60 overflow-hidden">
+                              <div
+                                className="w-full rounded-t-lg bg-primary transition-all"
+                                style={{ height: `${Math.max(height, 8)}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {point.date}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {point.episodeCount} episodes
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   ) : (
                     <EmptyState message="No weekly data available yet" />
                   )}
@@ -217,37 +226,32 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               <TabsContent value="monthly">
                 <div className="h-[300px] w-full">
                   {processedMonthlyData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={processedMonthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                        <XAxis 
-                          dataKey="date" 
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                        />
-                        <YAxis 
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                        />
-                        <Tooltip 
-                          formatter={(value: any) => [value, "Episodes"]}
-                          labelFormatter={(label) => `Month of ${label}`}
-                          contentStyle={{
-                            backgroundColor: 'hsl(var(--background))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '6px'
-                          }}
-                        />
-                        <Bar
-                          dataKey="episodeCount"
-                          fill="hsl(var(--primary))"
-                          name="Episodes"
-                          radius={[4, 4, 0, 0]}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <div className="flex h-full items-end gap-4">
+                      {processedMonthlyData.map((point: any) => {
+                        const height =
+                          ((point.episodeCount || 0) / maxMonthlyEpisodes) * 100;
+
+                        return (
+                          <div
+                            key={point.timestamp || point.date}
+                            className="flex-1 flex flex-col items-center gap-2"
+                          >
+                            <div className="flex-1 flex items-end w-full rounded-t-lg bg-muted/60 overflow-hidden">
+                              <div
+                                className="w-full rounded-t-lg bg-primary transition-all"
+                                style={{ height: `${Math.max(height, 8)}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {point.date}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {point.episodeCount} episodes
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   ) : (
                     <EmptyState message="No monthly data available yet" />
                   )}
@@ -266,41 +270,32 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               <TabsContent value="weekly">
                 <div className="h-[300px] w-full">
                   {processedWeeklyData.length >= 2 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={processedWeeklyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                        <XAxis 
-                          dataKey="date" 
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                        />
-                        <YAxis 
-                          domain={[1, 5]} 
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                        />
-                        <Tooltip 
-                          formatter={(value: any) => [Number(value).toFixed(1), "Average Severity"]}
-                          labelFormatter={(label) => `Week of ${label}`}
-                          contentStyle={{
-                            backgroundColor: 'hsl(var(--background))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '6px'
-                          }}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="averageSeverity"
-                          stroke="hsl(var(--primary))"
-                          strokeWidth={3}
-                          dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 4 }}
-                          activeDot={{ r: 6, stroke: "hsl(var(--primary))", strokeWidth: 2 }}
-                          name="Average Severity"
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
+                    <div className="flex h-full items-end gap-4">
+                      {processedWeeklyData.map((point: any) => {
+                        const height =
+                          ((point.averageSeverity || 0) / severityScaleMax) * 100;
+
+                        return (
+                          <div
+                            key={point.timestamp || point.date}
+                            className="flex-1 flex flex-col items-center gap-2"
+                          >
+                            <div className="flex-1 flex items-end w-full rounded-t-lg bg-muted/60 overflow-hidden">
+                              <div
+                                className="w-full rounded-t-lg bg-primary/80 transition-all"
+                                style={{ height: `${Math.max(height, 8)}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {point.date}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              Avg. severity {Number(point.averageSeverity || 0).toFixed(1)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   ) : (
                     <EmptyState message="Need at least 2 weeks of data to show severity trends" />
                   )}
@@ -310,41 +305,32 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               <TabsContent value="monthly">
                 <div className="h-[300px] w-full">
                   {processedMonthlyData.length >= 2 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={processedMonthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                        <XAxis 
-                          dataKey="date" 
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                        />
-                        <YAxis 
-                          domain={[1, 5]} 
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                        />
-                        <Tooltip 
-                          formatter={(value: any) => [Number(value).toFixed(1), "Average Severity"]}
-                          labelFormatter={(label) => `Month of ${label}`}
-                          contentStyle={{
-                            backgroundColor: 'hsl(var(--background))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '6px'
-                          }}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="averageSeverity"
-                          stroke="hsl(var(--primary))"
-                          strokeWidth={3}
-                          dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 4 }}
-                          activeDot={{ r: 6, stroke: "hsl(var(--primary))", strokeWidth: 2 }}
-                          name="Average Severity"
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
+                    <div className="flex h-full items-end gap-4">
+                      {processedMonthlyData.map((point: any) => {
+                        const height =
+                          ((point.averageSeverity || 0) / severityScaleMax) * 100;
+
+                        return (
+                          <div
+                            key={point.timestamp || point.date}
+                            className="flex-1 flex flex-col items-center gap-2"
+                          >
+                            <div className="flex-1 flex items-end w-full rounded-t-lg bg-muted/60 overflow-hidden">
+                              <div
+                                className="w-full rounded-t-lg bg-primary/80 transition-all"
+                                style={{ height: `${Math.max(height, 8)}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {point.date}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              Avg. severity {Number(point.averageSeverity || 0).toFixed(1)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   ) : (
                     <EmptyState message="Need at least 2 months of data to show severity trends" />
                   )}
