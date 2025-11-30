@@ -22,7 +22,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.register-push-subscription]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-scheduled-reminder]
 verify_jwt = false

@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Clock, Calendar, BarChart2, CloudSun } from "lucide-react";
+import { Plus, Clock, Calendar, BarChart2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const QuickActions = () => {

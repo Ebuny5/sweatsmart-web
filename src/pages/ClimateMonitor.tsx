@@ -231,13 +231,21 @@ const ClimateMonitor = () => {
   const [edaSource, setEdaSource] = useState<'palm-scanner' | 'estimated'>('estimated');
 
   const [thresholds, setThresholds] = useState<Thresholds>(() => {
-    const saved = localStorage.getItem('sweatSmartThresholds');
-    return saved ? JSON.parse(saved) : { temperature: 27, humidity: 75, uvIndex: 6 };
+    try {
+      const saved = localStorage.getItem('sweatSmartThresholds');
+      return saved ? JSON.parse(saved) : { temperature: 27, humidity: 75, uvIndex: 6 };
+    } catch {
+      return { temperature: 27, humidity: 75, uvIndex: 6 };
+    }
   });
 
   const [logs, setLogs] = useState<LogEntry[]>(() => {
-    const saved = localStorage.getItem('sweatSmartLogs');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('sweatSmartLogs');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
 
   const [isLoggingModalOpen, setIsLoggingModalOpen] = useState(false);
