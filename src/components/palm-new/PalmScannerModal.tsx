@@ -15,6 +15,7 @@ const PalmScannerModal: React.FC<PalmScannerProps> = ({ onCapture, onClose }) =>
 
   useEffect(() => {
     let mediaStream: MediaStream | null = null;
+    let isMounted = true;
 
     const startCamera = async () => {
       // Prioritize the back camera ('environment') for palm scanning
@@ -25,6 +26,10 @@ const PalmScannerModal: React.FC<PalmScannerProps> = ({ onCapture, onClose }) =>
 
       try {
         mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+        if (!isMounted) {
+          mediaStream.getTracks().forEach(track => track.stop());
+          return;
+        }
         setStream(mediaStream);
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream;
@@ -35,13 +40,20 @@ const PalmScannerModal: React.FC<PalmScannerProps> = ({ onCapture, onClose }) =>
         try {
           constraints.video = { facingMode: 'user' };
           mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+          if (!isMounted) {
+            mediaStream.getTracks().forEach(track => track.stop());
+            return;
+          }
           setStream(mediaStream);
           if (videoRef.current) {
             videoRef.current.srcObject = mediaStream;
           }
         } catch (fallbackErr) {
-            console.error("Error accessing any camera:", fallbackErr);
-            setError("Could not access camera. Please check permissions and ensure a camera is available.");
+          if (!isMounted) {
+            return;
+          }
+          console.error("Error accessing any camera:", fallbackErr);
+          setError("Could not access camera. Please check permissions and ensure a camera is available.");
         }
       }
     };
@@ -50,6 +62,7 @@ const PalmScannerModal: React.FC<PalmScannerProps> = ({ onCapture, onClose }) =>
 
     // Cleanup function to stop the stream when the component unmounts
     return () => {
+      isMounted = false;
       mediaStream?.getTracks().forEach(track => track.stop());
     };
   }, []); // Empty dependency array ensures this effect runs only once on mount
@@ -141,7 +154,7 @@ const PalmScannerModal: React.FC<PalmScannerProps> = ({ onCapture, onClose }) =>
           </button>
           <button
             onClick={handleCapture}
-            disabled={!!error || !stream}
+            disabled={!stream}
             className="col-span-1 py-3 px-4 font-bold rounded-lg bg-sky-600 text-white hover:bg-sky-500 disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors"
             aria-label="Capture palm image"
           >
