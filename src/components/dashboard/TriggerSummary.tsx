@@ -178,6 +178,9 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
     // TODO: Implement navigation to filtered episodes view
   };
   
+  const maxTriggerCount =
+    chartData.reduce((max, item) => Math.max(max, item.count || 0), 0) || 1;
+  
   return (
     <Card className="col-span-3 lg:col-span-2">
       <CardHeader>
