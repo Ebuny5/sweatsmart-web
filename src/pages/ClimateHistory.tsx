@@ -30,9 +30,14 @@ export default function ClimateHistory() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem('sweatSmartLogs');
-    if (saved) {
-      setLogs(JSON.parse(saved));
+    try {
+      const saved = localStorage.getItem('sweatSmartLogs');
+      if (saved) {
+        setLogs(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('Failed to parse saved logs:', error);
+      setLogs([]);
     }
   }, []);
 
@@ -116,7 +121,7 @@ export default function ClimateHistory() {
             <div className="text-sm text-muted-foreground">
               Total Logs: <span className="font-bold text-foreground">{logs.length}</span>
             </div>
-            {logs.sort((a, b) => b.timestamp - a.timestamp).map((log) => (
+            {[...logs].sort((a, b) => b.timestamp - a.timestamp).map((log) => (
               <Card key={log.id} className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div>
