@@ -38,6 +38,12 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
       
       allEpisodes.forEach(episode => {
         try {
+          // Validate datetime is a valid Date object
+          if (!episode.datetime || !(episode.datetime instanceof Date) || isNaN(episode.datetime.getTime())) {
+            console.warn('Skipping episode with invalid datetime:', episode.id);
+            return;
+          }
+          
           const weekStart = startOfWeek(episode.datetime);
           const weekKey = weekStart.getTime().toString();
           
@@ -53,7 +59,7 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
           weekData.episodes.push(episode);
           weekData.severities.push(episode.severityLevel);
         } catch (error) {
-          console.error('Error processing episode for weekly data:', error);
+          console.error('Error processing episode for weekly data:', episode.id, error);
         }
       });
 
@@ -77,6 +83,12 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
       
       allEpisodes.forEach(episode => {
         try {
+          // Validate datetime is a valid Date object
+          if (!episode.datetime || !(episode.datetime instanceof Date) || isNaN(episode.datetime.getTime())) {
+            console.warn('Skipping episode with invalid datetime:', episode.id);
+            return;
+          }
+          
           const monthStart = startOfMonth(episode.datetime);
           const monthKey = monthStart.getTime().toString();
           
@@ -92,7 +104,7 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
           monthData.episodes.push(episode);
           monthData.severities.push(episode.severityLevel);
         } catch (error) {
-          console.error('Error processing episode for monthly data:', error);
+          console.error('Error processing episode for monthly data:', episode.id, error);
         }
       });
 
