@@ -131,8 +131,8 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
       monthlyPoints: monthly.length,
       sampleWeekly: weekly[0],
       sampleMonthly: monthly[0],
-      weeklyData: weekly,
-      monthlyData: monthly,
+      allWeeklyData: weekly,
+      allMonthlyData: monthly,
     });
 
     return {
