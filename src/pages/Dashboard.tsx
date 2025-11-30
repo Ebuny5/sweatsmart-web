@@ -13,7 +13,11 @@ const Dashboard = () => {
   const { episodes: allEpisodes, loading: isLoading, error, refetch } = useEpisodes();
   
   const dashboardData = useMemo(() => {
-    console.log('Processing dashboard data for', allEpisodes.length, 'episodes');
+    console.log('🔍 Dashboard processing started:', {
+      episodeCount: allEpisodes.length,
+      firstEpisode: allEpisodes[0],
+      sampleEpisodes: allEpisodes.slice(0, 3),
+    });
     
     const recentEpisodes = allEpisodes.slice(0, 5);
     

@@ -123,12 +123,16 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     const weekly = generateWeeklyData();
     const monthly = generateMonthlyData();
 
-    console.log('DashboardSummary chart data', {
+    console.log('🔍 DashboardSummary chart data generation:', {
       episodeCount: allEpisodes.length,
+      weeklyDataProvided: weeklyData.length,
+      monthlyDataProvided: monthlyData.length,
       weeklyPoints: weekly.length,
       monthlyPoints: monthly.length,
       sampleWeekly: weekly[0],
       sampleMonthly: monthly[0],
+      weeklyData: weekly,
+      monthlyData: monthly,
     });
 
     return {

@@ -114,6 +114,13 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
     : processedTriggers;
 
   const chartData = useMemo(() => {
+    console.log('🔍 TriggerSummary chart data:', {
+      processedTriggersCount: processedTriggers.length,
+      displayTriggersCount: displayTriggers.length,
+      allEpisodesCount: allEpisodes.length,
+      displayTriggers: displayTriggers,
+    });
+    
     return displayTriggers.map((triggerFreq) => {
       const triggerLabel =
         triggerFreq?.trigger?.label ||
