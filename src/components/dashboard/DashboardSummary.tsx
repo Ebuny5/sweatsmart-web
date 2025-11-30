@@ -14,7 +14,7 @@ import {
 } from "recharts";
 import { TrendData, ProcessedEpisode } from "@/types";
 import { format, startOfWeek, startOfMonth } from "date-fns";
-import { useMemo } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { normalizeEpisodeDates } from "@/lib/episodes";
 import React from "react";
 
@@ -29,6 +29,10 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   monthlyData,
   allEpisodes = [],
 }) => {
+  const [mainTab, setMainTab] = useState("frequency");
+  const [freqPeriod, setFreqPeriod] = useState("weekly");
+  const [sevPeriod, setSevPeriod] = useState("weekly");
+  const [isPending, startTransition] = useTransition();
   
   const { processedWeeklyData, processedMonthlyData } = useMemo(() => {
     const safeEpisodes = normalizeEpisodeDates(allEpisodes || []);
@@ -169,14 +173,14 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         )}
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="frequency" className="w-full">
+        <Tabs value={mainTab} onValueChange={(v) => startTransition(() => setMainTab(v))} className="w-full">
           <TabsList className="mb-4 w-full">
             <TabsTrigger value="frequency" className="flex-1">Episode Frequency</TabsTrigger>
             <TabsTrigger value="severity" className="flex-1">Severity Trends</TabsTrigger>
           </TabsList>
           
           <TabsContent value="frequency">
-            <Tabs defaultValue="weekly" className="w-full">
+            <Tabs value={freqPeriod} onValueChange={(v) => startTransition(() => setFreqPeriod(v))} className="w-full">
               <TabsList className="mb-4 w-full">
                 <TabsTrigger value="weekly" className="flex-1">Weekly</TabsTrigger>
                 <TabsTrigger value="monthly" className="flex-1">Monthly</TabsTrigger>
@@ -255,7 +259,7 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
           </TabsContent>
           
           <TabsContent value="severity">
-            <Tabs defaultValue="weekly" className="w-full">
+            <Tabs value={sevPeriod} onValueChange={(v) => startTransition(() => setSevPeriod(v))} className="w-full">
               <TabsList className="mb-4 w-full">
                 <TabsTrigger value="weekly" className="flex-1">Weekly</TabsTrigger>
                 <TabsTrigger value="monthly" className="flex-1">Monthly</TabsTrigger>
