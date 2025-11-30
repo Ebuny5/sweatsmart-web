@@ -47,7 +47,7 @@ const PermissionsWizard: React.FC<{
                             Enable Notifications
                         </button>
                     )}
-                    {locationStatus === 'denied' && <span className="text-sm font-bold text-red-400">Blocked</span>}
+                    {notificationStatus === 'denied' && <span className="text-sm font-bold text-red-400">Blocked</span>}
                 </div>
             </div>
 

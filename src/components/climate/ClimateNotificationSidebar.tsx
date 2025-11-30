@@ -567,14 +567,19 @@ const ClimateNotificationSidebar: React.FC<ClimateNotificationSidebarProps> = ({
     useEffect(() => {
         updateNextLogTime();
         const interval = setInterval(() => {
-            if (nextLogTime && Date.now() >= nextLogTime && arePermissionsGranted) {
-                sendNotification('Time to Log', 'Please record your sweat level for the last 4 hours.');
+            // Always check if it's time to log, regardless of permissions
+            if (nextLogTime && Date.now() >= nextLogTime && !isLoggingModalOpen) {
+                // Only send browser notification if permissions are granted
+                if (arePermissionsGranted) {
+                    sendNotification('Time to Log', 'Please record your sweat level for the last 4 hours.');
+                }
+                // Always show the modal - logging doesn't require location permission
                 setIsLoggingModalOpen(true);
             }
         }, LOG_CHECK_INTERVAL);
         
         return () => clearInterval(interval);
-    }, [logs, nextLogTime, sendNotification, updateNextLogTime, arePermissionsGranted]);
+    }, [logs, nextLogTime, sendNotification, updateNextLogTime, arePermissionsGranted, isLoggingModalOpen]);
 
     // --- Handlers ---
     

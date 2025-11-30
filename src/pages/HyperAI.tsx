@@ -12,6 +12,8 @@ interface Message {
   content: string;
 }
 
+import { supabase } from '@/integrations/supabase/client';
+
 const HyperAI = () => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
@@ -42,67 +44,61 @@ const HyperAI = () => {
     setIsLoading(true);
 
     try {
-      const CHAT_URL = `https://ujbcolxawpzfjkjviwqw.supabase.co/functions/v1/hyper-ai-chat`;
-      
-      const response = await fetch(CHAT_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqYmNvbHhhd3B6ZmpranZpd3F3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIzNzY3NjksImV4cCI6MjA2Nzk1Mjc2OX0._wX5hpCparJdq7qzM4hv-PhHr_nfGPHaT2NkazBiPBE`
-        },
-        body: JSON.stringify({ 
+      const { data, error } = await supabase.functions.invoke('hyper-ai-chat', {
+        body: { 
           messages: [...messages, userMessage],
           userId: user?.id 
-        }),
+        }
       });
 
-      if (!response.ok || !response.body) {
-        throw new Error('Failed to get response');
-      }
+      if (error) throw error;
+      
+      // Handle streaming response
+      if (data) {
+        const reader = data.getReader();
+        const decoder = new TextDecoder();
+        let assistantContent = '';
+        let textBuffer = '';
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let assistantContent = '';
-      let textBuffer = '';
+        // Add empty assistant message that we'll update
+        setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
-      // Add empty assistant message that we'll update
-      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+          textBuffer += decoder.decode(value, { stream: true });
 
-        textBuffer += decoder.decode(value, { stream: true });
+          let newlineIndex: number;
+          while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
+            let line = textBuffer.slice(0, newlineIndex);
+            textBuffer = textBuffer.slice(newlineIndex + 1);
 
-        let newlineIndex: number;
-        while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
-          let line = textBuffer.slice(0, newlineIndex);
-          textBuffer = textBuffer.slice(newlineIndex + 1);
+            if (line.endsWith('\r')) line = line.slice(0, -1);
+            if (line.startsWith(':') || line.trim() === '') continue;
+            if (!line.startsWith('data: ')) continue;
 
-          if (line.endsWith('\r')) line = line.slice(0, -1);
-          if (line.startsWith(':') || line.trim() === '') continue;
-          if (!line.startsWith('data: ')) continue;
+            const jsonStr = line.slice(6).trim();
+            if (jsonStr === '[DONE]') break;
 
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === '[DONE]') break;
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-            if (content) {
-              assistantContent += content;
-              setMessages(prev => {
-                const updated = [...prev];
-                updated[updated.length - 1] = { 
-                  role: 'assistant', 
-                  content: assistantContent 
-                };
-                return updated;
-              });
+            try {
+              const parsed = JSON.parse(jsonStr);
+              const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+              if (content) {
+                assistantContent += content;
+                setMessages(prev => {
+                  const updated = [...prev];
+                  updated[updated.length - 1] = { 
+                    role: 'assistant', 
+                    content: assistantContent 
+                  };
+                  return updated;
+                });
+              }
+            } catch {
+              textBuffer = line + '\n' + textBuffer;
+              break;
             }
-          } catch {
-            textBuffer = line + '\n' + textBuffer;
-            break;
           }
         }
       }
@@ -111,7 +107,14 @@ const HyperAI = () => {
     } catch (error) {
       console.error('Chat error:', error);
       toast.error('Failed to send message. Please try again.');
-      setMessages(prev => prev.slice(0, -1)); // Remove the user message
+      setMessages(prev => {
+        // Remove both the user message and potentially empty assistant message
+        const lastMsg = prev[prev.length - 1];
+        if (lastMsg?.role === 'assistant' && lastMsg.content === '') {
+          return prev.slice(0, -2);
+        }
+        return prev.slice(0, -1);
+      });
       setIsLoading(false);
     }
   };
