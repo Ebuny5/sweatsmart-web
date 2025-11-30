@@ -6,7 +6,7 @@ import RecentEpisodes from "@/components/dashboard/RecentEpisodes";
 import TriggerSummary from "@/components/dashboard/TriggerSummary";
 import BodyAreaHeatmap from "@/components/dashboard/BodyAreaHeatmap";
 import QuickActions from "@/components/dashboard/QuickActions";
-import DebugPanel from "@/components/dashboard/DebugPanel";
+
 import { TriggerFrequency, BodyAreaFrequency, BodyArea } from "@/types";
 import { useEpisodes } from "@/hooks/useEpisodes";
 
@@ -14,12 +14,6 @@ const Dashboard = () => {
   const { episodes: allEpisodes, loading: isLoading, error, refetch } = useEpisodes();
   
   const dashboardData = useMemo(() => {
-    console.log('🔍 Dashboard processing started:', {
-      episodeCount: allEpisodes.length,
-      firstEpisode: allEpisodes[0],
-      sampleEpisodes: allEpisodes.slice(0, 3),
-    });
-    
     const recentEpisodes = allEpisodes.slice(0, 5);
     
     const triggerCounts = new Map<string, { count: number; severities: number[] }>();
@@ -135,7 +129,7 @@ const Dashboard = () => {
         
         <QuickActions />
         
-        <DebugPanel episodes={dashboardData.allEpisodes} />
+        {/* DebugPanel removed from user view */}
         
         <div className="grid gap-6 md:grid-cols-3">
           <DashboardSummary 
