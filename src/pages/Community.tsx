@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,6 +6,9 @@ import { CommunityPost } from '@/components/community/CommunityPost';
 import { UpcomingEvent } from '@/components/community/UpcomingEvent';
 import { CommunityBanner } from '@/components/community/CommunityBanner';
 import AppLayout from '@/components/layout/AppLayout';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 const communityPosts = [
   {
@@ -58,6 +61,47 @@ const upcomingEvents = [
 ];
 
 const Community: React.FC = () => {
+  const { user } = useAuth();
+  const [email, setEmail] = useState('');
+  const [isSubscribing, setIsSubscribing] = useState(false);
+
+  const handleSubscribe = async () => {
+    if (!email || !email.includes('@')) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    setIsSubscribing(true);
+    try {
+      const { error } = await supabase
+        .from('newsletter_subscriptions')
+        .insert([
+          {
+            email: email.toLowerCase(),
+            user_id: user?.id || null,
+            source: 'community_page',
+            status: 'active'
+          }
+        ]);
+
+      if (error) {
+        if (error.code === '23505') { // Unique constraint violation
+          toast.info('You are already subscribed to our newsletter!');
+        } else {
+          throw error;
+        }
+      } else {
+        toast.success('Successfully subscribed! Check your email for updates.');
+        setEmail('');
+      }
+    } catch (error) {
+      console.error('Subscription error:', error);
+      toast.error('Failed to subscribe. Please try again.');
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -117,9 +161,15 @@ const Community: React.FC = () => {
                 <input
                   type="email"
                   placeholder="Enter your email"
-                  className="flex-1 px-4 py-2 rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSubscribe()}
+                  disabled={isSubscribing}
+                  className="flex-1 px-4 py-2 rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
                 />
-                <Button>Subscribe</Button>
+                <Button onClick={handleSubscribe} disabled={isSubscribing}>
+                  {isSubscribing ? 'Subscribing...' : 'Subscribe'}
+                </Button>
               </div>
             </CardContent>
           </Card>
