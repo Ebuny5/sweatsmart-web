@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProcessedEpisode } from "@/types";
 import { Bug } from "lucide-react";
+import { startOfWeek, format } from "date-fns";
 
 interface DebugPanelProps {
   episodes: ProcessedEpisode[];
@@ -15,6 +16,21 @@ const DebugPanel = ({ episodes }: DebugPanelProps) => {
   const invalidEpisodes = episodes.filter(ep => 
     !ep.datetime || !(ep.datetime instanceof Date) || isNaN(ep.datetime.getTime())
   );
+
+  // Generate sample chart data to debug
+  const episodesByWeek = new Map();
+  validEpisodes.forEach(episode => {
+    const weekStart = startOfWeek(episode.datetime);
+    const weekKey = format(weekStart, 'MMM dd');
+    if (!episodesByWeek.has(weekKey)) {
+      episodesByWeek.set(weekKey, 0);
+    }
+    episodesByWeek.set(weekKey, episodesByWeek.get(weekKey) + 1);
+  });
+  
+  const chartDataSample = Array.from(episodesByWeek.entries())
+    .map(([week, count]) => ({ week, count }))
+    .slice(0, 3);
 
   return (
     <Card className="col-span-3 border-orange-200 bg-orange-50/50">
@@ -47,16 +63,32 @@ const DebugPanel = ({ episodes }: DebugPanelProps) => {
         </div>
 
         {validEpisodes.length > 0 && (
-          <div>
-            <p className="text-sm font-medium text-muted-foreground mb-2">Sample Valid Episodes:</p>
-            <div className="space-y-1 text-xs font-mono bg-white p-3 rounded border">
-              {validEpisodes.slice(0, 3).map(ep => (
-                <div key={ep.id} className="text-green-700">
-                  {ep.id.slice(0, 8)}... | Date: {ep.datetime.toLocaleDateString()} | Severity: {ep.severityLevel}
-                </div>
-              ))}
+          <>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-2">Sample Valid Episodes:</p>
+              <div className="space-y-1 text-xs font-mono bg-white p-3 rounded border">
+                {validEpisodes.slice(0, 3).map(ep => (
+                  <div key={ep.id} className="text-green-700">
+                    {ep.id.slice(0, 8)}... | Date: {ep.datetime.toLocaleDateString()} | Severity: {ep.severityLevel}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+            
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-2">Chart Data Preview:</p>
+              <div className="space-y-1 text-xs font-mono bg-white p-3 rounded border">
+                {chartDataSample.map((item, i) => (
+                  <div key={i} className="text-blue-700">
+                    Week {item.week}: {item.count} episodes
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {episodesByWeek.size} weeks of data generated
+              </p>
+            </div>
+          </>
         )}
 
         {invalidEpisodes.length > 0 && (
