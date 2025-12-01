@@ -193,20 +193,28 @@ const AppRoutes = () => (
   </Routes>
 );
 
+const AppShell = () => {
+  const { user } = useAuth();
+
+  return (
+    <TooltipProvider>
+      <NotificationListener />
+      {user && <GlobalPermissionsDialog />}
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </TooltipProvider>
+  );
+};
+
 const App = () => {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <TooltipProvider>
-            <NotificationListener />
-            <GlobalPermissionsDialog />
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
-          </TooltipProvider>
+          <AppShell />
         </AuthProvider>
       </QueryClientProvider>
     </ErrorBoundary>
