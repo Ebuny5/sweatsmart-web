@@ -697,15 +697,17 @@ const ClimateMonitor = () => {
           </div>
         </div>
 
-        {/* Permissions Wizard */}
+        {/* Permissions Wizard - Sticky at top */}
         {!arePermissionsGranted && (
-          <PermissionsWizard
-            locationStatus={locationPermission}
-            notificationStatus={notificationPermission}
-            onRequestLocation={handleRequestLocation}
-            onRequestNotification={requestNotificationPermission}
-            onCheckPermissions={checkPermissions}
-          />
+          <div className="sticky top-0 z-50 mb-6">
+            <PermissionsWizard
+              locationStatus={locationPermission}
+              notificationStatus={notificationPermission}
+              onRequestLocation={handleRequestLocation}
+              onRequestNotification={requestNotificationPermission}
+              onCheckPermissions={checkPermissions}
+            />
+          </div>
         )}
 
         {/* Main Content */}
