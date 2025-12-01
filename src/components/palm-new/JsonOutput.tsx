@@ -19,10 +19,6 @@ const JsonOutput: React.FC<JsonOutputProps> = ({ data }) => {
 
   const handleCopy = () => {
     if (data) {
-      if (!navigator.clipboard || !navigator.clipboard.writeText) {
-        return;
-      }
-
       navigator.clipboard.writeText(jsonString);
       setCopied(true);
     }

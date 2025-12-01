@@ -12,53 +12,28 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const { messages } = await req.json();
-    
-    // Verify the user is authenticated by checking the JWT
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = authHeader.replace('Bearer ', '');
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    
-    // Get authenticated user from JWT
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
-    // Use authenticated user's ID instead of trusting client input
-    const authenticatedUserId = user.id;
+    const { messages, userId } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    // Get user's episode data for context using authenticated user ID
-    const supabaseServiceUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabaseService = createClient(supabaseServiceUrl, supabaseServiceKey);
+    // Get user's episode data for context
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     let userContext = '';
-    const { data: episodes } = await supabaseService
-      .from('episodes')
-      .select('*')
-      .eq('user_id', authenticatedUserId)
-      .order('created_at', { ascending: false })
-      .limit(10);
+    if (userId) {
+      const { data: episodes } = await supabase
+        .from('episodes')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(10);
 
-    if (episodes && episodes.length > 0) {
+      if (episodes && episodes.length > 0) {
         const totalEpisodes = episodes.length;
         const avgSeverity = episodes.reduce((sum, e) => sum + e.severity, 0) / totalEpisodes;
         const commonTriggers = new Map();
@@ -92,6 +67,7 @@ serve(async (req) => {
 - Most affected areas: ${topAreas.join(', ') || 'None logged'}
 
 Use this data to provide personalized insights when relevant.`;
+      }
     }
 
     const systemPrompt = `You are Hyper AI, a warm and knowledgeable AI companion for people managing hyperhidrosis (excessive sweating). You're integrated into the SweatSmart app.

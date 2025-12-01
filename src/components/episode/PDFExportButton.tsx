@@ -61,7 +61,7 @@ const PDFExportButton: React.FC<PDFExportButtonProps> = ({ episode, className })
       }
 
       // Triggers
-      if (episode.triggers?.length > 0) {
+      if (episode.triggers.length > 0) {
         pdf.setFont('helvetica', 'bold');
         pdf.text('Triggers:', margin, yPosition);
         yPosition += 8;

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,7 +7,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import NotificationListener from "@/components/notifications/NotificationListener";
-import { GlobalPermissionsDialog } from "@/components/climate/GlobalPermissionsDialog";
 import Index from "./pages/Index";
 import NewIndex from "./pages/NewIndex";
 import Login from "./pages/Login";
@@ -193,28 +192,19 @@ const AppRoutes = () => (
   </Routes>
 );
 
-const AppShell = () => {
-  const { user } = useAuth();
-
-  return (
-    <TooltipProvider>
-      <NotificationListener />
-      {user && <GlobalPermissionsDialog />}
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
-    </TooltipProvider>
-  );
-};
-
 const App = () => {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <AppShell />
+          <TooltipProvider>
+            <NotificationListener />
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </TooltipProvider>
         </AuthProvider>
       </QueryClientProvider>
     </ErrorBoundary>

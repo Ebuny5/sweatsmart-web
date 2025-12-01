@@ -1,5 +1,0 @@
-reviews:
-  auto_reviews: true             # Enable automatic reviews everywhere
-  review_branches:               # Specify branches for auto reviews
-    - "*"                        # The asterisk means all branches (wildcard)
-  review_status: false           # (Optional) Hide the 'review skipped' message

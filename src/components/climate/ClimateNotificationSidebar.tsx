@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { GoogleGenAI, Type } from "@google/genai";
 
 // --- Inlined types.ts content ---
 export interface WeatherData {
@@ -69,14 +69,7 @@ const RefreshIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 );
 // --- End of inlined icons content ---
 
-const HDSS_LEVEL_COLORS: Record<HDSSLevel, string> = {
-  1: 'bg-cyan-400',
-  2: 'bg-cyan-300',
-  3: 'bg-cyan-200',
-  4: 'bg-cyan-100',
-};
-
-const PHYSIOLOGICAL_EDA_THRESHOLD = 5.0; // in µS
+const PHYSIOLOGICAL_EDA_THRESHOLD = 5.0; // in ÂµS
 const LOG_INTERVAL = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
 const DATA_SIMULATION_INTERVAL = 5000; // 5 seconds
 const LOG_CHECK_INTERVAL = 60000; // 1 minute
@@ -208,8 +201,8 @@ export const LoggingSystem: React.FC<LoggingSystemProps> = ({ logs, isModalOpen,
           ) : (
             [...logs].reverse().map(log => (
               <div key={log.id} className="bg-gray-700/50 p-3 rounded-lg flex justify-between items-center">
-                 <div className="flex items-center space-x-3">
-                    <div className={`w-10 h-10 flex items-center justify-center rounded-full font-bold text-xl text-black ${HDSS_LEVEL_COLORS[log.hdssLevel]}`}>
+                <div className="flex items-center space-x-3">
+                    <div className={`w-10 h-10 flex items-center justify-center rounded-full font-bold text-xl text-black bg-cyan-${(5-log.hdssLevel)*100}`}>
                         {log.hdssLevel}
                     </div>
                     <div>
@@ -385,21 +378,13 @@ const ClimateNotificationSidebar: React.FC<ClimateNotificationSidebarProps> = ({
     const [physiologicalData, setPhysiologicalData] = useState<PhysiologicalData>({ eda: 2.5 });
     
     const [thresholds, setThresholds] = useState<Thresholds>(() => {
-        try {
-            const saved = localStorage.getItem('sweatSmartThresholds');
-            return saved ? JSON.parse(saved) : { temperature: 24, humidity: 70, uvIndex: 6 };
-        } catch {
-            return { temperature: 24, humidity: 70, uvIndex: 6 };
-        }
+        const saved = localStorage.getItem('sweatSmartThresholds');
+        return saved ? JSON.parse(saved) : { temperature: 24, humidity: 70, uvIndex: 6 };
     });
 
     const [logs, setLogs] = useState<LogEntry[]>(() => {
-        try {
-            const saved = localStorage.getItem('sweatSmartLogs');
-            return saved ? JSON.parse(saved) : [];
-        } catch {
-            return [];
-        }
+        const saved = localStorage.getItem('sweatSmartLogs');
+        return saved ? JSON.parse(saved) : [];
     });
     
     const [isLoggingModalOpen, setIsLoggingModalOpen] = useState(false);
@@ -446,21 +431,33 @@ const ClimateNotificationSidebar: React.FC<ClimateNotificationSidebarProps> = ({
         setIsFetchingWeather(true);
         setWeatherError(null);
         try {
-            const { data, error } = await supabase.functions.invoke('get-weather-data', {
-                body: { latitude: coords.latitude, longitude: coords.longitude }
-            });
-            
-            if (error) throw error;
-            
-            if (data.simulated) {
-                setWeatherError(data.error || 'Using simulated data');
-                setWeatherData(data.data);
-            } else {
-                setWeatherData(data);
-                setWeatherError(null);
+            // Assume API_KEY is accessible in the environment where this component is used.
+            // If not, it needs to be passed as a prop or fetched differently.
+            const apiKey = process.env.API_KEY || (window as any).SWEAT_SMART_API_KEY; 
+            if (!apiKey) {
+                throw new Error("API Key for Google GenAI is not defined.");
             }
+            const ai = new GoogleGenAI({ apiKey: apiKey as string });
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: `What is the current temperature in Celsius, humidity percentage, and UV index for latitude ${coords.latitude} and longitude ${coords.longitude}? Provide only the JSON object.`,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: Type.OBJECT,
+                        properties: {
+                            temperature: { type: Type.NUMBER, description: "Temperature in Celsius" },
+                            humidity: { type: Type.NUMBER, description: "Humidity in percentage" },
+                            uvIndex: { type: Type.NUMBER, description: "UV Index" },
+                        },
+                        required: ["temperature", "humidity", "uvIndex"],
+                    },
+                },
+            });
+            const weather = JSON.parse(response.text) as WeatherData;
+            setWeatherData(weather);
         } catch (error) {
-            console.error("Error fetching weather data:", error);
+            console.error("Error fetching weather data from Gemini:", error);
             setWeatherError("Could not fetch weather. Using simulated data.");
         } finally {
             setIsFetchingWeather(false);
@@ -520,30 +517,22 @@ const ClimateNotificationSidebar: React.FC<ClimateNotificationSidebarProps> = ({
         }
     }, [notificationPermission, playNotificationSound]);
 
-    const prevAlertRef = useRef<string>("");
-
     useEffect(() => {
         if (!arePermissionsGranted) {
              setAlertStatus("Complete setup to begin.");
-             prevAlertRef.current = "Complete setup to begin.";
              return;
         }
 
         const isEnvTrigger = weatherData.temperature > thresholds.temperature || weatherData.humidity > thresholds.humidity || weatherData.uvIndex > thresholds.uvIndex;
         const isPhysioTrigger = physiologicalData.eda > PHYSIOLOGICAL_EDA_THRESHOLD;
 
-        const newStatus = isEnvTrigger && isPhysioTrigger
-            ? "High Risk: Conditions and physiology indicate high sweat risk."
-            : isEnvTrigger
-            ? "Moderate Risk: Climate conditions may trigger sweating."
-            : "Conditions Optimal: Low sweat risk detected.";
-
-        if (newStatus !== prevAlertRef.current) {
-            setAlertStatus(newStatus);
-            if (newStatus.includes("High Risk")) {
-                sendNotification('Sweat Smart Alert', 'High sweat risk detected based on climate and body signals.');
-            }
-            prevAlertRef.current = newStatus;
+        if (isEnvTrigger && isPhysioTrigger) {
+            setAlertStatus("High Risk: Conditions and physiology indicate high sweat risk.");
+            sendNotification('Sweat Smart Alert', 'High sweat risk detected based on climate and body signals.');
+        } else if (isEnvTrigger) {
+             setAlertStatus("Moderate Risk: Climate conditions may trigger sweating.");
+        } else {
+            setAlertStatus("Conditions Optimal: Low sweat risk detected.");
         }
     }, [weatherData, physiologicalData, thresholds, sendNotification, arePermissionsGranted]);
     
@@ -567,19 +556,14 @@ const ClimateNotificationSidebar: React.FC<ClimateNotificationSidebarProps> = ({
     useEffect(() => {
         updateNextLogTime();
         const interval = setInterval(() => {
-            // Always check if it's time to log, regardless of permissions
-            if (nextLogTime && Date.now() >= nextLogTime && !isLoggingModalOpen) {
-                // Only send browser notification if permissions are granted
-                if (arePermissionsGranted) {
-                    sendNotification('Time to Log', 'Please record your sweat level for the last 4 hours.');
-                }
-                // Always show the modal - logging doesn't require location permission
+            if (nextLogTime && Date.now() >= nextLogTime && arePermissionsGranted) {
+                sendNotification('Time to Log', 'Please record your sweat level for the last 4 hours.');
                 setIsLoggingModalOpen(true);
             }
         }, LOG_CHECK_INTERVAL);
         
         return () => clearInterval(interval);
-    }, [logs, nextLogTime, sendNotification, updateNextLogTime, arePermissionsGranted, isLoggingModalOpen]);
+    }, [logs, nextLogTime, sendNotification, updateNextLogTime, arePermissionsGranted]);
 
     // --- Handlers ---
     

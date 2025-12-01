@@ -150,7 +150,8 @@ export default function ClimateSettings() {
             Privacy Notice
           </h3>
           <p className="text-sm text-muted-foreground">
-            Climate thresholds are cached locally for quick access. Your account settings, episodes, and preferences are securely stored on our backend. Location is only used to fetch weather data.
+            All your data is stored locally on your device. We do not collect or transmit any personal information. 
+            Your location is only used to fetch weather data and is never shared with third parties.
           </p>
         </Card>
 

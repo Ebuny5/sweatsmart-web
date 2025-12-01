@@ -231,21 +231,13 @@ const ClimateMonitor = () => {
   const [edaSource, setEdaSource] = useState<'palm-scanner' | 'estimated'>('estimated');
 
   const [thresholds, setThresholds] = useState<Thresholds>(() => {
-    try {
-      const saved = localStorage.getItem('sweatSmartThresholds');
-      return saved ? JSON.parse(saved) : { temperature: 27, humidity: 75, uvIndex: 6 };
-    } catch {
-      return { temperature: 27, humidity: 75, uvIndex: 6 };
-    }
+    const saved = localStorage.getItem('sweatSmartThresholds');
+    return saved ? JSON.parse(saved) : { temperature: 27, humidity: 75, uvIndex: 6 };
   });
 
   const [logs, setLogs] = useState<LogEntry[]>(() => {
-    try {
-      const saved = localStorage.getItem('sweatSmartLogs');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
+    const saved = localStorage.getItem('sweatSmartLogs');
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [isLoggingModalOpen, setIsLoggingModalOpen] = useState(false);
@@ -427,45 +419,26 @@ const ClimateMonitor = () => {
     const settings = localStorage.getItem('climateAppSettings');
     const soundEnabled = settings ? JSON.parse(settings).soundAlerts !== false : true;
 
-    // Nighttime-aware risk model using USER'S CUSTOM thresholds
+    // Nighttime-aware risk model using scientific hyperhidrosis triggers
     const isNight = weatherData.uvIndex === 0;
 
-    // Use USER'S custom thresholds from settings
-    const tempThreshold = thresholds.temperature;
-    const humidityThreshold = thresholds.humidity;
-    const uvThreshold = thresholds.uvIndex;
-
-    console.log(`🎯 Current thresholds - Temp: ${tempThreshold}°C, Humidity: ${humidityThreshold}%, UV: ${uvThreshold}`);
-    console.log(`📊 Current conditions - Temp: ${weatherData.temperature}°C, Humidity: ${weatherData.humidity}%, UV: ${weatherData.uvIndex}`);
-
-    // Extreme Risk: exceeds user threshold + buffer
-    const isExtremeHeat = weatherData.temperature > tempThreshold + 2;
-    const isExtremeUV = !isNight && weatherData.uvIndex > uvThreshold + 2;
-    const isExtremeHumidity = !isNight && weatherData.humidity > humidityThreshold + 10;
+    // High Risk: clearly dangerous combinations
+    const isExtremeHeat = weatherData.temperature > 29;
+    const isExtremeUV = !isNight && weatherData.uvIndex > 8;
+    const isExtremeHumidity = !isNight && weatherData.humidity > 85;
     
-    // Moderate Risk: between user threshold and extreme
-    const isModerateHeat = weatherData.temperature > tempThreshold && weatherData.temperature <= tempThreshold + 2;
-    const isModerateUV = !isNight && weatherData.uvIndex > uvThreshold && weatherData.uvIndex <= uvThreshold + 2;
-    const isModerateHumidity = !isNight && weatherData.humidity > humidityThreshold && weatherData.humidity <= humidityThreshold + 10;
+    // Moderate Risk: elevated but not extreme, only when it's effectively daytime
+    const isModerateHeat = weatherData.temperature > 27 && weatherData.temperature <= 29;
+    const isModerateUV = !isNight && weatherData.uvIndex > 6 && weatherData.uvIndex <= 8;
+    const isModerateHumidity = !isNight && weatherData.humidity > 75 && weatherData.humidity <= 85;
 
     let newStatus = "";
-    const triggeredConditions = [];
-    
     if (isExtremeHeat || isExtremeUV || isExtremeHumidity) {
-      if (isExtremeHeat) triggeredConditions.push(`Temp ${weatherData.temperature}°C > ${tempThreshold + 2}°C`);
-      if (isExtremeUV) triggeredConditions.push(`UV ${weatherData.uvIndex} > ${uvThreshold + 2}`);
-      if (isExtremeHumidity) triggeredConditions.push(`Humidity ${weatherData.humidity}% > ${humidityThreshold + 10}%`);
       newStatus = "High Risk: Extreme climate conditions detected!";
-      console.log(`🔴 HIGH RISK triggered by: ${triggeredConditions.join(', ')}`);
     } else if (isModerateHeat || isModerateUV || isModerateHumidity) {
-      if (isModerateHeat) triggeredConditions.push(`Temp ${weatherData.temperature}°C > ${tempThreshold}°C`);
-      if (isModerateUV) triggeredConditions.push(`UV ${weatherData.uvIndex} > ${uvThreshold}`);
-      if (isModerateHumidity) triggeredConditions.push(`Humidity ${weatherData.humidity}% > ${humidityThreshold}%`);
       newStatus = "Moderate Risk: Climate conditions may trigger sweating.";
-      console.log(`🟡 MODERATE RISK triggered by: ${triggeredConditions.join(', ')}`);
     } else {
       newStatus = "Conditions Optimal: Low sweat risk detected.";
-      console.log(`✅ All conditions below thresholds - No alert needed`);
     }
 
     // Only send notification if status CHANGED
@@ -617,22 +590,26 @@ const ClimateMonitor = () => {
     );
   };
 
-  // Auto-request permissions - improved version
+  // Auto-request permissions on first user interaction
   useEffect(() => {
     const autoRequestPermissions = () => {
-      // Only auto-request if we're in 'prompt' state (not denied or granted)
       if (locationPermission === 'prompt' && !location) {
-        console.log('🚀 Auto-requesting permissions...');
+        console.log('🚀 Auto-requesting permissions on user interaction...');
         handleRequestLocation();
       }
     };
 
-    // Delay auto-request slightly to ensure page is fully loaded
-    const timer = setTimeout(() => {
-      autoRequestPermissions();
-    }, 1000);
+    // Wait for first user interaction, then auto-request
+    const events = ['click', 'touchstart', 'keydown'];
+    events.forEach(event => {
+      document.addEventListener(event, autoRequestPermissions, { once: true });
+    });
 
-    return () => clearTimeout(timer);
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, autoRequestPermissions);
+      });
+    };
   }, [locationPermission, location]);
 
   const handleThresholdChange = (key: keyof Thresholds, value: number) => {
@@ -697,17 +674,15 @@ const ClimateMonitor = () => {
           </div>
         </div>
 
-        {/* Permissions Wizard - Sticky at top */}
+        {/* Permissions Wizard */}
         {!arePermissionsGranted && (
-          <div className="sticky top-0 z-50 mb-6">
-            <PermissionsWizard
-              locationStatus={locationPermission}
-              notificationStatus={notificationPermission}
-              onRequestLocation={handleRequestLocation}
-              onRequestNotification={requestNotificationPermission}
-              onCheckPermissions={checkPermissions}
-            />
-          </div>
+          <PermissionsWizard
+            locationStatus={locationPermission}
+            notificationStatus={notificationPermission}
+            onRequestLocation={handleRequestLocation}
+            onRequestNotification={requestNotificationPermission}
+            onCheckPermissions={checkPermissions}
+          />
         )}
 
         {/* Main Content */}
