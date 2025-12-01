@@ -16,7 +16,7 @@ const PermissionsWizard: React.FC<{
         <div className="bg-gray-800 border border-cyan-700/50 text-white p-4 rounded-xl flex flex-col items-center text-center space-y-4 shadow-lg">
             <h3 className="text-xl font-bold text-cyan-300">Setup Required</h3>
             <p className="text-sm text-gray-400 max-w-sm">
-                Sweat Smart needs your permission for location and notifications to provide personalized, real-time alerts.
+                <strong>Click the buttons below</strong> to enable location and notifications. This allows climate alerts based on your local weather.
             </p>
             
             <div className="w-full space-y-3 pt-2">
@@ -53,11 +53,17 @@ const PermissionsWizard: React.FC<{
 
             {isBlocked && (
                 <div className="w-full text-center bg-red-900/50 border border-red-700 p-3 rounded-lg mt-2">
-                    <p className="text-sm text-red-200">
-                        One or more permissions are blocked. Please update them in your browser's site settings for this page.
+                    <p className="text-sm text-red-200 mb-2">
+                        <strong>Permissions blocked!</strong> To fix:
                     </p>
-                    <button onClick={onCheckPermissions} className="mt-3 flex items-center justify-center mx-auto gap-2 bg-gray-200 text-black font-bold px-4 py-2 rounded-md hover:bg-white transition text-sm">
-                       <RefreshIcon className="w-4 h-4" /> Check Permissions
+                    <ol className="text-xs text-left text-red-200 space-y-1 mb-3 max-w-md mx-auto">
+                        <li>1. Click the 🔒 lock icon in your browser's address bar</li>
+                        <li>2. Find "Location" and "Notifications"</li>
+                        <li>3. Change both to "Allow"</li>
+                        <li>4. Click the button below to refresh</li>
+                    </ol>
+                    <button onClick={onCheckPermissions} className="flex items-center justify-center mx-auto gap-2 bg-cyan-500 text-white font-bold px-4 py-2 rounded-md hover:bg-cyan-400 transition text-sm">
+                       <RefreshIcon className="w-4 h-4" /> Refresh Permissions
                     </button>
                 </div>
             )}
