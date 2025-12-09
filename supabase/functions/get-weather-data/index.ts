@@ -17,67 +17,99 @@ serve(async (req) => {
       throw new Error('Latitude and longitude are required');
     }
 
-    const OPENWEATHER_API_KEY = Deno.env.get('OPENWEATHER_API_KEY');
-    if (!OPENWEATHER_API_KEY) {
-      throw new Error('OPENWEATHER_API_KEY not configured');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY not configured');
     }
 
     console.log(`Fetching weather for: ${latitude}, ${longitude}`);
 
-    // Fetch current weather data
-    const weatherResponse = await fetch(
-      `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${OPENWEATHER_API_KEY}`
-    );
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a weather data provider. Return current weather conditions as structured data.'
+          },
+          {
+            role: 'user',
+            content: `Provide current weather data for coordinates: latitude ${latitude}, longitude ${longitude}. Return temperature in Celsius, humidity percentage (0-100), and UV index (0-11).`
+          }
+        ],
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'provide_weather',
+              description: 'Return current weather conditions',
+              parameters: {
+                type: 'object',
+                properties: {
+                  temperature: { type: 'number', description: 'Temperature in Celsius' },
+                  humidity: { type: 'number', description: 'Humidity percentage 0-100' },
+                  uvIndex: { type: 'number', description: 'UV index 0-11' }
+                },
+                required: ['temperature', 'humidity', 'uvIndex'],
+                additionalProperties: false
+              }
+            }
+          }
+        ],
+        tool_choice: { type: 'function', function: { name: 'provide_weather' } }
+      }),
+    });
 
-    if (!weatherResponse.ok) {
-      const errorText = await weatherResponse.text();
-      console.error('OpenWeatherMap error:', weatherResponse.status, errorText);
-      throw new Error(`OpenWeatherMap API error: ${weatherResponse.status}`);
-    }
-
-    const weatherData = await weatherResponse.json();
-    console.log('Weather data received:', JSON.stringify(weatherData));
-
-    // Get current time and sunrise/sunset times
-    const currentTime = Math.floor(Date.now() / 1000); // Unix timestamp in seconds
-    const sunrise = weatherData.sys?.sunrise || 0;
-    const sunset = weatherData.sys?.sunset || 0;
-    const isDaytime = currentTime >= sunrise && currentTime <= sunset;
-
-    console.log(`Time check - Current: ${currentTime}, Sunrise: ${sunrise}, Sunset: ${sunset}, Is Daytime: ${isDaytime}`);
-
-    // Fetch UV index data (separate API call) - but only use if it's daytime
-    let uvIndex = 0;
-    
-    if (isDaytime) {
-      const uvResponse = await fetch(
-        `https://api.openweathermap.org/data/2.5/uvi?lat=${latitude}&lon=${longitude}&appid=${OPENWEATHER_API_KEY}`
-      );
-
-      if (uvResponse.ok) {
-        const uvData = await uvResponse.json();
-        uvIndex = uvData.value || 0;
-        console.log('UV data received:', JSON.stringify(uvData));
-      } else {
-        console.warn('Failed to fetch UV data, using default value 0');
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('AI Gateway error:', response.status, errorText);
+      
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Rate limit exceeded. Using simulated data.',
+            simulated: true,
+            data: { temperature: 22, humidity: 60, uvIndex: 4 }
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
-    } else {
-      console.log('Nighttime detected - UV set to 0');
+      
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Credits required. Using simulated data.',
+            simulated: true,
+            data: { temperature: 22, humidity: 60, uvIndex: 4 }
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      throw new Error(`AI Gateway error: ${response.status}`);
     }
 
-    // Extract and return the data
-    const result = {
-      temperature: Math.round(weatherData.main.temp * 10) / 10, // Round to 1 decimal
-      humidity: weatherData.main.humidity,
-      uvIndex: Math.round(uvIndex * 10) / 10 // Round to 1 decimal
-    };
+    const aiResponse = await response.json();
+    console.log('AI Response:', JSON.stringify(aiResponse));
 
-    console.log('Returning weather data:', JSON.stringify(result));
-    
-    return new Response(
-      JSON.stringify(result),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    // Extract weather data from tool call
+    const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
+    if (toolCall?.function?.arguments) {
+      const weatherData = JSON.parse(toolCall.function.arguments);
+      console.log('Weather data:', weatherData);
+      
+      return new Response(
+        JSON.stringify(weatherData),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    throw new Error('Failed to extract weather data from AI response');
 
   } catch (error) {
     console.error('Error in get-weather-data:', error);

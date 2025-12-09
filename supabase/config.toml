@@ -20,12 +20,3 @@ verify_jwt = false
 
 [functions.hyper-ai-chat]
 verify_jwt = true
-
-[functions.register-push-subscription]
-verify_jwt = true
-
-[functions.send-scheduled-reminder]
-verify_jwt = false
-
-[functions.monitor-climate-alerts]
-verify_jwt = false

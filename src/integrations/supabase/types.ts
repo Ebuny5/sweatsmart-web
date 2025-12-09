@@ -86,33 +86,6 @@ export type Database = {
         }
         Relationships: []
       }
-      newsletter_subscriptions: {
-        Row: {
-          email: string
-          id: string
-          source: string | null
-          status: string
-          subscribed_at: string
-          user_id: string | null
-        }
-        Insert: {
-          email: string
-          id?: string
-          source?: string | null
-          status?: string
-          subscribed_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          email?: string
-          id?: string
-          source?: string | null
-          status?: string
-          subscribed_at?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       notification_preferences: {
         Row: {
           created_at: string | null

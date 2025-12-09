@@ -128,27 +128,35 @@ class EnhancedMobileNotificationService {
       navigator.vibrate(vibrationPattern);
     }
 
-    // Try native system notifications for PWA
+    // Try native system notifications first (works when app is closed)
     if ('Notification' in window && Notification.permission === 'granted') {
-      try {
-        // Try Service Worker API first for PWA
-        if ('serviceWorker' in navigator) {
-          const registration = await navigator.serviceWorker.ready;
-          await registration.showNotification(title, {
-            body,
-            icon: '/favicon.ico',
-            badge: '/favicon.ico',
-            tag: `sweatsmart-${type}`,
-            requireInteraction: type === 'destructive',
-            data: {
-              url: window.location.origin,
-              timestamp: new Date().toISOString()
-            }
-          });
-          
-          console.log('📱 PWA notification shown');
-          return;
+      const options: NotificationOptions = {
+        body,
+        icon: '/favicon.ico',
+        badge: '/favicon.ico',
+        tag: `sweatsmart-${type}`, // Prevents duplicate notifications
+        requireInteraction: type === 'destructive', // Keep critical alerts visible
+        data: {
+          url: window.location.origin,
+          timestamp: new Date().toISOString()
         }
+      };
+
+      try {
+        const notification = new Notification(title, options);
+        
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+
+        // Auto-close non-critical notifications after 10 seconds
+        if (type !== 'destructive') {
+          setTimeout(() => notification.close(), 10000);
+        }
+
+        console.log('📱 System notification shown');
+        return;
       } catch (error) {
         console.error('📱 System notification failed:', error);
       }

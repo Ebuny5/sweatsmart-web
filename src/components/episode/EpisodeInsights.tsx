@@ -36,7 +36,7 @@ const EpisodeInsights: React.FC<EpisodeInsightsProps> = ({ episode }) => {
           description: "Episode details have been shared.",
         });
       } else {
-        const triggerSummary = (episode.triggers ?? [])
+        const triggerSummary = episode.triggers
           .map(t => t?.label || t?.value || 'Unknown')
           .join(', ');
         await navigator.clipboard.writeText(`SweatSmart Episode Report\nDate: ${episode.datetime.toLocaleDateString()}\nSeverity: ${episode.severityLevel}/5\nBody Areas: ${episode.bodyAreas.join(', ')}\nTriggers: ${triggerSummary}\n\nView details: ${window.location.href}`);

@@ -56,9 +56,8 @@ const RefreshIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 
 const PHYSIOLOGICAL_EDA_THRESHOLD = 5.0;
 const LOG_INTERVAL = 4 * 60 * 60 * 1000;
-const WEATHER_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const DATA_SIMULATION_INTERVAL = 5000;
 const LOG_CHECK_INTERVAL = 60000;
-const EDA_STALE_TIME = 5 * 60 * 1000; // 5 minutes
 
 type PermissionStatus = 'prompt' | 'granted' | 'denied';
 
@@ -139,43 +138,22 @@ const CurrentStatusCard: React.FC<{
   alertStatus: string;
   isFetching: boolean;
   weatherError: string | null;
-  edaFreshness: 'fresh' | 'stale' | 'estimated';
-  onRefreshWeather: () => void;
-  onQuickScan: () => void;
-}> = ({ weather, physiological, alertStatus, isFetching, weatherError, edaFreshness, onRefreshWeather, onQuickScan }) => {
+}> = ({ weather, physiological, alertStatus, isFetching, weatherError }) => {
   const statusColor = useMemo(() => {
     if (alertStatus.includes("High Risk")) return "text-red-400";
     if (alertStatus.includes("Moderate Risk")) return "text-yellow-400";
     return "text-green-400";
   }, [alertStatus]);
 
-  const isAlertActive = alertStatus.includes("High Risk") || alertStatus.includes("Moderate Risk");
-
-  const edaBadgeColor = edaFreshness === 'fresh' ? 'bg-green-500/20 text-green-400' : 
-                        edaFreshness === 'stale' ? 'bg-yellow-500/20 text-yellow-400' : 
-                        'bg-blue-500/20 text-blue-400';
-
   return (
-    <div className={`relative bg-gray-800/50 border rounded-xl p-6 space-y-4 ${
-      isAlertActive ? 'border-red-500 animate-pulse' : 'border-gray-700'
-    }`}>
+    <div className="relative bg-gray-800/50 border border-gray-700 rounded-xl p-6 space-y-4">
       {(isFetching || weatherError) && (
         <div className="absolute inset-0 bg-gray-800/90 flex flex-col items-center justify-center rounded-xl z-10">
           {isFetching && <p className="text-white font-semibold animate-pulse">Fetching local weather...</p>}
           {weatherError && <p className="text-red-400 font-semibold">{weatherError}</p>}
         </div>
       )}
-      <div className="flex justify-between items-center">
-        <h3 className="text-xl font-bold text-cyan-300">Current Status</h3>
-        <button
-          onClick={onRefreshWeather}
-          disabled={isFetching}
-          className="p-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition disabled:opacity-50"
-          title="Refresh weather"
-        >
-          <RefreshIcon className={`w-5 h-5 text-cyan-400 ${isFetching ? 'animate-spin' : ''}`} />
-        </button>
-      </div>
+      <h3 className="text-xl font-bold text-cyan-300">Current Status</h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-gray-900 p-4 rounded-lg text-center">
           <ThermometerIcon className="w-8 h-8 mx-auto text-red-400 mb-2" />
@@ -192,27 +170,15 @@ const CurrentStatusCard: React.FC<{
           <p className="text-2xl font-bold">{weather.uvIndex.toFixed(1)}</p>
           <p className="text-xs text-gray-400">UV Index</p>
         </div>
-        <div className="bg-gray-900 p-4 rounded-lg text-center relative">
+        <div className="bg-gray-900 p-4 rounded-lg text-center">
           <ZapIcon className="w-8 h-8 mx-auto text-purple-400 mb-2" />
           <p className="text-2xl font-bold">{physiological.eda.toFixed(1)} µS</p>
           <p className="text-xs text-gray-400">EDA</p>
-          <span className={`absolute top-2 right-2 text-[10px] px-2 py-0.5 rounded-full font-bold ${edaBadgeColor}`}>
-            {edaFreshness === 'fresh' ? '✓ Fresh' : edaFreshness === 'stale' ? '⚠ Stale' : '≈ Est.'}
-          </span>
         </div>
       </div>
       <div className={`bg-gray-900 p-4 rounded-lg text-center ${statusColor}`}>
         <p className="text-lg font-semibold">{alertStatus}</p>
       </div>
-      {isAlertActive && edaFreshness !== 'fresh' && (
-        <button
-          onClick={onQuickScan}
-          className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg transition flex items-center justify-center gap-2"
-        >
-          <ZapIcon className="w-5 h-5" />
-          Quick Palm Scan for Accurate EDA
-        </button>
-      )}
     </div>
   );
 };
@@ -225,33 +191,22 @@ const ClimateMonitor = () => {
 
   const [isFetchingWeather, setIsFetchingWeather] = useState(false);
   const [weatherError, setWeatherError] = useState<string | null>(null);
-  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+  const [weatherData, setWeatherData] = useState<WeatherData>({ temperature: 20, humidity: 50, uvIndex: 3 });
   const [physiologicalData, setPhysiologicalData] = useState<PhysiologicalData>({ eda: 2.5 });
-  const [edaTimestamp, setEdaTimestamp] = useState<number>(Date.now());
-  const [edaSource, setEdaSource] = useState<'palm-scanner' | 'estimated'>('estimated');
 
   const [thresholds, setThresholds] = useState<Thresholds>(() => {
-    try {
-      const saved = localStorage.getItem('sweatSmartThresholds');
-      return saved ? JSON.parse(saved) : { temperature: 27, humidity: 75, uvIndex: 6 };
-    } catch {
-      return { temperature: 27, humidity: 75, uvIndex: 6 };
-    }
+    const saved = localStorage.getItem('sweatSmartThresholds');
+    return saved ? JSON.parse(saved) : { temperature: 24, humidity: 70, uvIndex: 6 };
   });
 
   const [logs, setLogs] = useState<LogEntry[]>(() => {
-    try {
-      const saved = localStorage.getItem('sweatSmartLogs');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
+    const saved = localStorage.getItem('sweatSmartLogs');
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [isLoggingModalOpen, setIsLoggingModalOpen] = useState(false);
   const [nextLogTime, setNextLogTime] = useState<number | null>(null);
   const [alertStatus, setAlertStatus] = useState("Complete setup to begin.");
-  const [previousAlertStatus, setPreviousAlertStatus] = useState<string>("");
 
   const arePermissionsGranted = locationPermission === 'granted' && notificationPermission === 'granted';
 
@@ -277,24 +232,12 @@ const ClimateMonitor = () => {
     checkPermissions();
   }, [checkPermissions]);
 
-  // Load cached location on mount
-  useEffect(() => {
-    const cachedLocation = localStorage.getItem('cachedLocation');
-    if (cachedLocation) {
-      const coords = JSON.parse(cachedLocation);
-      setLocation(coords);
-      console.log('✅ Loaded cached location:', coords);
-    }
-  }, []);
-
   // Load EDA from Palm Scanner on mount
   useEffect(() => {
     const storedEDA = edaManager.getEDA();
     if (storedEDA && edaManager.isFresh()) {
       setPhysiologicalData({ eda: storedEDA.value });
-      setEdaTimestamp(new Date(storedEDA.timestamp).getTime());
-      setEdaSource('palm-scanner');
-      console.log('✅ Loaded fresh EDA from Palm Scanner:', storedEDA);
+      console.log('Loaded fresh EDA from Palm Scanner:', storedEDA);
     }
   }, []);
 
@@ -322,68 +265,46 @@ const ClimateMonitor = () => {
         setWeatherData(data.data);
       } else {
         setWeatherData(data);
-        setWeatherError(null);
-        console.log('✅ Real weather data fetched:', data);
       }
     } catch (error) {
-      console.error("❌ Error fetching weather:", error);
-      setWeatherError("Could not fetch weather data.");
+      console.error("Error fetching weather:", error);
+      setWeatherError("Could not fetch weather. Using simulated data.");
+      // Fallback to simulation
+      setWeatherData({ temperature: 22, humidity: 60, uvIndex: 4 });
     } finally {
       setIsFetchingWeather(false);
     }
   }, []);
 
-  // Initial weather fetch
   useEffect(() => {
     if (location) {
       fetchWeatherData(location);
     }
   }, [location, fetchWeatherData]);
 
-  // Periodic weather refresh every 5 minutes
+  // Simulate data when not connected
   useEffect(() => {
-    if (!location || !arePermissionsGranted) return;
+    if (arePermissionsGranted && !weatherError) return;
 
     const interval = setInterval(() => {
-      console.log('🔄 Auto-refreshing weather data...');
-      fetchWeatherData(location);
-    }, WEATHER_REFRESH_INTERVAL);
-
+      setWeatherData(prev => ({
+        temperature: prev.temperature + (Math.random() - 0.5) * 0.5,
+        humidity: Math.max(0, Math.min(100, prev.humidity + (Math.random() - 0.5) * 2)),
+        uvIndex: Math.max(0, Math.min(11, prev.uvIndex + (Math.random() - 0.5) * 0.2)),
+      }));
+    }, DATA_SIMULATION_INTERVAL);
     return () => clearInterval(interval);
-  }, [location, arePermissionsGranted, fetchWeatherData]);
+  }, [arePermissionsGranted, weatherError]);
 
-  // Manual refresh handler
-  const handleRefreshWeather = useCallback(() => {
-    if (location) {
-      console.log('🔄 Manual weather refresh triggered');
-      fetchWeatherData(location);
-    }
-  }, [location, fetchWeatherData]);
-
-  // Auto-estimate EDA based on climate conditions
+  // Physiological simulation
   useEffect(() => {
-    if (!weatherData || edaSource === 'palm-scanner') return;
-
     const interval = setInterval(() => {
-      const temp = weatherData.temperature;
-      const humidity = weatherData.humidity;
-      
-      // Estimate EDA based on climate severity
-      let estimatedEDA = 2.0; // baseline
-      
-      if (temp > 30) estimatedEDA += (temp - 30) * 0.3;
-      if (humidity > 70) estimatedEDA += (humidity - 70) * 0.05;
-      if (weatherData.uvIndex > 7) estimatedEDA += (weatherData.uvIndex - 7) * 0.2;
-      
-      // Add some variation
-      estimatedEDA += (Math.random() - 0.5) * 0.3;
-      estimatedEDA = Math.max(1.5, Math.min(8, estimatedEDA));
-      
-      setPhysiologicalData({ eda: estimatedEDA });
-    }, 10000); // Update every 10 seconds
-
+      setPhysiologicalData(prev => ({
+        eda: Math.max(0, prev.eda + (Math.random() - 0.45) * 0.5)
+      }));
+    }, DATA_SIMULATION_INTERVAL);
     return () => clearInterval(interval);
-  }, [weatherData, edaSource]);
+  }, []);
 
   // Sound using shared SoundManager
   const playAlertSound = useCallback(
@@ -394,114 +315,60 @@ const ClimateMonitor = () => {
   );
 
   const sendNotification = useCallback(
-    async (title: string, body: string, severity: 'CRITICAL' | 'WARNING' | 'REMINDER' = 'WARNING') => {
+    (title: string, body: string, severity: 'CRITICAL' | 'WARNING' | 'REMINDER' = 'WARNING') => {
       // Always attempt to play sound, even if system notifications are blocked
       playAlertSound(severity);
 
       if (notificationPermission === 'granted') {
-        try {
-          // Use Service Worker API for PWA compatibility
-          if ('serviceWorker' in navigator) {
-            const registration = await navigator.serviceWorker.ready;
-            await registration.showNotification(title, { 
-              body, 
-              icon: '/favicon.ico',
-              badge: '/favicon.ico'
-            });
-          }
-        } catch (error) {
-          console.error('Notification error:', error);
-        }
+        new Notification(title, { body, icon: '/favicon.ico' });
       }
     },
     [notificationPermission, playAlertSound]
   );
 
-  // Enhanced alert logic - Climate-focused with extreme conditions
+  // Alert logic with sound alerts
   useEffect(() => {
-    if (!arePermissionsGranted || !weatherData) {
+    if (!arePermissionsGranted) {
       setAlertStatus("Complete setup to begin.");
       return;
     }
 
+    // Check if sound alerts are enabled
     const settings = localStorage.getItem('climateAppSettings');
     const soundEnabled = settings ? JSON.parse(settings).soundAlerts !== false : true;
 
-    // Nighttime-aware risk model using USER'S CUSTOM thresholds
-    const isNight = weatherData.uvIndex === 0;
+    const isEnvTrigger = weatherData.temperature > thresholds.temperature || 
+                         weatherData.humidity > thresholds.humidity || 
+                         weatherData.uvIndex > thresholds.uvIndex;
+    const isPhysioTrigger = physiologicalData.eda > PHYSIOLOGICAL_EDA_THRESHOLD;
 
-    // Use USER'S custom thresholds from settings
-    const tempThreshold = thresholds.temperature;
-    const humidityThreshold = thresholds.humidity;
-    const uvThreshold = thresholds.uvIndex;
-
-    console.log(`🎯 Current thresholds - Temp: ${tempThreshold}°C, Humidity: ${humidityThreshold}%, UV: ${uvThreshold}`);
-    console.log(`📊 Current conditions - Temp: ${weatherData.temperature}°C, Humidity: ${weatherData.humidity}%, UV: ${weatherData.uvIndex}`);
-
-    // Extreme Risk: exceeds user threshold + buffer
-    const isExtremeHeat = weatherData.temperature > tempThreshold + 2;
-    const isExtremeUV = !isNight && weatherData.uvIndex > uvThreshold + 2;
-    const isExtremeHumidity = !isNight && weatherData.humidity > humidityThreshold + 10;
-    
-    // Moderate Risk: between user threshold and extreme
-    const isModerateHeat = weatherData.temperature > tempThreshold && weatherData.temperature <= tempThreshold + 2;
-    const isModerateUV = !isNight && weatherData.uvIndex > uvThreshold && weatherData.uvIndex <= uvThreshold + 2;
-    const isModerateHumidity = !isNight && weatherData.humidity > humidityThreshold && weatherData.humidity <= humidityThreshold + 10;
-
-    let newStatus = "";
-    const triggeredConditions = [];
-    
-    if (isExtremeHeat || isExtremeUV || isExtremeHumidity) {
-      if (isExtremeHeat) triggeredConditions.push(`Temp ${weatherData.temperature}°C > ${tempThreshold + 2}°C`);
-      if (isExtremeUV) triggeredConditions.push(`UV ${weatherData.uvIndex} > ${uvThreshold + 2}`);
-      if (isExtremeHumidity) triggeredConditions.push(`Humidity ${weatherData.humidity}% > ${humidityThreshold + 10}%`);
-      newStatus = "High Risk: Extreme climate conditions detected!";
-      console.log(`🔴 HIGH RISK triggered by: ${triggeredConditions.join(', ')}`);
-    } else if (isModerateHeat || isModerateUV || isModerateHumidity) {
-      if (isModerateHeat) triggeredConditions.push(`Temp ${weatherData.temperature}°C > ${tempThreshold}°C`);
-      if (isModerateUV) triggeredConditions.push(`UV ${weatherData.uvIndex} > ${uvThreshold}`);
-      if (isModerateHumidity) triggeredConditions.push(`Humidity ${weatherData.humidity}% > ${humidityThreshold}%`);
-      newStatus = "Moderate Risk: Climate conditions may trigger sweating.";
-      console.log(`🟡 MODERATE RISK triggered by: ${triggeredConditions.join(', ')}`);
-    } else {
-      newStatus = "Conditions Optimal: Low sweat risk detected.";
-      console.log(`✅ All conditions below thresholds - No alert needed`);
-    }
-
-    // Only send notification if status CHANGED
-    if (newStatus !== previousAlertStatus) {
-      console.log(`🚨 Alert status changed: "${previousAlertStatus}" → "${newStatus}"`);
-      
-      setAlertStatus(newStatus);
-      setPreviousAlertStatus(newStatus);
-
+    if (isEnvTrigger && isPhysioTrigger) {
+      setAlertStatus("High Risk: Conditions and physiology indicate high sweat risk.");
       if (soundEnabled) {
-        if (newStatus.includes("High Risk")) {
-          console.log('🔴 HIGH RISK ALERT - Playing critical sound');
-          sendNotification(
-            'Sweat Smart Alert',
-            'Extreme climate conditions detected! High sweat risk.',
-            'CRITICAL'
-          );
-        } else if (newStatus.includes("Moderate Risk")) {
-          console.log('🟡 MODERATE RISK ALERT - Playing warning sound');
-          sendNotification(
-            'Sweat Smart Alert',
-            'Moderate sweat risk detected. Consider logging your episode.',
-            'WARNING'
-          );
-        }
+        sendNotification(
+          'Sweat Smart Alert',
+          'High sweat risk detected based on climate and body signals.',
+          'CRITICAL'
+        );
       }
+    } else if (isEnvTrigger) {
+      setAlertStatus("Moderate Risk: Climate conditions may trigger sweating.");
+      if (soundEnabled) {
+        sendNotification(
+          'Sweat Smart Alert',
+          'Moderate sweat risk detected. Consider logging your episode.',
+          'WARNING'
+        );
+      }
+    } else {
+      setAlertStatus("Conditions Optimal: Low sweat risk detected.");
     }
-  }, [weatherData, thresholds, sendNotification, arePermissionsGranted, previousAlertStatus]);
+  }, [weatherData, physiologicalData, thresholds, sendNotification, arePermissionsGranted]);
 
   // Logging logic with fixed 4-hour schedule (00:00, 04:00, 08:00, 12:00, 16:00, 20:00)
   const updateNextLogTime = useCallback(() => {
     const now = new Date();
     const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    
-    console.log(`⏰ Calculating next log time. Current: ${currentHour}:${String(currentMinute).padStart(2, '0')}`);
     
     // Fixed 4-hour blocks
     const blocks = [0, 4, 8, 12, 16, 20];
@@ -519,12 +386,6 @@ const ClimateMonitor = () => {
     next.setHours(nextBlockHour, 0, 0, 0);
 
     const nextTime = next.getTime();
-    const timeUntil = Math.round((nextTime - now.getTime()) / (1000 * 60));
-    const hours = Math.floor(timeUntil / 60);
-    const minutes = timeUntil % 60;
-    
-    console.log(`⏰ Next log: ${nextBlockHour}:00 (in ${hours}h ${minutes}m)`);
-    
     setNextLogTime(nextTime);
     localStorage.setItem('climateNextLogTime', nextTime.toString());
   }, []);
@@ -541,26 +402,17 @@ const ClimateMonitor = () => {
   }, [updateNextLogTime]);
 
   useEffect(() => {
-    const interval = setInterval(async () => {
+    const interval = setInterval(() => {
       if (nextLogTime && Date.now() >= nextLogTime && arePermissionsGranted) {
-        console.log('⏰ 4-HOUR LOG REMINDER - Time to log!');
         // Professional reminder sound for compulsory logging
         playAlertSound('REMINDER');
 
         if (notificationPermission === 'granted') {
-          try {
-            if ('serviceWorker' in navigator) {
-              const registration = await navigator.serviceWorker.ready;
-              await registration.showNotification('Time to Log', {
-                body: 'Please record your sweat level for the last 4 hours.',
-                icon: '/favicon.ico',
-                badge: '/favicon.ico',
-                requireInteraction: true
-              });
-            }
-          } catch (error) {
-            console.error('4-hour notification error:', error);
-          }
+          new Notification('Time to Log', {
+            body: 'Please record your sweat level for the last 4 hours.',
+            icon: '/favicon.ico',
+            requireInteraction: true
+          });
         }
         setIsLoggingModalOpen(true);
         updateNextLogTime();
@@ -574,66 +426,27 @@ const ClimateMonitor = () => {
   const requestNotificationPermission = async () => {
     if (locationPermission !== 'granted') return;
     const permission = await Notification.requestPermission();
-    const finalPermission = permission === 'default' ? 'prompt' : permission;
-    setNotificationPermission(finalPermission);
-    
-    // Test sound immediately after permission granted
-    if (finalPermission === 'granted') {
-      console.log('✅ Notification permission granted - playing test sound');
-      playAlertSound('REMINDER');
-      try {
-        if ('serviceWorker' in navigator) {
-          const registration = await navigator.serviceWorker.ready;
-          await registration.showNotification('Sweat Smart Alert Enabled!', {
-            body: 'You will now receive sound and notification alerts. 🔔',
-            icon: '/favicon.ico',
-            badge: '/favicon.ico'
-          });
-        }
-      } catch (error) {
-        console.error('Permission granted notification error:', error);
-      }
-    }
+    setNotificationPermission(permission === 'default' ? 'prompt' : permission);
   };
 
   const handleRequestLocation = () => {
-    console.log('📍 Requesting location permission...');
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        console.log('✅ Location permission granted:', position.coords);
         setLocation(position.coords);
         setLocationPermission('granted');
-        // After location granted, automatically request notification
+        // After location granted, request notification
         if (notificationPermission === 'prompt') {
-          setTimeout(() => requestNotificationPermission(), 500);
+          requestNotificationPermission();
         }
       },
       (error) => {
-        console.error("❌ Geolocation error:", error);
+        console.error("Geolocation error:", error);
         if (error.code === error.PERMISSION_DENIED) {
           setLocationPermission('denied');
         }
       }
     );
   };
-
-  // Auto-request permissions - improved version
-  useEffect(() => {
-    const autoRequestPermissions = () => {
-      // Only auto-request if we're in 'prompt' state (not denied or granted)
-      if (locationPermission === 'prompt' && !location) {
-        console.log('🚀 Auto-requesting permissions...');
-        handleRequestLocation();
-      }
-    };
-
-    // Delay auto-request slightly to ensure page is fully loaded
-    const timer = setTimeout(() => {
-      autoRequestPermissions();
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [locationPermission, location]);
 
   const handleThresholdChange = (key: keyof Thresholds, value: number) => {
     setThresholds(prev => ({ ...prev, [key]: value }));
@@ -644,31 +457,12 @@ const ClimateMonitor = () => {
       id: new Date().toISOString(),
       timestamp: Date.now(),
       hdssLevel: level,
-      weather: weatherData || { temperature: 0, humidity: 0, uvIndex: 0 },
+      weather: weatherData,
       physiologicalData: physiologicalData
     };
     setLogs(prev => [...prev, newLog]);
     setIsLoggingModalOpen(false);
   };
-
-  const handleTestAlert = () => {
-    sendNotification(
-      'Test Alert',
-      'This is a test notification with sound.',
-      'WARNING'
-    );
-  };
-
-  const handleQuickScan = () => {
-    navigate('/palm-scanner');
-  };
-
-  // Calculate EDA freshness
-  const edaFreshness = useMemo<'fresh' | 'stale' | 'estimated'>(() => {
-    if (edaSource === 'estimated') return 'estimated';
-    const age = Date.now() - edaTimestamp;
-    return age < EDA_STALE_TIME ? 'fresh' : 'stale';
-  }, [edaTimestamp, edaSource]);
 
   return (
     <AppLayout>
@@ -697,30 +491,25 @@ const ClimateMonitor = () => {
           </div>
         </div>
 
-        {/* Permissions Wizard - Sticky at top */}
+        {/* Permissions Wizard */}
         {!arePermissionsGranted && (
-          <div className="sticky top-0 z-50 mb-6">
-            <PermissionsWizard
-              locationStatus={locationPermission}
-              notificationStatus={notificationPermission}
-              onRequestLocation={handleRequestLocation}
-              onRequestNotification={requestNotificationPermission}
-              onCheckPermissions={checkPermissions}
-            />
-          </div>
+          <PermissionsWizard
+            locationStatus={locationPermission}
+            notificationStatus={notificationPermission}
+            onRequestLocation={handleRequestLocation}
+            onRequestNotification={requestNotificationPermission}
+            onCheckPermissions={checkPermissions}
+          />
         )}
 
         {/* Main Content */}
         <div className={`space-y-6 transition-opacity duration-500 ${arePermissionsGranted ? 'opacity-100' : 'opacity-40 blur-sm pointer-events-none'}`}>
-          <CurrentStatusCard 
-            weather={weatherData || { temperature: 0, humidity: 0, uvIndex: 0 }} 
-            physiological={physiologicalData} 
+          <CurrentStatusCard
+            weather={weatherData}
+            physiological={physiologicalData}
             alertStatus={alertStatus}
             isFetching={isFetchingWeather}
             weatherError={weatherError}
-            edaFreshness={edaFreshness}
-            onRefreshWeather={handleRefreshWeather}
-            onQuickScan={handleQuickScan}
           />
 
           <div className="space-y-4">
@@ -785,25 +574,13 @@ const ClimateMonitor = () => {
                 <p className="text-xs text-gray-400">Verify sound and notifications are working</p>
               </div>
               <Button
-                onClick={async () => {
-                  console.log('🧪 TEST ALERT button clicked');
+                onClick={() => {
                   playAlertSound('WARNING');
                   if (notificationPermission === 'granted') {
-                    try {
-                      if ('serviceWorker' in navigator) {
-                        const registration = await navigator.serviceWorker.ready;
-                        await registration.showNotification('Test Alert', {
-                          body: 'Your alerts are working correctly! 🎉',
-                          icon: '/favicon.ico',
-                          badge: '/favicon.ico'
-                        });
-                      }
-                      console.log('✅ Test notification sent');
-                    } catch (error) {
-                      console.error('Test notification error:', error);
-                    }
-                  } else {
-                    console.log('❌ Notification permission not granted:', notificationPermission);
+                    new Notification('Test Alert', {
+                      body: 'Your alerts are working correctly! 🎉',
+                      icon: '/favicon.ico'
+                    });
                   }
                 }}
                 className="bg-cyan-600 hover:bg-cyan-500 text-white"
