@@ -69,6 +69,15 @@ export default {
 				'professional-gray': 'hsl(var(--professional-gray))',
 				'clean-white': 'hsl(var(--clean-white))',
 				
+				// Community colors
+				'community-purple': 'hsl(var(--community-purple))',
+				'community-success': 'hsl(var(--community-success))',
+				'community-success-bg': 'hsl(var(--community-success-bg))',
+				'community-question': 'hsl(var(--community-question))',
+				'community-question-bg': 'hsl(var(--community-question-bg))',
+				'community-tip': 'hsl(var(--community-tip))',
+				'community-tip-bg': 'hsl(var(--community-tip-bg))',
+				
 				// Enhanced blue palette matching the app icon
 				blue: {
 					50: 'hsl(214, 100%, 97%)',

@@ -44,6 +44,15 @@
     --professional-gray: 215 16% 47%;
     --clean-white: 0 0% 100%;
 
+    /* Community colors */
+    --community-purple: 263 70% 58%;
+    --community-success: 160 84% 39%;
+    --community-success-bg: 152 81% 96%;
+    --community-question: 38 92% 50%;
+    --community-question-bg: 48 100% 96%;
+    --community-tip: 217 91% 60%;
+    --community-tip-bg: 214 100% 97%;
+
     --sidebar-background: 0 0% 99%;
     --sidebar-foreground: 215 25% 27%;
     --sidebar-primary: 217 91% 60%;
@@ -90,6 +99,15 @@
     --droplet-light: 215 28% 18%;
     --professional-gray: 215 16% 65%;
     --clean-white: 215 28% 12%;
+
+    /* Community colors - dark mode */
+    --community-purple: 263 70% 58%;
+    --community-success: 160 84% 45%;
+    --community-success-bg: 160 30% 20%;
+    --community-question: 38 92% 55%;
+    --community-question-bg: 38 30% 20%;
+    --community-tip: 217 91% 65%;
+    --community-tip-bg: 217 30% 20%;
 
     --sidebar-background: 215 28% 10%;
     --sidebar-foreground: 210 20% 98%;
