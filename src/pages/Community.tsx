@@ -69,7 +69,7 @@ const Community: React.FC = () => {
   return (
     <AppLayout>
       <div className="min-h-screen bg-gradient-to-b from-sky-50 to-background dark:from-slate-900 dark:to-background">
-        <div className="max-w-md mx-auto px-4 py-6 space-y-4">
+        <div className="w-full max-w-4xl mx-auto px-4 py-6 space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-foreground">Community</h1>
@@ -91,6 +91,7 @@ const Community: React.FC = () => {
             <Button 
               variant="outline" 
               className="border-community-purple text-community-purple hover:bg-community-purple hover:text-white rounded-full px-4 py-1 text-sm font-medium"
+              onClick={() => window.open('https://chat.whatsapp.com/BKgrDMOttm76Jva6fSZUMi?mode=ac_t', '_blank')}
             >
               Join Now
             </Button>
@@ -141,9 +142,9 @@ const Community: React.FC = () => {
                 ))}
               </div>
 
-              {/* Upcoming Events Section */}
+              {/* Past Events Section */}
               <div className="pt-2 border-t border-border/50">
-                <h2 className="text-lg font-semibold text-foreground mb-3">Upcoming Events</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-3">Past Events</h2>
                 
                 <div className="flex items-start gap-3">
                   {/* Date Box */}
@@ -162,8 +163,9 @@ const Community: React.FC = () => {
                   <Button 
                     size="sm"
                     className="bg-community-purple hover:bg-community-purple/90 text-white rounded-full px-4 text-xs font-medium"
+                    onClick={() => window.open('ZOOM_LINK_HERE', '_blank')}
                   >
-                    Join
+                    View Recording
                   </Button>
                 </div>
               </div>
