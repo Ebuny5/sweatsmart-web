@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,14 +6,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import NotificationListener from "@/components/notifications/NotificationListener";
 import Index from "./pages/Index";
-import NewIndex from "./pages/NewIndex";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Auth from "./pages/Auth";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import LogEpisode from "./pages/LogEpisode";
@@ -24,18 +19,7 @@ import Insights from "./pages/Insights";
 import Community from "./pages/Community";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
-import AuthCallback from "./pages/AuthCallback";
-import PalmScanner from "./pages/PalmScanner";
-import Contact from "./pages/Contact";
-import Privacy from "./pages/Privacy";
-import Terms from "./pages/Terms";
-import About from "./pages/About";
-import Cookies from "./pages/Cookies";
-import Legal from "./pages/Legal";
-import ClimateMonitor from "./pages/ClimateMonitor";
-import ClimateHistory from "./pages/ClimateHistory";
-import ClimateSettings from "./pages/ClimateSettings";
-import HyperAI from "./pages/HyperAI";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -98,20 +82,21 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 
 const AppRoutes = () => (
   <Routes>
-    <Route path="/" element={<NewIndex />} />
-    <Route path="/old" element={<PublicRoute><Index /></PublicRoute>} />
-    <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
-    <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-    <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-    <Route path="/forgot-password" element={
+    <Route path="/" element={
       <PublicRoute>
-        <ForgotPassword />
+        <Index />
       </PublicRoute>
     } />
-    <Route path="/reset-password" element={
-      <ResetPassword />
+    <Route path="/login" element={
+      <PublicRoute>
+        <Login />
+      </PublicRoute>
     } />
-    <Route path="/auth/callback" element={<AuthCallback />} />
+    <Route path="/register" element={
+      <PublicRoute>
+        <Register />
+      </PublicRoute>
+    } />
     <Route path="/onboarding" element={
       <ProtectedRoute>
         <Onboarding />
@@ -157,58 +142,24 @@ const AppRoutes = () => (
         <Settings />
       </ProtectedRoute>
     } />
-    <Route path="/palm-scanner" element={
-      <ProtectedRoute>
-        <PalmScanner />
-      </ProtectedRoute>
-    } />
-    <Route path="/climate" element={
-      <ProtectedRoute>
-        <ClimateMonitor />
-      </ProtectedRoute>
-    } />
-    <Route path="/climate/history" element={
-      <ProtectedRoute>
-        <ClimateHistory />
-      </ProtectedRoute>
-    } />
-    <Route path="/climate/settings" element={
-      <ProtectedRoute>
-        <ClimateSettings />
-      </ProtectedRoute>
-    } />
-    <Route path="/hyper-ai" element={
-      <ProtectedRoute>
-        <HyperAI />
-      </ProtectedRoute>
-    } />
-    <Route path="/contact" element={<Contact />} />
-    <Route path="/privacy" element={<Privacy />} />
-    <Route path="/terms" element={<Terms />} />
-    <Route path="/about" element={<About />} />
-    <Route path="/cookies" element={<Cookies />} />
-    <Route path="/legal" element={<Legal />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
 
-const App = () => {
-  return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <TooltipProvider>
-            <NotificationListener />
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
-          </TooltipProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
-  );
-};
+const App = () => (
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
+);
 
 export default App;

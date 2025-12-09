@@ -7,49 +7,13 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
+  // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
   }
   public: {
     Tables: {
-      climate_notifications: {
-        Row: {
-          body: string
-          created_at: string | null
-          dismissed: boolean | null
-          id: string
-          read: boolean | null
-          title: string
-          triggers: string[]
-          user_id: string
-          weather_data: Json
-        }
-        Insert: {
-          body: string
-          created_at?: string | null
-          dismissed?: boolean | null
-          id?: string
-          read?: boolean | null
-          title: string
-          triggers: string[]
-          user_id: string
-          weather_data: Json
-        }
-        Update: {
-          body?: string
-          created_at?: string | null
-          dismissed?: boolean | null
-          id?: string
-          read?: boolean | null
-          title?: string
-          triggers?: string[]
-          user_id?: string
-          weather_data?: Json
-        }
-        Relationships: []
-      }
       episodes: {
         Row: {
           body_areas: string[]
@@ -83,48 +47,6 @@ export type Database = {
           triggers?: Json | null
           updated_at?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      notification_preferences: {
-        Row: {
-          created_at: string | null
-          enabled: boolean | null
-          humidity_threshold: number | null
-          id: string
-          location_enabled: boolean | null
-          quiet_hours_end: string | null
-          quiet_hours_start: string | null
-          temperature_threshold: number | null
-          updated_at: string | null
-          user_id: string
-          uv_threshold: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          enabled?: boolean | null
-          humidity_threshold?: number | null
-          id?: string
-          location_enabled?: boolean | null
-          quiet_hours_end?: string | null
-          quiet_hours_start?: string | null
-          temperature_threshold?: number | null
-          updated_at?: string | null
-          user_id: string
-          uv_threshold?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          enabled?: boolean | null
-          humidity_threshold?: number | null
-          id?: string
-          location_enabled?: boolean | null
-          quiet_hours_end?: string | null
-          quiet_hours_start?: string | null
-          temperature_threshold?: number | null
-          updated_at?: string | null
-          user_id?: string
-          uv_threshold?: number | null
         }
         Relationships: []
       }
@@ -196,7 +118,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      keep_alive: { Args: never; Returns: undefined }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never

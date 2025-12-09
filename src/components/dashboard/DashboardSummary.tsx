@@ -39,14 +39,10 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
       allEpisodes.forEach(episode => {
         try {
           const weekStart = startOfWeek(episode.datetime);
-          const weekKey = weekStart.getTime().toString();
+          const weekKey = format(weekStart, 'MMM dd');
           
           if (!episodesByWeek.has(weekKey)) {
-            episodesByWeek.set(weekKey, { 
-              episodes: [], 
-              severities: [], 
-              weekStart 
-            });
+            episodesByWeek.set(weekKey, { episodes: [], severities: [] });
           }
           
           const weekData = episodesByWeek.get(weekKey);
@@ -58,15 +54,14 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
       });
 
       return Array.from(episodesByWeek.entries())
-        .map(([_, data]) => ({
-          date: format(data.weekStart, 'MMM dd'),
-          timestamp: data.weekStart.getTime(),
+        .map(([date, data]) => ({
+          date,
           episodeCount: data.episodes.length,
           averageSeverity: data.severities.length > 0 
             ? data.severities.reduce((a: number, b: number) => a + b, 0) / data.severities.length
             : 0
         }))
-        .sort((a, b) => a.timestamp - b.timestamp);
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     };
 
     const generateMonthlyData = () => {
@@ -78,14 +73,10 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
       allEpisodes.forEach(episode => {
         try {
           const monthStart = startOfMonth(episode.datetime);
-          const monthKey = monthStart.getTime().toString();
+          const monthKey = format(monthStart, 'MMM yyyy');
           
           if (!episodesByMonth.has(monthKey)) {
-            episodesByMonth.set(monthKey, { 
-              episodes: [], 
-              severities: [], 
-              monthStart 
-            });
+            episodesByMonth.set(monthKey, { episodes: [], severities: [] });
           }
           
           const monthData = episodesByMonth.get(monthKey);
@@ -97,31 +88,19 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
       });
 
       return Array.from(episodesByMonth.entries())
-        .map(([_, data]) => ({
-          date: format(data.monthStart, 'MMM yyyy'),
-          timestamp: data.monthStart.getTime(),
+        .map(([date, data]) => ({
+          date,
           episodeCount: data.episodes.length,
           averageSeverity: data.severities.length > 0
             ? data.severities.reduce((a: number, b: number) => a + b, 0) / data.severities.length
             : 0
         }))
-        .sort((a, b) => a.timestamp - b.timestamp);
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     };
 
-    const weekly = generateWeeklyData();
-    const monthly = generateMonthlyData();
-
-    console.log('DashboardSummary chart data', {
-      episodeCount: allEpisodes.length,
-      weeklyPoints: weekly.length,
-      monthlyPoints: monthly.length,
-      sampleWeekly: weekly[0],
-      sampleMonthly: monthly[0],
-    });
-
     return {
-      processedWeeklyData: weekly,
-      processedMonthlyData: monthly
+      processedWeeklyData: generateWeeklyData(),
+      processedMonthlyData: generateMonthlyData()
     };
   }, [weeklyData, monthlyData, allEpisodes]);
 

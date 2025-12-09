@@ -10,14 +10,15 @@ interface BodyAreaSelectorProps {
 }
 
 const bodyAreaOptions: BodyAreaDetail[] = [
-  { area: "palms", name: "palms", label: "Palms", icon: "hand" },
-  { area: "soles", name: "soles", label: "Feet Soles", icon: "foot" },
-  { area: "face", name: "face", label: "Face", icon: "smile" },
-  { area: "underarms", name: "underarms", label: "Armpits", icon: "user" },
-  { area: "scalp", name: "scalp", label: "Scalp/Head", icon: "brain" },
-  { area: "back", name: "back", label: "Back", icon: "body" },
-  { area: "groin", name: "groin", label: "Groin", icon: "user" },
-  { area: "chest", name: "chest", label: "Chest", icon: "heart" },
+  { area: "palms", label: "Palms" },
+  { area: "soles", label: "Feet Soles" },
+  { area: "face", label: "Face" },
+  { area: "armpits", label: "Armpits" },
+  { area: "head", label: "Scalp/Head" },
+  { area: "back", label: "Back" },
+  { area: "groin", label: "Groin" },
+  { area: "entireBody", label: "Entire Body" },
+  { area: "other", label: "Other" },
 ];
 
 const BodyAreaSelector: React.FC<BodyAreaSelectorProps> = ({

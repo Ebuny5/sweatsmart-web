@@ -6,7 +6,7 @@ import RecentEpisodes from "@/components/dashboard/RecentEpisodes";
 import TriggerSummary from "@/components/dashboard/TriggerSummary";
 import BodyAreaHeatmap from "@/components/dashboard/BodyAreaHeatmap";
 import QuickActions from "@/components/dashboard/QuickActions";
-import { TriggerFrequency, BodyAreaFrequency, BodyArea } from "@/types";
+import { TriggerFrequency, BodyAreaFrequency } from "@/types";
 import { useEpisodes } from "@/hooks/useEpisodes";
 
 const Dashboard = () => {
@@ -20,17 +20,13 @@ const Dashboard = () => {
     const triggerCounts = new Map<string, { count: number; severities: number[] }>();
     
     allEpisodes.forEach(episode => {
-      if (episode.triggers && Array.isArray(episode.triggers)) {
-        episode.triggers.forEach(trigger => {
-          if (trigger && (trigger.label || trigger.value)) {
-            const key = trigger.label || trigger.value || 'Unknown';
-            const existing = triggerCounts.get(key) || { count: 0, severities: [] };
-            existing.count += 1;
-            existing.severities.push(episode.severityLevel);
-            triggerCounts.set(key, existing);
-          }
-        });
-      }
+      episode.triggers.forEach(trigger => {
+        const key = trigger.label || trigger.value || 'Unknown';
+        const existing = triggerCounts.get(key) || { count: 0, severities: [] };
+        existing.count += 1;
+        existing.severities.push(episode.severityLevel);
+        triggerCounts.set(key, existing);
+      });
     });
 
     const triggerFrequencies: TriggerFrequency[] = Array.from(triggerCounts.entries()).map(([label, data]) => {
@@ -39,23 +35,26 @@ const Dashboard = () => {
         : 0;
       
       return {
-        name: label,
-        category: 'environmental',
+        trigger: { 
+          label, 
+          type: 'environmental' as const, 
+          value: label 
+        },
         count: data.count,
+        averageSeverity,
+        percentage: allEpisodes.length > 0 ? Math.round((data.count / allEpisodes.length) * 100) : 0
       };
     }).sort((a, b) => b.count - a.count);
     
     const bodyAreaCounts = new Map<string, { count: number; severities: number[] }>();
     
     allEpisodes.forEach(episode => {
-      if (episode.bodyAreas && Array.isArray(episode.bodyAreas)) {
-        episode.bodyAreas.forEach(area => {
-          const existing = bodyAreaCounts.get(area) || { count: 0, severities: [] };
-          existing.count += 1;
-          existing.severities.push(episode.severityLevel);
-          bodyAreaCounts.set(area, existing);
-        });
-      }
+      episode.bodyAreas.forEach(area => {
+        const existing = bodyAreaCounts.get(area) || { count: 0, severities: [] };
+        existing.count += 1;
+        existing.severities.push(episode.severityLevel);
+        bodyAreaCounts.set(area, existing);
+      });
     });
 
     const bodyAreas: BodyAreaFrequency[] = Array.from(bodyAreaCounts.entries()).map(([area, data]) => {
@@ -64,12 +63,12 @@ const Dashboard = () => {
         : 0;
         
       return {
-        area: area as BodyArea,
+        area,
         count: data.count,
-        percentage: allEpisodes.length > 0 ? Math.round((data.count / allEpisodes.length) * 100) : 0,
-        averageSeverity
+        averageSeverity,
+        percentage: allEpisodes.length > 0 ? Math.round((data.count / allEpisodes.length) * 100) : 0
       };
-    }).sort((a, b) => b.count - a.count);
+    });
     
     return {
       triggerFrequencies,

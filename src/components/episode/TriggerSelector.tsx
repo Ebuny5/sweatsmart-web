@@ -43,7 +43,7 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
       "Hot Drinks",
       "Heavy Meals"
     ],
-    physical: [
+    activity: [
       "Physical Exercise",
       "Social Events",
       "Public Speaking", 
@@ -62,13 +62,9 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
       onTriggersChange(newTriggers);
     } else {
       const newTrigger: Trigger = {
-        id: `${Date.now()}`,
-        name: triggerLabel,
-        label: triggerLabel,
+        type: type as "environmental" | "emotional" | "dietary" | "activity",
         value: triggerLabel.toLowerCase().replace(/\s+/g, '_'),
-        type: type as "environmental" | "emotional" | "dietary" | "physical",
-        category: type as "environmental" | "emotional" | "dietary" | "physical",
-        icon: "tag"
+        label: triggerLabel
       };
       onTriggersChange([...triggers, newTrigger]);
     }
@@ -77,13 +73,9 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
   const handleAddCustomTrigger = () => {
     if (customTrigger.trim()) {
       const newTrigger: Trigger = {
-        id: `${Date.now()}`,
-        name: customTrigger.trim(),
-        label: customTrigger.trim(),
+        type: activeTab as "environmental" | "emotional" | "dietary" | "activity",
         value: customTrigger.toLowerCase().replace(/\s+/g, '_'),
-        type: activeTab as "environmental" | "emotional" | "dietary" | "physical",
-        category: activeTab as "environmental" | "emotional" | "dietary" | "physical",
-        icon: "tag"
+        label: customTrigger.trim()
       };
       onTriggersChange([...triggers, newTrigger]);
       setCustomTrigger("");
@@ -162,7 +154,7 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
           </TabsContent>
           
           <TabsContent value="activity" className="space-y-4">
-            {renderTriggerGrid(predefinedTriggers.physical, "physical")}
+            {renderTriggerGrid(predefinedTriggers.activity, "activity")}
           </TabsContent>
         </Tabs>
 
