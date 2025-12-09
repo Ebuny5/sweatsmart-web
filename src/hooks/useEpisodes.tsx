@@ -65,27 +65,54 @@ export const useEpisodes = () => {
             });
           }
 
+          // Validate and parse dates with fallback to created_at
+          const episodeDate = ep.date || ep.created_at;
+          const parsedDate = new Date(episodeDate);
+          const parsedCreatedAt = new Date(ep.created_at);
+          
+          // Check if dates are valid
+          if (isNaN(parsedDate.getTime())) {
+            console.warn(`Invalid date for episode ${ep.id}:`, ep.date);
+            throw new Error('Invalid episode date');
+          }
+
           return {
             id: ep.id,
-            userId: ep.user_id,
-            datetime: new Date(ep.date),
+            date: episodeDate,
+            datetime: parsedDate,
+            severity: ep.severity as SeverityLevel,
             severityLevel: ep.severity as SeverityLevel,
+            body_areas: (ep.body_areas || []) as BodyArea[],
             bodyAreas: (ep.body_areas || []) as BodyArea[],
             triggers: parsedTriggers,
             notes: ep.notes || undefined,
-            createdAt: new Date(ep.created_at),
+            created_at: ep.created_at,
+            createdAt: isNaN(parsedCreatedAt.getTime()) ? parsedDate : parsedCreatedAt,
+            updated_at: ep.updated_at,
+            userId: ep.user_id,
           };
         } catch (error) {
           console.error('Error processing episode:', ep.id, error);
+          // Use created_at as fallback for datetime, but ensure we always end up with a valid Date
+          let fallbackDate = ep.created_at ? new Date(ep.created_at) : new Date();
+          if (isNaN(fallbackDate.getTime())) {
+            fallbackDate = new Date();
+          }
+          
           return {
             id: ep.id,
-            userId: ep.user_id,
-            datetime: new Date(ep.date),
+            date: ep.date || ep.created_at,
+            datetime: fallbackDate,
+            severity: ep.severity as SeverityLevel,
             severityLevel: ep.severity as SeverityLevel,
+            body_areas: (ep.body_areas || []) as BodyArea[],
             bodyAreas: (ep.body_areas || []) as BodyArea[],
             triggers: [],
             notes: ep.notes || undefined,
-            createdAt: new Date(ep.created_at),
+            created_at: ep.created_at,
+            createdAt: fallbackDate,
+            updated_at: ep.updated_at,
+            userId: ep.user_id,
           };
         }
       });

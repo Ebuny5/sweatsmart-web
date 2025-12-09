@@ -6,27 +6,30 @@ import RecentEpisodes from "@/components/dashboard/RecentEpisodes";
 import TriggerSummary from "@/components/dashboard/TriggerSummary";
 import BodyAreaHeatmap from "@/components/dashboard/BodyAreaHeatmap";
 import QuickActions from "@/components/dashboard/QuickActions";
-import { TriggerFrequency, BodyAreaFrequency } from "@/types";
+
+import { TriggerFrequency, BodyAreaFrequency, BodyArea } from "@/types";
 import { useEpisodes } from "@/hooks/useEpisodes";
 
 const Dashboard = () => {
   const { episodes: allEpisodes, loading: isLoading, error, refetch } = useEpisodes();
   
   const dashboardData = useMemo(() => {
-    console.log('Processing dashboard data for', allEpisodes.length, 'episodes');
-    
     const recentEpisodes = allEpisodes.slice(0, 5);
     
     const triggerCounts = new Map<string, { count: number; severities: number[] }>();
     
     allEpisodes.forEach(episode => {
-      episode.triggers.forEach(trigger => {
-        const key = trigger.label || trigger.value || 'Unknown';
-        const existing = triggerCounts.get(key) || { count: 0, severities: [] };
-        existing.count += 1;
-        existing.severities.push(episode.severityLevel);
-        triggerCounts.set(key, existing);
-      });
+      if (episode.triggers && Array.isArray(episode.triggers)) {
+        episode.triggers.forEach(trigger => {
+          if (trigger && (trigger.label || trigger.value)) {
+            const key = trigger.label || trigger.value || 'Unknown';
+            const existing = triggerCounts.get(key) || { count: 0, severities: [] };
+            existing.count += 1;
+            existing.severities.push(episode.severityLevel);
+            triggerCounts.set(key, existing);
+          }
+        });
+      }
     });
 
     const triggerFrequencies: TriggerFrequency[] = Array.from(triggerCounts.entries()).map(([label, data]) => {
@@ -35,26 +38,23 @@ const Dashboard = () => {
         : 0;
       
       return {
-        trigger: { 
-          label, 
-          type: 'environmental' as const, 
-          value: label 
-        },
+        name: label,
+        category: 'environmental',
         count: data.count,
-        averageSeverity,
-        percentage: allEpisodes.length > 0 ? Math.round((data.count / allEpisodes.length) * 100) : 0
       };
     }).sort((a, b) => b.count - a.count);
     
     const bodyAreaCounts = new Map<string, { count: number; severities: number[] }>();
     
     allEpisodes.forEach(episode => {
-      episode.bodyAreas.forEach(area => {
-        const existing = bodyAreaCounts.get(area) || { count: 0, severities: [] };
-        existing.count += 1;
-        existing.severities.push(episode.severityLevel);
-        bodyAreaCounts.set(area, existing);
-      });
+      if (episode.bodyAreas && Array.isArray(episode.bodyAreas)) {
+        episode.bodyAreas.forEach(area => {
+          const existing = bodyAreaCounts.get(area) || { count: 0, severities: [] };
+          existing.count += 1;
+          existing.severities.push(episode.severityLevel);
+          bodyAreaCounts.set(area, existing);
+        });
+      }
     });
 
     const bodyAreas: BodyAreaFrequency[] = Array.from(bodyAreaCounts.entries()).map(([area, data]) => {
@@ -63,12 +63,12 @@ const Dashboard = () => {
         : 0;
         
       return {
-        area,
+        area: area as BodyArea,
         count: data.count,
-        averageSeverity,
-        percentage: allEpisodes.length > 0 ? Math.round((data.count / allEpisodes.length) * 100) : 0
+        percentage: allEpisodes.length > 0 ? Math.round((data.count / allEpisodes.length) * 100) : 0,
+        averageSeverity
       };
-    });
+    }).sort((a, b) => b.count - a.count);
     
     return {
       triggerFrequencies,
@@ -128,6 +128,8 @@ const Dashboard = () => {
         </div>
         
         <QuickActions />
+        
+        {/* DebugPanel removed from user view */}
         
         <div className="grid gap-6 md:grid-cols-3">
           <DashboardSummary 

@@ -78,7 +78,10 @@ const RecentEpisodes: React.FC<RecentEpisodesProps> = ({ episodes }) => {
                   {episode.triggers.length > 0 && (
                     <div className="font-medium mt-1">
                       Triggers: <span className="font-normal">
-                        {episode.triggers.slice(0, 2).map(t => t.label).join(", ")}
+                        {episode.triggers
+                          .slice(0, 2)
+                          .map(t => t?.label || t?.value || 'Unknown')
+                          .join(", ")}
                         {episode.triggers.length > 2 ? ` and ${episode.triggers.length - 2} more` : ""}
                       </span>
                     </div>

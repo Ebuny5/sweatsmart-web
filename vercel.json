@@ -1,5 +1,13 @@
+
 {
   "rewrites": [
-    { "source": "/", "destination": "https://loveable.app" }
+    {
+      "source": "/api/:match*",
+      "destination": "https://ujbcolxawpzfjkjviwqw.supabase.co/:match*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/"
+    }
   ]
 }

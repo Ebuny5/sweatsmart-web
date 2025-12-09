@@ -1,2 +1,31 @@
-
 project_id = "ujbcolxawpzfjkjviwqw"
+
+[functions.analyze-hyperhidrosis]
+verify_jwt = true
+
+[functions.generate-episode-insights]
+verify_jwt = true
+
+[functions.generate-sensor-reading]
+verify_jwt = false
+
+[functions.analyze-palm-image]
+verify_jwt = false
+
+[functions.get-fused-status]
+verify_jwt = false
+
+[functions.get-weather-data]
+verify_jwt = false
+
+[functions.hyper-ai-chat]
+verify_jwt = true
+
+[functions.register-push-subscription]
+verify_jwt = true
+
+[functions.send-scheduled-reminder]
+verify_jwt = false
+
+[functions.monitor-climate-alerts]
+verify_jwt = false

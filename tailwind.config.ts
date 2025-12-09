@@ -63,30 +63,38 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// SweatSense custom colors
-				teal: {
-					50: '#E6FFFA',
-					100: '#B2F5EA',
-					200: '#81E6D9',
-					300: '#4FD1C5',
-					400: '#38B2AC',
-					500: '#319795',
-					600: '#2C7A7B',
-					700: '#285E61',
-					800: '#234E52',
-					900: '#1D4044',
-				},
+				// SweatSmart medical app colors
+				'droplet-blue': 'hsl(var(--droplet-blue))',
+				'droplet-light': 'hsl(var(--droplet-light))',
+				'professional-gray': 'hsl(var(--professional-gray))',
+				'clean-white': 'hsl(var(--clean-white))',
+				
+				// Enhanced blue palette matching the app icon
 				blue: {
-					50: '#EBF8FF',
-					100: '#BEE3F8',
-					200: '#90CDF4',
-					300: '#63B3ED',
-					400: '#4299E1',
-					500: '#3182CE',
-					600: '#2B6CB0',
-					700: '#2C5282',
-					800: '#2A4365',
-					900: '#1A365D',
+					50: 'hsl(214, 100%, 97%)',
+					100: 'hsl(214, 95%, 93%)',
+					200: 'hsl(213, 97%, 87%)',
+					300: 'hsl(212, 96%, 78%)',
+					400: 'hsl(213, 94%, 68%)',
+					500: 'hsl(217, 91%, 60%)',
+					600: 'hsl(221, 83%, 53%)',
+					700: 'hsl(224, 76%, 48%)',
+					800: 'hsl(226, 71%, 40%)',
+					900: 'hsl(224, 64%, 33%)',
+				},
+				
+				// Professional grays for medical interface
+				gray: {
+					50: 'hsl(210, 20%, 98%)',
+					100: 'hsl(210, 17%, 95%)',
+					200: 'hsl(210, 16%, 92%)',
+					300: 'hsl(210, 14%, 83%)',
+					400: 'hsl(210, 14%, 71%)',
+					500: 'hsl(215, 16%, 47%)',
+					600: 'hsl(215, 19%, 35%)',
+					700: 'hsl(215, 25%, 27%)',
+					800: 'hsl(217, 33%, 17%)',
+					900: 'hsl(222, 47%, 11%)',
 				},
 			},
 			borderRadius: {

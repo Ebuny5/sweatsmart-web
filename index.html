@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -7,15 +6,16 @@
     <title>SweatSmart - Hyperhidrosis Tracking App</title>
     <meta name="description" content="Track, analyze, and manage excessive sweating with SweatSmart" />
     <meta name="author" content="SweatSmart" />
+    <link rel="icon" href="/favicon.png" type="image/png" />
+    <link rel="manifest" href="/manifest.json" />
 
     <meta property="og:title" content="SweatSmart - Hyperhidrosis Tracking App" />
     <meta property="og:description" content="Track, analyze, and manage excessive sweating with SweatSmart" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
-
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:image" content="https://www.sweatsmart.guru/sweatsmart-og-image.png" />
+    <meta property="og:image:secure_url" content="https://www.sweatsmart.guru/sweatsmart-og-image.png" />
     <meta name="twitter:site" content="@sweatsmart" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta name="twitter:image" content="https://www.sweatsmart.guru/sweatsmart-og-image.png" />
   </head>
 
   <body>
@@ -23,5 +23,12 @@
     <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/pwabuilder-sw.js');
+        });
+      }
+    </script>
   </body>
 </html>

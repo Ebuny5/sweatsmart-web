@@ -61,13 +61,15 @@ const PDFExportButton: React.FC<PDFExportButtonProps> = ({ episode, className })
       }
 
       // Triggers
-      if (episode.triggers.length > 0) {
+      if (episode.triggers?.length > 0) {
         pdf.setFont('helvetica', 'bold');
         pdf.text('Triggers:', margin, yPosition);
         yPosition += 8;
         pdf.setFont('helvetica', 'normal');
         episode.triggers.forEach((trigger) => {
-          pdf.text(`• ${trigger.label} (${trigger.type})`, margin + 5, yPosition);
+          const label = trigger?.label || trigger?.value || 'Unknown';
+          const type = trigger?.type || 'environmental';
+          pdf.text(`• ${label} (${type})`, margin + 5, yPosition);
           yPosition += 6;
         });
         yPosition += 10;

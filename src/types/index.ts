@@ -1,142 +1,100 @@
-// User types
-export interface User {
-  id: string;
-  email: string;
-  name?: string;
-  profilePicture?: string;
-  createdAt: Date;
+// Climate types
+export interface WeatherData {
+  temperature: number;
+  humidity: number;
+  uvIndex: number;
 }
 
-export interface Profile {
-  id: string;
-  user_id: string;
-  display_name?: string;
-  created_at: string;
-  updated_at: string;
+export interface PhysiologicalData {
+  eda: number;
 }
 
-export interface UserSettings {
-  id: string;
-  user_id: string;
-  daily_reminders: boolean;
-  reminder_time: string;
-  trigger_alerts: boolean;
-  data_sharing: boolean;
-  youtube_url?: string;
-  website_url?: string;
-  created_at: string;
-  updated_at: string;
+export interface Thresholds {
+  temperature: number;
+  humidity: number;
+  uvIndex: number;
 }
 
-// Symptom logging types
+export type HDSSLevel = 1 | 2 | 3 | 4;
+
+export interface LogEntry {
+  id: string;
+  timestamp: number;
+  hdssLevel: HDSSLevel;
+  weather: WeatherData;
+  physiologicalData: PhysiologicalData;
+}
+
+// Episode types
 export type SeverityLevel = 1 | 2 | 3 | 4 | 5;
 
 export type BodyArea = 
   | 'palms'
   | 'soles'
+  | 'underarms'
   | 'face'
-  | 'armpits'
-  | 'head'
+  | 'scalp'
   | 'back'
-  | 'groin'
-  | 'entireBody'
-  | 'other';
+  | 'chest'
+  | 'groin';
 
 export interface BodyAreaDetail {
   area: BodyArea;
+  name: BodyArea;
   label: string;
+  icon: string;
 }
-
-// Trigger categories
-export type EnvironmentalTrigger = 
-  | 'hotTemperature'
-  | 'coldTemperature'
-  | 'highHumidity'
-  | 'lowHumidity'
-  | 'sunny'
-  | 'rainy'
-  | 'other';
-
-export type EmotionalTrigger = 
-  | 'stress'
-  | 'anxiety'
-  | 'excitement'
-  | 'anger'
-  | 'embarrassment'
-  | 'nervousness'
-  | 'other';
-
-export type DietaryTrigger = 
-  | 'spicyFood'
-  | 'caffeine'
-  | 'alcohol'
-  | 'sugar'
-  | 'dairyProducts'
-  | 'other';
-
-export type ActivityTrigger = 
-  | 'physicalExercise'
-  | 'socialEvents'
-  | 'publicSpeaking'
-  | 'workTasks'
-  | 'certainClothing'
-  | 'other';
-
-export type TriggerType = 
-  | 'environmental'
-  | 'emotional'
-  | 'dietary'
-  | 'activity';
 
 export interface Trigger {
-  type: TriggerType;
-  value: string;
-  label: string;
-}
-
-// Episode logging - Database schema type
-export interface Episode {
   id: string;
-  user_id: string;
-  date: string;
-  severity: number;
-  body_areas: string[];
-  triggers: any[] | null;
-  notes?: string | null;
-  created_at: string;
-  updated_at: string;
+  name: string;
+  label: string;
+  value: string;
+  type: 'environmental' | 'emotional' | 'physical' | 'dietary' | 'medical' | 'situational';
+  category: 'environmental' | 'emotional' | 'physical' | 'dietary' | 'medical' | 'situational';
+  icon: string;
 }
 
-// Episode logging - Processed/Client type
 export interface ProcessedEpisode {
   id: string;
-  userId: string;
+  date: string;
   datetime: Date;
+  severity: SeverityLevel;
   severityLevel: SeverityLevel;
+  body_areas: BodyArea[];
   bodyAreas: BodyArea[];
   triggers: Trigger[];
   notes?: string;
+  created_at: string;
   createdAt: Date;
-  updatedAt?: Date;
-}
-
-// Dashboard data
-export interface TrendData {
-  date: string;
-  averageSeverity: number;
-  episodeCount: number;
-}
-
-export interface BodyAreaFrequency {
-  area: string;
-  count: number;
-  averageSeverity: number;
-  percentage: number;
+  updated_at: string;
+  userId: string;
 }
 
 export interface TriggerFrequency {
-  trigger: Trigger;
+  name: string;
   count: number;
-  averageSeverity: number;
+  category: string;
+}
+
+export interface BodyAreaFrequency {
+  area: BodyArea;
+  count: number;
   percentage: number;
+  averageSeverity?: number;
+}
+
+export interface TrendData {
+  date: string;
+  severity: number;
+  count: number;
+}
+
+// Profile types
+export interface Profile {
+  id: string;
+  user_id: string;
+  display_name: string | null;
+  created_at: string;
+  updated_at: string;
 }

@@ -1,136 +1,79 @@
-
-import { cn } from "@/lib/utils";
+import React from 'react';
+import { NavLink } from 'react-router-dom';
 import { 
-  Sidebar as SidebarComponent,
-  SidebarContent, 
-  SidebarGroup, 
-  SidebarGroupContent, 
-  SidebarGroupLabel, 
-  SidebarMenu, 
-  SidebarMenuButton, 
-  SidebarMenuItem,
-  SidebarTrigger
-} from "@/components/ui/sidebar";
-import { 
-  Calendar, 
-  BarChart2, 
-  Plus, 
-  Settings, 
+  LayoutDashboard, 
+  PlusCircle, 
+  History, 
+  TrendingUp, 
+  Hand, 
+  CloudRainWind, 
+  Users, 
   MessageSquare, 
-  Thermometer,
-  Menu
-} from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+  Settings,
+  Sparkles
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-const Sidebar = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  
-  const menuItems = [
-    {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: BarChart2,
-    },
-    {
-      title: "Log Episode",
-      url: "/log-episode",
-      icon: Plus,
-    },
-    {
-      title: "History",
-      url: "/history",
-      icon: Calendar,
-    },
-    {
-      title: "Insights",
-      url: "/insights",
-      icon: Thermometer,
-    },
-    {
-      title: "Community",
-      url: "/community",
-      icon: MessageSquare,
-    },
-    {
-      title: "Settings",
-      url: "/settings",
-      icon: Settings,
-    },
-  ];
-  
-  const handleNavigation = (url: string) => {
-    console.log('Navigating to:', url);
-    try {
-      navigate(url);
-    } catch (error) {
-      console.error('Navigation error:', error);
-      // Fallback to direct navigation
-      window.location.href = url;
-    }
-  };
-  
+const menuItems = [
+  { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { path: '/log-episode', icon: PlusCircle, label: 'Log Episode' },
+  { path: '/history', icon: History, label: 'History' },
+  { path: '/insights', icon: TrendingUp, label: 'Insights' },
+  { path: '/palm-scanner', icon: Hand, label: 'Palm Scanner' },
+  { path: '/hyper-ai', icon: Sparkles, label: 'Hyper AI' },
+  { path: '/climate', icon: CloudRainWind, label: 'Climate Alert' },
+  { path: '/community', icon: Users, label: 'Community' },
+  { path: 'https://docs.google.com/forms/u/0/d/e/1FAIpQLSfHBkUOMxFhB03UyfpnrEQk5VlszVUFN2n-TqjRwJ1ehqSeTw/viewform?pli=1&authuser=0', icon: MessageSquare, label: 'Feedback', external: true },
+  { path: '/settings', icon: Settings, label: 'Settings' },
+];
+
+const Sidebar: React.FC = () => {
   return (
-    <>
-      {/* Custom trigger button that's larger and more professional */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="fixed left-4 top-4 z-50 lg:hidden h-10 w-10 p-0 bg-background/80 backdrop-blur-sm border border-border shadow-sm hover:bg-accent"
-        onClick={() => {
-          // Trigger the sidebar programmatically
-          const trigger = document.querySelector('[data-sidebar="trigger"]') as HTMLButtonElement;
-          if (trigger) {
-            trigger.click();
-          }
-        }}
-      >
-        <Menu className="h-6 w-6" />
-        <span className="sr-only">Toggle Menu</span>
-      </Button>
+    <aside className="w-64 bg-background border-r border-border flex flex-col">
+      <div className="p-6 border-b border-border">
+        <h2 className="text-xl font-bold text-foreground">SweatSmart</h2>
+      </div>
       
-      <SidebarComponent className="border-r bg-background">
-        <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-primary font-bold px-2 mb-4 text-lg">
-              SweatSmart
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu className="space-y-1">
-                {menuItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      className={cn(
-                        "w-full justify-start transition-colors duration-200 cursor-pointer",
-                        location.pathname === item.url 
-                          ? "bg-primary text-primary-foreground font-medium" 
-                          : "hover:bg-muted hover:text-foreground"
-                      )}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        console.log('Menu item clicked:', item.title, item.url);
-                        handleNavigation(item.url);
-                      }}
-                      asChild={false}
-                    >
-                      <div className="flex items-center w-full">
-                        <item.icon className="h-5 w-5 mr-3 flex-shrink-0" />
-                        <span className="flex-1">{item.title}</span>
-                      </div>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </SidebarContent>
-      </SidebarComponent>
-      
-      {/* Hidden default trigger for sidebar functionality */}
-      <SidebarTrigger className="hidden" />
-    </>
+      <nav className="flex-1 p-4">
+        <ul className="space-y-2">
+          {menuItems.map((item) => (
+            <li key={item.path}>
+              {item.external ? (
+                <a
+                  href={item.path}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors',
+                    'hover:bg-accent hover:text-accent-foreground',
+                    'text-muted-foreground'
+                  )}
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span>{item.label}</span>
+                </a>
+              ) : (
+                <NavLink
+                  to={item.path}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors',
+                      'hover:bg-accent hover:text-accent-foreground',
+                      isActive
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground'
+                    )
+                  }
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span>{item.label}</span>
+                </NavLink>
+              )}
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </aside>
   );
 };
 

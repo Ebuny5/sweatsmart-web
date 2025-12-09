@@ -1,7 +1,6 @@
-
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -21,25 +20,25 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated }) => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
-  
+
   const handleLogin = () => {
     navigate('/login');
   };
-  
+
   const handleRegister = () => {
     navigate('/register');
   };
-  
+
   const handleLogout = async () => {
     await signOut();
     navigate('/');
   };
-  
+
   const userName = profile?.display_name || user?.email || '';
   const userInitials = userName
     ? userName.split(' ').map(name => name[0]).join('').toUpperCase()
     : '?';
-    
+
   return (
     <header className="w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
       <div className="container flex h-16 items-center justify-between">
@@ -49,33 +48,38 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated }) => {
           </div>
           <h1 className="text-xl font-bold tracking-tight">SweatSmart</h1>
         </div>
-        
+
         <div className="flex items-center gap-4">
           {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                  <Avatar>
-                    <AvatarImage src="" alt={userName} />
-                    <AvatarFallback>{userInitials}</AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate('/profile')}>
-                  Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/settings')}>
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-12 w-12 rounded-full">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src="" alt={userName} />
+                      <AvatarFallback className="text-lg">{userInitials}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate('/profile')}>
+                    Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/settings')}>
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => window.open('https://docs.google.com/forms/d/e/1FAIpQLSfHBkUOMxFhB03UyfpnrEQk5VlszVUFN2n-TqjRwJ1ehqSeTw/viewform', '_blank', 'noopener,noreferrer')}>
+                    Feedback
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           ) : (
             <div className="flex items-center gap-2">
               <Button variant="ghost" onClick={handleLogin}>
