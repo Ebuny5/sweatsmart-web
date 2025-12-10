@@ -5,6 +5,86 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Generate fallback data locally when API fails
+function generateFallbackData(mode: string) {
+  const timestamp = new Date().toISOString();
+  const userId = `user_${Math.random().toString(36).substring(2, 10)}`;
+  
+  let edaValue: number;
+  let hrValue: number;
+  let notes: string;
+  
+  switch (mode) {
+    case 'Active':
+      edaValue = 5.0 + Math.random() * 4.0; // 5.0-9.0
+      hrValue = 72 + Math.floor(Math.random() * 13); // 72-85
+      notes = 'Active state simulation - elevated physiological response indicating moderate physical activity.';
+      break;
+    case 'Trigger':
+      edaValue = 10.0 + Math.random() * 5.0; // 10.0-15.0
+      hrValue = 85 + Math.floor(Math.random() * 20); // 85-105
+      notes = 'Trigger state simulation - heightened stress response with elevated EDA and heart rate.';
+      break;
+    case 'Resting':
+    default:
+      edaValue = 2.0 + Math.random() * 3.0; // 2.0-5.0
+      hrValue = 60 + Math.floor(Math.random() * 12); // 60-72
+      notes = 'Resting state simulation - calm baseline physiological readings.';
+      break;
+  }
+  
+  return {
+    user_id: userId,
+    timestamp: timestamp,
+    sim_mode: mode,
+    EDA_uS: parseFloat(edaValue.toFixed(2)),
+    HR_bpm: hrValue,
+    EDA_baseline_uS: parseFloat((2.0 + Math.random() * 3.0).toFixed(2)),
+    HR_baseline_bpm: 60 + Math.floor(Math.random() * 12),
+    notes: notes,
+  };
+}
+
+// Retry function with exponential backoff
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 2): Promise<Response> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      if (response.ok) {
+        return response;
+      }
+      
+      // If rate limited or overloaded, wait and retry
+      if (response.status === 429 || response.status === 503) {
+        const errorText = await response.text();
+        console.warn(`Attempt ${attempt + 1} failed with status ${response.status}: ${errorText}`);
+        
+        if (attempt < maxRetries) {
+          const delay = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+          console.log(`Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+      }
+      
+      // For other errors, throw immediately
+      const errorText = await response.text();
+      throw new Error(`API error ${response.status}: ${errorText}`);
+    } catch (error) {
+      lastError = error as Error;
+      if (attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 1000;
+        console.log(`Fetch failed, retrying in ${delay}ms...`, error);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  throw lastError || new Error('Max retries exceeded');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -15,7 +95,11 @@ serve(async (req) => {
     const API_KEY = Deno.env.get('GOOGLE_AI_STUDIO_API_KEY');
     
     if (!API_KEY) {
-      throw new Error("GOOGLE_AI_STUDIO_API_KEY not configured");
+      console.log('No API key configured, using fallback data generation');
+      const fallbackData = generateFallbackData(mode);
+      return new Response(JSON.stringify(fallbackData), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const prompt = `Simulate one wearable sensor reading for a person in a '${mode}' state. Output only JSON with the specified schema.
@@ -45,38 +129,45 @@ The notes field should briefly describe the simulation, reflecting the '${mode}'
       required: ["user_id", "timestamp", "sim_mode", "EDA_uS", "HR_bpm", "EDA_baseline_uS", "HR_baseline_bpm", "notes"]
     };
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: responseSchema,
-          temperature: 1,
-        }
-      })
-    });
+    try {
+      const response = await fetchWithRetry(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              responseMimeType: "application/json",
+              responseSchema: responseSchema,
+              temperature: 1,
+            }
+          })
+        },
+        2 // Max retries
+      );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Gemini API error:', errorText);
-      throw new Error('Failed to generate sensor reading');
+      const result = await response.json();
+      const jsonString = result.candidates[0].content.parts[0].text.trim();
+      const data = JSON.parse(jsonString);
+
+      // Enforce correct mode
+      if (!data.sim_mode || data.sim_mode !== mode) {
+        console.warn(`Mismatched sim_mode: expected ${mode}, got ${data.sim_mode}. Correcting.`);
+        data.sim_mode = mode;
+      }
+
+      return new Response(JSON.stringify(data), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } catch (apiError) {
+      // If API fails after retries, use fallback
+      console.warn('API failed after retries, using fallback data:', apiError);
+      const fallbackData = generateFallbackData(mode);
+      return new Response(JSON.stringify(fallbackData), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
-
-    const result = await response.json();
-    const jsonString = result.candidates[0].content.parts[0].text.trim();
-    const data = JSON.parse(jsonString);
-
-    // Enforce correct mode
-    if (!data.sim_mode || data.sim_mode !== mode) {
-      console.warn(`Mismatched sim_mode: expected ${mode}, got ${data.sim_mode}. Correcting.`);
-      data.sim_mode = mode;
-    }
-
-    return new Response(JSON.stringify(data), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
   } catch (error) {
     console.error('Error in generate-sensor-reading:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
