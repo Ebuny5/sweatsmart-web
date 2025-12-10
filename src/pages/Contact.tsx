@@ -42,6 +42,18 @@ const Contact = () => {
               >
                 Send Email
               </Button>
+              <div className="mt-4 pt-4 border-t border-border/50">
+                <p className="text-sm text-professional-gray mb-2">
+                  We'd love to hear your feedback!
+                </p>
+                <Button 
+                  variant="outline"
+                  onClick={() => window.open('https://docs.google.com/forms/d/e/1FAIpQLSfHBkUOMxFhB03UyfpnrEQk5VlszVUFN2n-TqjRwJ1ehqSeTw/viewform?fbzx=7815900527824722421', '_blank')}
+                  className="w-full"
+                >
+                  Share Feedback
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
