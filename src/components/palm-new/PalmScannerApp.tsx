@@ -15,9 +15,10 @@ const PalmScannerApp: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const returnTo = searchParams.get('returnTo');
+  const initialMode = (searchParams.get('mode') as SimulationMode) || 'Resting';
 
   const [sensorData, setSensorData] = useState<SensorReading | null>(null);
-  const [loadingMode, setLoadingMode] = useState<SimulationMode | null>('Resting');
+  const [loadingMode, setLoadingMode] = useState<SimulationMode | null>(initialMode);
   const [error, setError] = useState<string | null>(null);
 
   const [isScanning, setIsScanning] = useState(false);
@@ -60,8 +61,8 @@ const PalmScannerApp: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetchSensorData('Resting');
-  }, [fetchSensorData]);
+    fetchSensorData(initialMode);
+  }, []);
 
   const handleCapture = useCallback(async (base64ImageData: string) => {
     setIsScanning(false);

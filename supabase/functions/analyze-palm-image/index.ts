@@ -5,6 +5,50 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Retry logic for handling 503 errors
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  maxRetries = 3,
+  baseDelay = 1000
+): Promise<Response> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      
+      if (response.ok) {
+        return response;
+      }
+      
+      // If 503 (overloaded), retry
+      if (response.status === 503 && attempt < maxRetries) {
+        const errorText = await response.text();
+        console.warn(`Attempt ${attempt} failed with status 503: ${errorText}`);
+        const delay = baseDelay * attempt;
+        console.info(`Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      
+      // For other errors or last attempt, throw
+      const errorText = await response.text();
+      throw new Error(`API error ${response.status}: ${errorText}`);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      if (attempt < maxRetries) {
+        const delay = baseDelay * attempt;
+        console.warn(`Attempt ${attempt} failed: ${lastError.message}`);
+        console.info(`Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  throw lastError || new Error('All retry attempts failed');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -20,24 +64,21 @@ serve(async (req) => {
 
     const prompt = "Analyze the image of a person's palm. Respond with \"Moisture detected.\" if there are visible signs of sweat or moisture (like shininess or droplets). Respond with \"No significant moisture.\" if the palm appears dry. Be concise.";
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { inline_data: { mime_type: 'image/jpeg', data: base64ImageData } },
-            { text: prompt }
-          ]
-        }]
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Gemini API error:', errorText);
-      throw new Error('Failed to analyze palm image');
-    }
+    const response = await fetchWithRetry(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { inline_data: { mime_type: 'image/jpeg', data: base64ImageData } },
+              { text: prompt }
+            ]
+          }]
+        })
+      }
+    );
 
     const result = await response.json();
     const resultText = result.candidates[0].content.parts[0].text.trim();
