@@ -15,34 +15,54 @@ const PalmScannerModal: React.FC<PalmScannerProps> = ({ onCapture, onClose }) =>
 
   useEffect(() => {
     let mediaStream: MediaStream | null = null;
+    let isMounted = true;
 
     const startCamera = async () => {
-      // Prioritize the back camera ('environment') for palm scanning
-      const constraints: MediaStreamConstraints = {
-        video: { facingMode: 'environment' },
-        audio: false,
-      };
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setError("Camera not supported on this device/browser. Please use the upload option.");
+        return;
+      }
 
-      try {
-        mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-        setStream(mediaStream);
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream;
-        }
-      } catch (err) {
-        console.warn("Failed to get environment camera, trying user camera as fallback.", err);
-        // Fallback to the front camera if the back one fails or isn't available
+      // Try different camera configurations
+      const cameraConfigs = [
+        { video: { facingMode: 'environment' }, audio: false },
+        { video: { facingMode: 'user' }, audio: false },
+        { video: true, audio: false }, // Basic fallback
+      ];
+
+      for (const constraints of cameraConfigs) {
         try {
-          constraints.video = { facingMode: 'user' };
+          console.log('Trying camera with constraints:', constraints);
           mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-          setStream(mediaStream);
-          if (videoRef.current) {
-            videoRef.current.srcObject = mediaStream;
+          
+          if (isMounted) {
+            setStream(mediaStream);
+            setError(null);
+            if (videoRef.current) {
+              videoRef.current.srcObject = mediaStream;
+              // Wait for video to be ready
+              await new Promise<void>((resolve) => {
+                if (videoRef.current) {
+                  videoRef.current.onloadedmetadata = () => resolve();
+                } else {
+                  resolve();
+                }
+              });
+            }
           }
-        } catch (fallbackErr) {
-            console.error("Error accessing any camera:", fallbackErr);
-            setError("Could not access camera. Please check permissions and ensure a camera is available.");
+          console.log('Camera started successfully');
+          return; // Success, exit the loop
+        } catch (err) {
+          console.warn(`Failed with constraints:`, constraints, err);
+          // Continue to next configuration
         }
+      }
+
+      // All configurations failed
+      if (isMounted) {
+        console.error("All camera configurations failed");
+        setError("Could not access camera. Please check permissions or use the upload option.");
       }
     };
 
@@ -50,9 +70,12 @@ const PalmScannerModal: React.FC<PalmScannerProps> = ({ onCapture, onClose }) =>
 
     // Cleanup function to stop the stream when the component unmounts
     return () => {
-      mediaStream?.getTracks().forEach(track => track.stop());
+      isMounted = false;
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+      }
     };
-  }, []); // Empty dependency array ensures this effect runs only once on mount
+  }, []);
 
   const handleCapture = () => {
     if (videoRef.current && canvasRef.current) {
