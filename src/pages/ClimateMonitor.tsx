@@ -547,7 +547,14 @@ const ClimateMonitor = () => {
 
             {/* Go to Palm Scanner Button */}
             <button
-              onClick={() => navigate('/palm-scanner?returnTo=/climate')}
+              onClick={() => {
+                // Determine mode based on current EDA level
+                const eda = physiologicalData.eda;
+                let mode = 'Resting';
+                if (eda > 10) mode = 'Trigger';
+                else if (eda > 5) mode = 'Active';
+                navigate(`/palm-scanner?returnTo=/climate&mode=${mode}`);
+              }}
               className="w-full py-3 bg-purple-600 hover:bg-purple-500 rounded-lg transition-colors font-semibold flex items-center justify-center gap-2"
             >
               <ZapIcon className="w-5 h-5" />
