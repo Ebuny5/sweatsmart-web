@@ -34,7 +34,6 @@ import Cookies from "./pages/Cookies";
 import Legal from "./pages/Legal";
 import ClimateMonitor from "./pages/ClimateMonitor";
 import ClimateHistory from "./pages/ClimateHistory";
-import ClimateSettings from "./pages/ClimateSettings";
 import HyperAI from "./pages/HyperAI";
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -172,11 +171,7 @@ const AppRoutes = () => (
         <ClimateHistory />
       </ProtectedRoute>
     } />
-    <Route path="/climate/settings" element={
-      <ProtectedRoute>
-        <ClimateSettings />
-      </ProtectedRoute>
-    } />
+    <Route path="/climate/settings" element={<Navigate to="/settings" replace />} />
     <Route path="/hyper-ai" element={
       <ProtectedRoute>
         <HyperAI />
