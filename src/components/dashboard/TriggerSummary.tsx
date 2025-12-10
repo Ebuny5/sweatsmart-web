@@ -24,86 +24,38 @@ interface TriggerSummaryProps {
 const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes = [] }) => {
   
   const processedTriggers = useMemo(() => {
-    // Normalize input so we always work with a safe internal shape
-    if (triggers.length > 0) {
-      return triggers
-        .filter((t) => !!t)
-        .map((t: any) => {
-          const rawLabel = t.name ?? t.label ?? t.value ?? "Unknown";
-          const label =
-            typeof rawLabel === "string" && rawLabel.trim().length > 0
-              ? rawLabel
-              : "Unknown";
-          const count = typeof t.count === "number" ? t.count : 0;
-          const type = t.category || "environmental";
-
-          return {
-            trigger: {
-              label,
-              value: label,
-              type,
-            },
-            count,
-            averageSeverity: 0,
-            percentage:
-              allEpisodes.length > 0
-                ? Math.round((count / allEpisodes.length) * 100)
-                : 0,
-          };
-        })
-        .sort((a, b) => b.count - a.count);
-    }
-
+    // Use provided triggers if available, otherwise generate from episodes
+    if (triggers.length > 0) return triggers;
     if (allEpisodes.length === 0) return [];
 
     const triggerCounts = new Map<string, { count: number; severities: number[] }>();
-
-    allEpisodes.forEach((episode) => {
-      if (!episode.triggers || !Array.isArray(episode.triggers)) return;
-
-      episode.triggers.forEach((rawTrigger: any) => {
-        if (!rawTrigger) return;
-
-        const rawLabel =
-          rawTrigger.label ??
-          rawTrigger.value ??
-          (typeof rawTrigger === "string" ? rawTrigger : undefined);
-
-        const label =
-          typeof rawLabel === "string" && rawLabel.trim().length > 0
-            ? rawLabel
-            : "Unknown";
-
-        const existing =
-          triggerCounts.get(label) || { count: 0, severities: [] };
+    
+    allEpisodes.forEach(episode => {
+      episode.triggers.forEach(trigger => {
+        const key = trigger.label || trigger.value || 'Unknown';
+        const existing = triggerCounts.get(key) || { count: 0, severities: [] };
         existing.count += 1;
         existing.severities.push(episode.severityLevel);
-        triggerCounts.set(label, existing);
+        triggerCounts.set(key, existing);
       });
     });
 
-    return Array.from(triggerCounts.entries())
-      .map(([label, data]) => {
-        const averageSeverity =
-          data.severities.length > 0
-            ? data.severities.reduce((a, b) => a + b, 0) / data.severities.length
-            : 0;
-
-        return {
-          trigger: {
-            label,
-            type: "environmental" as const,
-            value: label,
-          },
-          count: data.count,
-          averageSeverity,
-          percentage:
-            allEpisodes.length > 0
-              ? Math.round((data.count / allEpisodes.length) * 100)
-              : 0,
-        };
-      })
-      .sort((a, b) => b.count - a.count);
+    return Array.from(triggerCounts.entries()).map(([label, data]) => {
+      const averageSeverity = data.severities.length > 0
+        ? data.severities.reduce((a, b) => a + b, 0) / data.severities.length
+        : 0;
+      
+      return {
+        trigger: { 
+          label, 
+          type: 'environmental' as const, 
+          value: label 
+        },
+        count: data.count,
+        averageSeverity,
+        percentage: allEpisodes.length > 0 ? Math.round((data.count / allEpisodes.length) * 100) : 0
+      };
+    }).sort((a, b) => b.count - a.count);
   }, [triggers, allEpisodes]);
 
   const isInsightState = allEpisodes.length >= 10;
@@ -114,26 +66,20 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
     : processedTriggers;
 
   const chartData = useMemo(() => {
-    return displayTriggers.map((triggerFreq) => {
-      const triggerLabel =
-        triggerFreq?.trigger?.label ||
-        triggerFreq?.trigger?.value ||
-        "Unknown";
-
-      const safeLabel =
-        typeof triggerLabel === "string" && triggerLabel.trim().length > 0
-          ? triggerLabel
-          : "Unknown";
-
+    return displayTriggers.map(triggerFreq => {
+      // Handle both formats: { trigger: { label } } and { name }
+      const triggerLabel = (triggerFreq as any).trigger?.label || 
+                          (triggerFreq as any).trigger?.value || 
+                          (triggerFreq as any).name ||
+                          'Unknown';
       return {
-        name:
-          safeLabel.length > 12
-            ? safeLabel.substring(0, 12) + "..."
-            : safeLabel,
-        fullName: safeLabel,
+        name: triggerLabel.length > 12 
+          ? triggerLabel.substring(0, 12) + '...' 
+          : triggerLabel,
+        fullName: triggerLabel,
         count: triggerFreq.count,
-        severity: Number(triggerFreq.averageSeverity.toFixed(1)),
-        percentage: triggerFreq.percentage,
+        severity: Number(((triggerFreq as any).averageSeverity || 0).toFixed(1)),
+        percentage: (triggerFreq as any).percentage || 0
       };
     });
   }, [displayTriggers]);
@@ -141,29 +87,13 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
   const cardTitle = isInsightState ? "Your Top Triggers" : "Trigger Summary";
 
   const handleTriggerClick = (triggerName: string) => {
-    if (!triggerName) return;
-
     // Navigate to episodes filtered by this trigger
-    const filteredEpisodes = allEpisodes.filter(
-      (episode) =>
-        Array.isArray(episode.triggers) &&
-        episode.triggers.some((rawTrigger: any) => {
-          if (!rawTrigger) return false;
-
-          const rawLabel =
-            rawTrigger.label ??
-            rawTrigger.value ??
-            (typeof rawTrigger === "string" ? rawTrigger : undefined);
-
-          const label =
-            typeof rawLabel === "string" && rawLabel.trim().length > 0
-              ? rawLabel
-              : "Unknown";
-
-          return label === triggerName;
-        })
+    const filteredEpisodes = allEpisodes.filter(episode => 
+      episode.triggers.some(trigger => 
+        (trigger.label || trigger.value || 'Unknown') === triggerName
+      )
     );
-
+    
     console.log(`Clicked on trigger: ${triggerName}`, filteredEpisodes);
     // TODO: Implement navigation to filtered episodes view
   };
@@ -265,11 +195,9 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
           <div className="mt-4 space-y-3">
             <div className="flex flex-wrap gap-2">
               {displayTriggers.slice(0, 3).map((trigger, index) => {
-                const buttonLabel =
-                  trigger.trigger?.label ||
-                  trigger.trigger?.value ||
-                  "Unknown";
-
+                const buttonLabel = (trigger as any).trigger?.label || 
+                                   (trigger as any).name || 
+                                   'Unknown';
                 return (
                   <Button
                     key={index}
