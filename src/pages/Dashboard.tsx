@@ -1,6 +1,6 @@
-
 import { useMemo } from "react";
 import AppLayout from "@/components/layout/AppLayout";
+import { SeverityLevel } from "@/types";
 import DashboardSummary from "@/components/dashboard/DashboardSummary";
 import RecentEpisodes from "@/components/dashboard/RecentEpisodes";
 import TriggerSummary from "@/components/dashboard/TriggerSummary";
@@ -10,14 +10,36 @@ import { TriggerFrequency, BodyAreaFrequency, BodyArea } from "@/types";
 import { useEpisodes } from "@/hooks/useEpisodes";
 
 const Dashboard = () => {
-  const { episodes: allEpisodes, loading: isLoading, error, refetch } = useEpisodes();
+  const { episodes: rawEpisodes, loading: isLoading, error, refetch } = useEpisodes();
+  
+  // 🔥 THE FIX: Process episodes to ensure correct data types
+  const allEpisodes = useMemo(() => {
+    return rawEpisodes.map(episode => ({
+      ...episode,
+      // Convert datetime string to Date object (CRITICAL!)
+      datetime: new Date(episode.datetime),
+      // Ensure severityLevel is a number
+      severityLevel: Number(episode.severityLevel) as SeverityLevel,
+      // Ensure triggers is an array
+      triggers: Array.isArray(episode.triggers) ? episode.triggers : [],
+      // Ensure bodyAreas is an array
+      bodyAreas: Array.isArray(episode.bodyAreas) ? episode.bodyAreas : []
+    }));
+  }, [rawEpisodes]);
   
   const dashboardData = useMemo(() => {
     console.log('Processing dashboard data for', allEpisodes.length, 'episodes');
     
+    // Debug: Check if datetime is properly converted
+    if (allEpisodes.length > 0) {
+      console.log('First episode datetime type:', typeof allEpisodes[0].datetime);
+      console.log('Is Date object?', allEpisodes[0].datetime instanceof Date);
+      console.log('Severity type:', typeof allEpisodes[0].severityLevel);
+    }
+    
     const recentEpisodes = allEpisodes.slice(0, 5);
     
-    const triggerCounts = new Map<string, { count: number; severities: number[] }>();
+    const triggerCounts = new Map();
     
     allEpisodes.forEach(episode => {
       if (episode.triggers && Array.isArray(episode.triggers)) {
@@ -52,7 +74,7 @@ const Dashboard = () => {
       };
     }).sort((a, b) => b.count - a.count);
     
-    const bodyAreaCounts = new Map<string, { count: number; severities: number[] }>();
+    const bodyAreaCounts = new Map();
     
     allEpisodes.forEach(episode => {
       if (episode.bodyAreas && Array.isArray(episode.bodyAreas)) {
