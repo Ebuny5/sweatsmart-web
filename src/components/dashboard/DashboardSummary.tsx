@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -27,39 +28,16 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   allEpisodes = [],
 }) => {
   
-  // 🔥 DEBUG: Log what we receive
-  console.log('=== DashboardSummary Debug ===');
-  console.log('Received allEpisodes:', allEpisodes.length);
-  console.log('First episode:', allEpisodes[0]);
-  if (allEpisodes[0]) {
-    console.log('First episode datetime:', allEpisodes[0].datetime);
-    console.log('datetime type:', typeof allEpisodes[0].datetime);
-    console.log('Is Date?', allEpisodes[0].datetime instanceof Date);
-  }
-  
   const { processedWeeklyData, processedMonthlyData } = useMemo(() => {
+    // Generate chart data from episodes if provided data is empty
     const generateWeeklyData = () => {
-      console.log('🔍 Generating weekly data from', allEpisodes.length, 'episodes');
-      
-      if (weeklyData.length > 0) {
-        console.log('Using provided weeklyData:', weeklyData);
-        return weeklyData;
-      }
-      if (allEpisodes.length === 0) {
-        console.log('❌ No episodes to process');
-        return [];
-      }
+      if (weeklyData.length > 0) return weeklyData;
+      if (allEpisodes.length === 0) return [];
 
       const episodesByWeek = new Map();
       
-      allEpisodes.forEach((episode, idx) => {
+      allEpisodes.forEach(episode => {
         try {
-          console.log(`Processing episode ${idx}:`, {
-            datetime: episode.datetime,
-            type: typeof episode.datetime,
-            isDate: episode.datetime instanceof Date
-          });
-          
           const weekStart = startOfWeek(episode.datetime);
           const weekKey = format(weekStart, 'MMM dd');
           
@@ -71,11 +49,11 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
           weekData.episodes.push(episode);
           weekData.severities.push(episode.severityLevel);
         } catch (error) {
-          console.error('❌ Error processing episode:', error, episode);
+          console.error('Error processing episode for weekly data:', error);
         }
       });
 
-      const result = Array.from(episodesByWeek.entries())
+      return Array.from(episodesByWeek.entries())
         .map(([date, data]) => ({
           date,
           episodeCount: data.episodes.length,
@@ -84,14 +62,9 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
             : 0
         }))
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-      
-      console.log('✅ Generated weekly data:', result);
-      return result;
     };
 
     const generateMonthlyData = () => {
-      console.log('🔍 Generating monthly data');
-      
       if (monthlyData.length > 0) return monthlyData;
       if (allEpisodes.length === 0) return [];
 
@@ -114,7 +87,7 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         }
       });
 
-      const result = Array.from(episodesByMonth.entries())
+      return Array.from(episodesByMonth.entries())
         .map(([date, data]) => ({
           date,
           episodeCount: data.episodes.length,
@@ -123,9 +96,6 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
             : 0
         }))
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-      
-      console.log('✅ Generated monthly data:', result);
-      return result;
     };
 
     return {
@@ -133,9 +103,6 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
       processedMonthlyData: generateMonthlyData()
     };
   }, [weeklyData, monthlyData, allEpisodes]);
-
-  console.log('Final processedWeeklyData:', processedWeeklyData);
-  console.log('Final processedMonthlyData:', processedMonthlyData);
 
   const EmptyState = ({ message }: { message: string }) => (
     <div className="flex items-center justify-center h-full text-muted-foreground text-center p-8">
@@ -155,12 +122,6 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
             {allEpisodes.length} episodes tracked
           </p>
         )}
-        {/* 🔥 DEBUG INFO */}
-        <div className="text-xs bg-yellow-100 p-2 rounded mt-2">
-          <div>Weekly data points: {processedWeeklyData.length}</div>
-          <div>Monthly data points: {processedMonthlyData.length}</div>
-          <div>Episodes received: {allEpisodes.length}</div>
-        </div>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="frequency" className="w-full">
@@ -361,3 +322,4 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
 };
 
 export default DashboardSummary;
+
