@@ -67,15 +67,19 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
 
   const chartData = useMemo(() => {
     return displayTriggers.map(triggerFreq => {
-      const triggerLabel = triggerFreq.trigger.label || triggerFreq.trigger.value || 'Unknown';
+      // Handle both formats: { trigger: { label } } and { name }
+      const triggerLabel = triggerFreq.trigger?.label || 
+                          triggerFreq.trigger?.value || 
+                          triggerFreq.name ||
+                          'Unknown';
       return {
         name: triggerLabel.length > 12 
           ? triggerLabel.substring(0, 12) + '...' 
           : triggerLabel,
         fullName: triggerLabel,
         count: triggerFreq.count,
-        severity: Number(triggerFreq.averageSeverity.toFixed(1)),
-        percentage: triggerFreq.percentage
+        severity: Number((triggerFreq.averageSeverity ?? 0).toFixed(1)),
+        percentage: triggerFreq.percentage ?? 0
       };
     });
   }, [displayTriggers]);
@@ -190,18 +194,21 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
         {chartData.length > 0 && (
           <div className="mt-4 space-y-3">
             <div className="flex flex-wrap gap-2">
-              {displayTriggers.slice(0, 3).map((trigger, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  size="sm"
-                  className="text-xs h-7"
-                  onClick={() => handleTriggerClick(trigger.trigger.label)}
-                >
-                  <Eye className="h-3 w-3 mr-1" />
-                  {trigger.trigger.label} ({trigger.count})
-                </Button>
-              ))}
+              {displayTriggers.slice(0, 3).map((trigger, index) => {
+                const buttonLabel = trigger.trigger?.label || trigger.name || 'Unknown';
+                return (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    size="sm"
+                    className="text-xs h-7"
+                    onClick={() => handleTriggerClick(buttonLabel)}
+                  >
+                    <Eye className="h-3 w-3 mr-1" />
+                    {buttonLabel} ({trigger.count})
+                  </Button>
+                );
+              })}
             </div>
             
             {!isInsightState && chartData.length > 0 && (
