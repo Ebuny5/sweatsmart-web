@@ -75,6 +75,13 @@ export interface TriggerFrequency {
   name: string;
   count: number;
   category: string;
+  trigger?: {
+    label: string;
+    type: 'environmental' | 'emotional' | 'physical' | 'dietary' | 'medical' | 'situational';
+    value: string;
+  };
+  averageSeverity?: number;
+  percentage?: number;
 }
 
 export interface BodyAreaFrequency {

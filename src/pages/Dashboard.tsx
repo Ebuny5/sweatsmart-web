@@ -42,6 +42,13 @@ const Dashboard = () => {
         name: label,
         category: 'environmental',
         count: data.count,
+        trigger: {
+          label,
+          type: 'environmental' as const,
+          value: label
+        },
+        averageSeverity,
+        percentage: allEpisodes.length > 0 ? Math.round((data.count / allEpisodes.length) * 100) : 0
       };
     }).sort((a, b) => b.count - a.count);
     
