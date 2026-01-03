@@ -67,19 +67,15 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
 
   const chartData = useMemo(() => {
     return displayTriggers.map(triggerFreq => {
-      // Handle both formats: { trigger: { label } } and { name }
-      const triggerLabel = (triggerFreq as any).trigger?.label || 
-                          (triggerFreq as any).trigger?.value || 
-                          (triggerFreq as any).name ||
-                          'Unknown';
+      const triggerLabel = triggerFreq.trigger.label || triggerFreq.trigger.value || 'Unknown';
       return {
         name: triggerLabel.length > 12 
           ? triggerLabel.substring(0, 12) + '...' 
           : triggerLabel,
         fullName: triggerLabel,
         count: triggerFreq.count,
-        severity: Number(((triggerFreq as any).averageSeverity || 0).toFixed(1)),
-        percentage: (triggerFreq as any).percentage || 0
+        severity: Number(triggerFreq.averageSeverity.toFixed(1)),
+        percentage: triggerFreq.percentage
       };
     });
   }, [displayTriggers]);
@@ -194,23 +190,18 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
         {chartData.length > 0 && (
           <div className="mt-4 space-y-3">
             <div className="flex flex-wrap gap-2">
-              {displayTriggers.slice(0, 3).map((trigger, index) => {
-                const buttonLabel = (trigger as any).trigger?.label || 
-                                   (trigger as any).name || 
-                                   'Unknown';
-                return (
-                  <Button
-                    key={index}
-                    variant="outline"
-                    size="sm"
-                    className="text-xs h-7"
-                    onClick={() => handleTriggerClick(buttonLabel)}
-                  >
-                    <Eye className="h-3 w-3 mr-1" />
-                    {buttonLabel} ({trigger.count})
-                  </Button>
-                );
-              })}
+              {displayTriggers.slice(0, 3).map((trigger, index) => (
+                <Button
+                  key={index}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7"
+                  onClick={() => handleTriggerClick(trigger.trigger.label)}
+                >
+                  <Eye className="h-3 w-3 mr-1" />
+                  {trigger.trigger.label} ({trigger.count})
+                </Button>
+              ))}
             </div>
             
             {!isInsightState && chartData.length > 0 && (
@@ -228,3 +219,4 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
 };
 
 export default TriggerSummary;
+
