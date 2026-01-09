@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { SeverityLevel } from "@/types";
 import DashboardSummary from "@/components/dashboard/DashboardSummary";
@@ -8,9 +8,23 @@ import BodyAreaHeatmap from "@/components/dashboard/BodyAreaHeatmap";
 import QuickActions from "@/components/dashboard/QuickActions";
 import { TriggerFrequency, BodyAreaFrequency, BodyArea } from "@/types";
 import { useEpisodes } from "@/hooks/useEpisodes";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
+  const { user } = useAuth();
   const { episodes: rawEpisodes, loading: isLoading, error, refetch } = useEpisodes();
+  
+  // Refetch episodes when user changes (especially after OAuth login)
+  useEffect(() => {
+    if (user) {
+      console.log('User authenticated, ensuring data is fresh:', user.id);
+      // Small delay to ensure session is fully established
+      const timer = setTimeout(() => {
+        refetch();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [user?.id, refetch]);
   
   // 🔥 THE FIX: Process episodes to ensure correct data types
   const allEpisodes = useMemo(() => {
