@@ -1,14 +1,48 @@
 // Professional Service Worker for SweatSmart App
 // Handles persistent notifications even when app is closed
+// Version control for cache busting
+const CACHE_VERSION = 'v2.0.0';
+const CACHE_NAME = `sweatsmart-${CACHE_VERSION}`;
 
 self.addEventListener('install', (event) => {
-  console.log('📱 SweatSmart Service Worker installed');
+  console.log('📱 SweatSmart Service Worker installed - version:', CACHE_VERSION);
+  // Skip waiting to activate immediately
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('📱 SweatSmart Service Worker activated');
-  event.waitUntil(self.clients.claim());
+  console.log('📱 SweatSmart Service Worker activated - version:', CACHE_VERSION);
+  
+  // Clean up old caches and claim clients
+  event.waitUntil(
+    Promise.all([
+      // Delete old caches
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames
+            .filter((name) => name.startsWith('sweatsmart-') && name !== CACHE_NAME)
+            .map((name) => {
+              console.log('📱 Deleting old cache:', name);
+              return caches.delete(name);
+            })
+        );
+      }),
+      // Claim all clients immediately
+      self.clients.claim()
+    ])
+  );
+});
+
+// Listen for messages from the main app
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('📱 Skip waiting requested, activating new service worker');
+    self.skipWaiting();
+  }
+  
+  if (event.data && event.data.type === 'GET_VERSION') {
+    event.ports[0].postMessage({ version: CACHE_VERSION });
+  }
 });
 
 // Handle notification clicks
