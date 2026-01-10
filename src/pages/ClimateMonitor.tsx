@@ -401,6 +401,20 @@ const ClimateMonitor = () => {
     }
   }, [updateNextLogTime]);
 
+  // Listen for global log reminder events (from LoggingReminderService)
+  useEffect(() => {
+    const handleLogReminder = () => {
+      console.log('📅 ClimateMonitor: Received log reminder event');
+      if (arePermissionsGranted) {
+        setIsLoggingModalOpen(true);
+      }
+    };
+
+    window.addEventListener('sweatsmart-log-reminder', handleLogReminder);
+    return () => window.removeEventListener('sweatsmart-log-reminder', handleLogReminder);
+  }, [arePermissionsGranted]);
+
+  // Also check locally when on the page (backup mechanism)
   useEffect(() => {
     const interval = setInterval(() => {
       if (nextLogTime && Date.now() >= nextLogTime && arePermissionsGranted) {
