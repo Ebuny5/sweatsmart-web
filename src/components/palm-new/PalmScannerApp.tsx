@@ -147,7 +147,7 @@ const PalmScannerApp: React.FC = () => {
   return (
     <>
       {isScanning && <PalmScannerModal onCapture={handleCapture} onClose={() => setIsScanning(false)} />}
-      <div className="min-h-full bg-sky-50 p-4 sm:p-8">
+      <div className="min-h-full bg-sky-200 p-4 sm:p-8">
         <div className="max-w-4xl mx-auto">
           <header className="text-center mb-8">
             <h1 className="text-4xl sm:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-sky-600 to-indigo-600 mb-2">
