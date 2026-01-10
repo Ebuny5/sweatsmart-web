@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Droplets, Activity, BarChart3, Brain, Menu, X, Camera, Thermometer, Lightbulb, MessageSquare } from 'lucide-react';
+import { Droplets, Activity, BarChart3, Brain, Menu, X, ClipboardList, Scan, Watch, CloudSun, Sparkles, Users } from 'lucide-react';
 
 // Dashboard Preview Component
 function DashboardPreview() {
@@ -199,61 +199,89 @@ export default function NewIndex() {
           <h2 className="text-4xl font-bold text-center text-gray-900 mb-4">How SweatSmart Empowers You</h2>
           <p className="text-lg text-gray-600 text-center mb-12">Utilize cutting-edge tools designed to give you clarity and control over your condition.</p>
           
-          <div className="max-w-2xl mx-auto space-y-6">
-            {/* AI Palm Scanner */}
-            <div className="bg-white p-6 rounded-xl shadow-md">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            {/* 1. Detailed Episode Tracking */}
+            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
               <div className="flex justify-center mb-4">
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Camera className="w-8 h-8 text-blue-600" />
+                  <ClipboardList className="w-8 h-8 text-blue-600" />
                 </div>
               </div>
-              <h3 className="text-xl font-bold text-purple-600 text-center mb-3">AI Palm Scanner</h3>
-              <p className="text-gray-700 mb-2">
-                <span className="font-semibold">Early Detection:</span> Get objective moisture analysis for palms, hands, feet, and soles using AI vision.
+              <h3 className="text-xl font-bold text-gray-900 text-center mb-3">Detailed Episode Tracking</h3>
+              <p className="text-gray-600 text-center mb-4">
+                Log severity, affected body areas, and potential triggers for comprehensive data collection. Track your journey and identify patterns over time.
               </p>
-              <button onClick={() => navigate('/palm-scanner')} className="w-full mt-3 text-blue-600 font-medium hover:underline">Scan Your Palms</button>
+              <button onClick={() => navigate('/log-episode')} className="w-full py-2 text-blue-600 font-medium hover:bg-blue-50 rounded-lg transition">Log an Episode</button>
             </div>
 
-            {/* Detailed Episode Tracking */}
-            <div className="bg-white p-6 rounded-xl shadow-md">
+            {/* 2. AI Palm Scanner */}
+            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
               <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Thermometer className="w-8 h-8 text-blue-600" />
+                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center">
+                  <Scan className="w-8 h-8 text-purple-600" />
                 </div>
               </div>
-              <h3 className="text-xl font-bold text-purple-600 text-center mb-3">Detailed Episode Tracking</h3>
-              <p className="text-gray-700 mb-2">
-                Log severity, affected body areas, and potential triggers for comprehensive data collection.
+              <h3 className="text-xl font-bold text-gray-900 text-center mb-3">AI Palm Scanner</h3>
+              <p className="text-gray-600 text-center mb-4">
+                <span className="font-semibold">Instant Detection:</span> Scan your palms, hands, feet, and soles with AI-powered moisture analysis. Get objective severity ratings in seconds.
               </p>
-              <button onClick={handleGetStarted} className="w-full mt-3 text-blue-600 font-medium hover:underline">Log an Episode</button>
+              <button onClick={() => navigate('/palm-scanner')} className="w-full py-2 text-purple-600 font-medium hover:bg-purple-50 rounded-lg transition">Scan Your Palms</button>
             </div>
 
-            {/* Personalized Insights & Recs */}
-            <div className="bg-white p-6 rounded-xl shadow-md">
+            {/* 3. Wearable Sensor Integration */}
+            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
               <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Lightbulb className="w-8 h-8 text-blue-600" />
+                <div className="w-16 h-16 bg-cyan-100 rounded-full flex items-center justify-center">
+                  <Watch className="w-8 h-8 text-cyan-600" />
                 </div>
               </div>
-              <h3 className="text-xl font-bold text-purple-600 text-center mb-3">Personalized Insights & Recs</h3>
-              <p className="text-gray-700 mb-2">
-                Receive AI-driven recommendations and identify unique patterns in your hyperhidrosis.
+              <h3 className="text-xl font-bold text-gray-900 text-center mb-3">Wearable Sensor Integration</h3>
+              <p className="text-gray-600 text-center mb-4">
+                <span className="font-semibold">Multimodal Stress Detection:</span> Combine palm scanning with wearable sensor data (EDA, heart rate) for comprehensive stress and sweat pattern analysis.
               </p>
-              <button onClick={handleGetStarted} className="w-full mt-3 text-blue-600 font-medium hover:underline">View My Insights</button>
+              <button onClick={() => navigate('/palm-scanner')} className="w-full py-2 text-cyan-600 font-medium hover:bg-cyan-50 rounded-lg transition">Connect Sensor</button>
             </div>
 
-            {/* Supportive Community */}
-            <div className="bg-white p-6 rounded-xl shadow-md">
+            {/* 4. Climate Alert System */}
+            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
               <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                  <MessageSquare className="w-8 h-8 text-blue-600" />
+                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center">
+                  <CloudSun className="w-8 h-8 text-orange-500" />
                 </div>
               </div>
-              <h3 className="text-xl font-bold text-purple-600 text-center mb-3">Supportive <span className="text-purple-600">Community</span></h3>
-              <p className="text-gray-700 mb-2">
-                Connect with others, share experiences, and find real-time support from peers.
+              <h3 className="text-xl font-bold text-gray-900 text-center mb-3">Smart Climate Monitoring</h3>
+              <p className="text-gray-600 text-center mb-4">
+                Stay ahead of triggers: Real-time tracking of temperature, humidity, and UV index. Set personalized alert thresholds and receive notifications before environmental conditions trigger episodes.
               </p>
-              <button onClick={() => navigate('/community')} className="w-full mt-3 text-blue-600 font-medium hover:underline">Join Community</button>
+              <button onClick={() => navigate('/climate-monitor')} className="w-full py-2 text-orange-500 font-medium hover:bg-orange-50 rounded-lg transition">Set Up Alerts</button>
+            </div>
+
+            {/* 5. Hyper AI Companion */}
+            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center">
+                  <Sparkles className="w-8 h-8 text-pink-500" />
+                </div>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 text-center mb-3">Hyper AI Companion</h3>
+              <p className="text-gray-600 text-center mb-4">
+                Your 24/7 hyperhidrosis assistant: Get personalized insights from your episode data, ask questions about your condition, and receive practical tips for managing sweating.
+              </p>
+              <button onClick={() => navigate('/hyper-ai')} className="w-full py-2 text-pink-500 font-medium hover:bg-pink-50 rounded-lg transition">Chat with Hyper AI</button>
+            </div>
+
+            {/* 6. Supportive Community */}
+            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                  <Users className="w-8 h-8 text-green-600" />
+                </div>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 text-center mb-3">Supportive Community</h3>
+              <p className="text-gray-600 text-center mb-4">
+                Connect with others, share experiences, and find real-time support from peers who understand what you're going through.
+              </p>
+              <button onClick={() => navigate('/community')} className="w-full py-2 text-green-600 font-medium hover:bg-green-50 rounded-lg transition">Join Community</button>
             </div>
           </div>
         </div>
