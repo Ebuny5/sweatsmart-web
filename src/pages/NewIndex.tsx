@@ -162,21 +162,34 @@ export default function NewIndex() {
         <div className="max-w-7xl mx-auto">
           <h2 className="text-4xl font-bold text-center text-gray-900 mb-4">Powerful Features</h2>
           <p className="text-xl text-gray-600 text-center mb-12">Everything you need to manage hyperhidrosis</p>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-lg transition-shadow">
               <Activity className="w-12 h-12 text-blue-600 mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Episode Tracking</h3>
-              <p className="text-gray-600">Log sweating episodes with detailed information about triggers, severity, and affected areas.</p>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Episode Tracking</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                <span className="font-semibold text-gray-800">Comprehensive Episode Documentation:</span> Capture detailed records of each sweating episode including severity levels (1-5 scale), precise body area mapping, environmental triggers, emotional states, and contextual notes. Build a complete medical history for better pattern recognition and informed healthcare discussions.
+              </p>
             </div>
-            <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition">
-              <BarChart3 className="w-12 h-12 text-blue-600 mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Visual Analytics</h3>
-              <p className="text-gray-600">See your patterns with beautiful charts and graphs that make understanding your condition easy.</p>
+            <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-lg transition-shadow">
+              <BarChart3 className="w-12 h-12 text-purple-600 mb-4" />
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Visual Analytics</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                <span className="font-semibold text-gray-800">Data-Driven Pattern Recognition:</span> Transform your episode data into actionable insights through interactive charts and trend analysis. Track episode frequency over time, identify seasonal patterns, monitor severity trends, and visualize trigger correlations. Export comprehensive reports for medical consultations.
+              </p>
             </div>
-            <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition">
-              <Brain className="w-12 h-12 text-blue-600 mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">AI Insights</h3>
-              <p className="text-gray-600">Get personalized recommendations based on your unique patterns and triggers.</p>
+            <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-lg transition-shadow">
+              <Brain className="w-12 h-12 text-pink-600 mb-4" />
+              <h3 className="text-xl font-bold text-gray-900 mb-3">AI Insights</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                <span className="font-semibold text-gray-800">Intelligent Analysis & Personalized Guidance:</span> Powered by advanced AI, receive evidence-based recommendations tailored to your specific hyperhidrosis profile. Get real-time clinical analysis, immediate relief strategies, treatment recommendations, lifestyle modifications, and 24/7 support from Hyper AI.
+              </p>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-lg transition-shadow">
+              <CloudSun className="w-12 h-12 text-orange-500 mb-4" />
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Smart Environmental Monitoring</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                <span className="font-semibold text-gray-800">Proactive Trigger Prevention:</span> Real-time monitoring of environmental conditions including temperature, humidity, UV index, and electrodermal activity (EDA). Set personalized alert thresholds and receive predictive notifications before conditions reach your trigger points. Integrates with wearable sensors.
+              </p>
             </div>
           </div>
         </div>
