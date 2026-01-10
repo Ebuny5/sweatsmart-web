@@ -147,53 +147,55 @@ const PalmScannerApp: React.FC = () => {
   return (
     <>
       {isScanning && <PalmScannerModal onCapture={handleCapture} onClose={() => setIsScanning(false)} />}
-      <div className="min-h-screen bg-slate-900 text-white p-4 sm:p-8 flex flex-col items-center">
-        <header className="text-center mb-8">
-          <h1 className="text-4xl sm:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-indigo-500 mb-2">
-            Wearable Sensor Simulator
-          </h1>
-          <p className="text-slate-400 max-w-2xl">
-            Generate sensor data and use multimodal analysis to assess stress levels.
-          </p>
-        </header>
+      <div className="min-h-full bg-sky-50 p-4 sm:p-8">
+        <div className="max-w-4xl mx-auto">
+          <header className="text-center mb-8">
+            <h1 className="text-4xl sm:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-sky-600 to-indigo-600 mb-2">
+              Wearable Sensor Simulator
+            </h1>
+            <p className="text-slate-600 max-w-2xl mx-auto">
+              Generate sensor data and use multimodal analysis to assess stress levels.
+            </p>
+          </header>
 
-        <main className="w-full max-w-4xl flex-grow">
-          <ModeInfo />
-          <StatusDisplay
-            analysis={fusedAnalysis}
-            eda={sensorData?.EDA_uS ?? null}
-            palmResult={palmScanResult}
-            onScan={() => setIsScanning(true)}
-            isAnalyzing={isAnalyzing}
-          />
-          <MainContent />
-        </main>
+          <main className="flex-grow space-y-6">
+            <ModeInfo />
+            <StatusDisplay
+              analysis={fusedAnalysis}
+              eda={sensorData?.EDA_uS ?? null}
+              palmResult={palmScanResult}
+              onScan={() => setIsScanning(true)}
+              isAnalyzing={isAnalyzing}
+            />
+            <MainContent />
+          </main>
 
-        <footer className="w-full max-w-4xl mt-8 sticky bottom-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {(Object.keys(MODE_DETAILS) as SimulationMode[]).map((mode) => {
-                  const details = MODE_DETAILS[mode];
-                  const isLoading = loadingMode === mode;
-                  return (
-                      <button
-                          key={mode}
-                          onClick={() => fetchSensorData(mode)}
-                          disabled={!!loadingMode || isAnalyzing}
-                          className={`w-full py-3 px-4 text-base font-bold rounded-lg text-white ${details.color} hover:opacity-90 disabled:bg-slate-700 disabled:text-slate-400 disabled:cursor-not-allowed transition-all duration-300 shadow-lg flex items-center justify-center`}
-                      >
-                          {isLoading ? (
-                              <>
-                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                              <span>Simulating...</span>
-                              </>
-                          ) : (
-                              `Simulate ${mode}`
-                          )}
-                      </button>
-                  )
-              })}
-          </div>
-        </footer>
+          <footer className="mt-8 pb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {(Object.keys(MODE_DETAILS) as SimulationMode[]).map((mode) => {
+                    const details = MODE_DETAILS[mode];
+                    const isLoading = loadingMode === mode;
+                    return (
+                        <button
+                            key={mode}
+                            onClick={() => fetchSensorData(mode)}
+                            disabled={!!loadingMode || isAnalyzing}
+                            className={`w-full py-3 px-4 text-base font-bold rounded-lg text-white ${details.color} hover:opacity-90 disabled:bg-slate-400 disabled:text-slate-200 disabled:cursor-not-allowed transition-all duration-300 shadow-lg flex items-center justify-center`}
+                        >
+                            {isLoading ? (
+                                <>
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                                <span>Simulating...</span>
+                                </>
+                            ) : (
+                                `Simulate ${mode}`
+                            )}
+                        </button>
+                    )
+                })}
+            </div>
+          </footer>
+        </div>
       </div>
     </>
   );
