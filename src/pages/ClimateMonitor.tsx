@@ -466,7 +466,7 @@ const ClimateMonitor = () => {
 
   return (
     <AppLayout>
-      <div className="min-h-full bg-sky-50 p-6 rounded-xl space-y-6">
+      <div className="min-h-full bg-sky-200 p-6 rounded-xl space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
