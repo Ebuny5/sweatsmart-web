@@ -595,14 +595,15 @@ const ClimateMonitor = () => {
                 <p className="text-xs text-gray-400">Verify sound and notifications are working</p>
               </div>
               <Button
-                onClick={() => {
+                onClick={async () => {
                   playAlertSound('WARNING');
-                  if (notificationPermission === 'granted') {
-                    new Notification('Test Alert', {
-                      body: 'Your alerts are working correctly! 🎉',
-                      icon: '/favicon.ico'
-                    });
-                  }
+                  // Use enhanced service for in-app notification fallback
+                  const { enhancedMobileNotificationService } = await import('@/services/EnhancedMobileNotificationService');
+                  await enhancedMobileNotificationService.showNotification(
+                    '✅ Test Alert',
+                    'Your alerts are working correctly! 🎉',
+                    'success'
+                  );
                 }}
                 className="bg-cyan-600 hover:bg-cyan-500 text-white"
               >
