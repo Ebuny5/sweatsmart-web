@@ -466,12 +466,12 @@ const ClimateMonitor = () => {
 
   return (
     <AppLayout>
-      <div className="min-h-full bg-sky-200 p-6 rounded-xl space-y-6">
+      <div className="min-h-full bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-400 p-6 rounded-xl space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-sky-700">Sweat Smart Climate Alerts</h1>
-            <p className="text-slate-600 mt-1">Real-time weather monitoring and personalized alerts</p>
+            <h1 className="text-3xl font-bold text-white drop-shadow-lg">Sweat Smart Climate Alerts</h1>
+            <p className="text-white/80 mt-1">Real-time weather monitoring and personalized alerts</p>
           </div>
           <div className="flex gap-2">
             <Button 

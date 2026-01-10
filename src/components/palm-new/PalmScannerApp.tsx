@@ -147,13 +147,13 @@ const PalmScannerApp: React.FC = () => {
   return (
     <>
       {isScanning && <PalmScannerModal onCapture={handleCapture} onClose={() => setIsScanning(false)} />}
-      <div className="min-h-full bg-sky-200 p-4 sm:p-8">
+      <div className="min-h-full bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-400 p-4 sm:p-8">
         <div className="max-w-4xl mx-auto">
           <header className="text-center mb-8">
-            <h1 className="text-4xl sm:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-sky-600 to-indigo-600 mb-2">
+            <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-2 drop-shadow-lg">
               Wearable Sensor Simulator
             </h1>
-            <p className="text-slate-600 max-w-2xl mx-auto">
+            <p className="text-white/80 max-w-2xl mx-auto">
               Generate sensor data and use multimodal analysis to assess stress levels.
             </p>
           </header>
