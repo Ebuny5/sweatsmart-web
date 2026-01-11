@@ -17,99 +17,73 @@ serve(async (req) => {
       throw new Error('Latitude and longitude are required');
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
+    const OPENWEATHER_API_KEY = Deno.env.get('OPENWEATHER_API_KEY');
+    
+    if (!OPENWEATHER_API_KEY) {
+      console.log('No OpenWeather API key, using fallback');
+      return new Response(
+        JSON.stringify({ 
+          simulated: true,
+          error: 'Weather API not configured',
+          data: { temperature: 25, humidity: 60, uvIndex: 5 }
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     console.log(`Fetching weather for: ${latitude}, ${longitude}`);
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a weather data provider. Return current weather conditions as structured data.'
-          },
-          {
-            role: 'user',
-            content: `Provide current weather data for coordinates: latitude ${latitude}, longitude ${longitude}. Return temperature in Celsius, humidity percentage (0-100), and UV index (0-11).`
-          }
-        ],
-        tools: [
-          {
-            type: 'function',
-            function: {
-              name: 'provide_weather',
-              description: 'Return current weather conditions',
-              parameters: {
-                type: 'object',
-                properties: {
-                  temperature: { type: 'number', description: 'Temperature in Celsius' },
-                  humidity: { type: 'number', description: 'Humidity percentage 0-100' },
-                  uvIndex: { type: 'number', description: 'UV index 0-11' }
-                },
-                required: ['temperature', 'humidity', 'uvIndex'],
-                additionalProperties: false
-              }
-            }
-          }
-        ],
-        tool_choice: { type: 'function', function: { name: 'provide_weather' } }
-      }),
-    });
+    // Fetch current weather data
+    const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${OPENWEATHER_API_KEY}`;
+    const weatherResponse = await fetch(weatherUrl);
+    
+    if (!weatherResponse.ok) {
+      const errorText = await weatherResponse.text();
+      console.error('OpenWeather API error:', weatherResponse.status, errorText);
+      throw new Error(`Weather API error: ${weatherResponse.status}`);
+    }
+    
+    const weatherData = await weatherResponse.json();
+    console.log('Weather data received:', JSON.stringify(weatherData));
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI Gateway error:', response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Rate limit exceeded. Using simulated data.',
-            simulated: true,
-            data: { temperature: 22, humidity: 60, uvIndex: 4 }
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+    // Fetch UV index (separate endpoint)
+    let uvIndex = 5; // Default UV
+    try {
+      const uvUrl = `https://api.openweathermap.org/data/2.5/uvi?lat=${latitude}&lon=${longitude}&appid=${OPENWEATHER_API_KEY}`;
+      const uvResponse = await fetch(uvUrl);
+      if (uvResponse.ok) {
+        const uvData = await uvResponse.json();
+        uvIndex = uvData.value || 5;
       }
-      
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Credits required. Using simulated data.',
-            simulated: true,
-            data: { temperature: 22, humidity: 60, uvIndex: 4 }
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+    } catch (uvError) {
+      console.log('UV fetch failed, using estimate:', uvError);
+      // Estimate UV based on time of day and weather
+      const hour = new Date().getHours();
+      if (hour >= 10 && hour <= 14) {
+        uvIndex = weatherData.clouds?.all < 50 ? 7 : 4;
+      } else if (hour >= 8 && hour <= 16) {
+        uvIndex = weatherData.clouds?.all < 50 ? 5 : 3;
+      } else {
+        uvIndex = 1;
       }
-
-      throw new Error(`AI Gateway error: ${response.status}`);
     }
 
-    const aiResponse = await response.json();
-    console.log('AI Response:', JSON.stringify(aiResponse));
+    const result = {
+      temperature: Math.round(weatherData.main.temp * 10) / 10,
+      humidity: weatherData.main.humidity,
+      uvIndex: Math.round(uvIndex * 10) / 10,
+      description: weatherData.weather?.[0]?.description || 'Unknown',
+      icon: weatherData.weather?.[0]?.icon,
+      location: weatherData.name,
+      timestamp: Date.now()
+    };
 
-    // Extract weather data from tool call
-    const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
-    if (toolCall?.function?.arguments) {
-      const weatherData = JSON.parse(toolCall.function.arguments);
-      console.log('Weather data:', weatherData);
-      
-      return new Response(
-        JSON.stringify(weatherData),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    console.log('Returning weather:', JSON.stringify(result));
 
-    throw new Error('Failed to extract weather data from AI response');
+    return new Response(
+      JSON.stringify(result),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
   } catch (error) {
     console.error('Error in get-weather-data:', error);
@@ -119,7 +93,7 @@ serve(async (req) => {
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error',
         simulated: true,
-        data: { temperature: 22, humidity: 60, uvIndex: 4 }
+        data: { temperature: 25, humidity: 60, uvIndex: 5 }
       }),
       { 
         status: 200,
