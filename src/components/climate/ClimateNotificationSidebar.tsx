@@ -503,11 +503,22 @@ const ClimateNotificationSidebar: React.FC<ClimateNotificationSidebarProps> = ({
         oscillator.stop(ctx.currentTime + 0.5);
     }, []);
 
-    const sendNotification = useCallback((title: string, body: string) => {
-        if (notificationPermission === 'granted') {
-            new Notification(title, { body, icon: '/favicon.ico' });
-            playNotificationSound();
+    const sendNotification = useCallback(async (title: string, body: string) => {
+        // Use ServiceWorkerRegistration.showNotification() for PWA compatibility
+        // Direct new Notification() fails on Android PWAs with "Illegal constructor" error
+        if ('serviceWorker' in navigator && notificationPermission === 'granted') {
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                await registration.showNotification(title, {
+                    body,
+                    icon: '/favicon.ico',
+                    badge: '/favicon.ico'
+                } as NotificationOptions);
+            } catch (error) {
+                console.error('📱 Service Worker notification failed:', error);
+            }
         }
+        playNotificationSound();
     }, [notificationPermission, playNotificationSound]);
 
     useEffect(() => {

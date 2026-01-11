@@ -326,12 +326,24 @@ const ClimateMonitor = () => {
   );
 
   const sendNotification = useCallback(
-    (title: string, body: string, severity: 'CRITICAL' | 'WARNING' | 'REMINDER' = 'WARNING') => {
+    async (title: string, body: string, severity: 'CRITICAL' | 'WARNING' | 'REMINDER' = 'WARNING') => {
       // Always attempt to play sound, even if system notifications are blocked
       playAlertSound(severity);
 
-      if (notificationPermission === 'granted') {
-        new Notification(title, { body, icon: '/favicon.ico' });
+      // Use ServiceWorkerRegistration.showNotification() for PWA compatibility
+      // Direct new Notification() fails on Android PWAs with "Illegal constructor" error
+      if ('serviceWorker' in navigator && notificationPermission === 'granted') {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          await registration.showNotification(title, {
+            body,
+            icon: '/favicon.ico',
+            badge: '/favicon.ico',
+            tag: `sweatsmart-alert-${Date.now()}`
+          } as NotificationOptions);
+        } catch (error) {
+          console.error('📱 Service Worker notification failed:', error);
+        }
       }
     },
     [notificationPermission, playAlertSound]
@@ -438,11 +450,19 @@ const ClimateMonitor = () => {
         // Professional reminder sound for compulsory logging
         playAlertSound('REMINDER');
 
-        if (notificationPermission === 'granted') {
-          new Notification('Time to Log', {
-            body: 'Please record your sweat level for the last 4 hours.',
-            icon: '/favicon.ico',
-            requireInteraction: true
+        // Use ServiceWorkerRegistration.showNotification() for PWA compatibility
+        if ('serviceWorker' in navigator && notificationPermission === 'granted') {
+          navigator.serviceWorker.ready.then((registration) => {
+            registration.showNotification('Time to Log', {
+              body: 'Please record your sweat level for the last 4 hours.',
+              icon: '/favicon.ico',
+              badge: '/favicon.ico',
+              tag: 'log-reminder',
+              requireInteraction: true,
+              data: { url: '/climate' }
+            } as NotificationOptions).catch((error) => {
+              console.error('📱 Service Worker notification failed:', error);
+            });
           });
         }
         setIsLoggingModalOpen(true);
