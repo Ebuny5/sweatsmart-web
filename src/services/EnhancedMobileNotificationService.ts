@@ -128,42 +128,9 @@ class EnhancedMobileNotificationService {
       navigator.vibrate(vibrationPattern);
     }
 
-    // Try native system notifications first (works when app is closed)
-    if ('Notification' in window && Notification.permission === 'granted') {
-      const options: NotificationOptions = {
-        body,
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
-        tag: `sweatsmart-${type}`, // Prevents duplicate notifications
-        requireInteraction: type === 'destructive', // Keep critical alerts visible
-        data: {
-          url: window.location.origin,
-          timestamp: new Date().toISOString()
-        }
-      };
-
-      try {
-        const notification = new Notification(title, options);
-        
-        notification.onclick = () => {
-          window.focus();
-          notification.close();
-        };
-
-        // Auto-close non-critical notifications after 10 seconds
-        if (type !== 'destructive') {
-          setTimeout(() => notification.close(), 10000);
-        }
-
-        console.log('📱 System notification shown');
-        return;
-      } catch (error) {
-        console.error('📱 System notification failed:', error);
-      }
-    }
-
-    // Fallback to service worker notification
-    if (this.serviceWorkerRegistered && 'serviceWorker' in navigator) {
+    // Always use ServiceWorkerRegistration.showNotification() for PWA compatibility
+    // Direct new Notification() fails on Android PWAs with "Illegal constructor" error
+    if ('serviceWorker' in navigator && 'Notification' in window && Notification.permission === 'granted') {
       try {
         const registration = await navigator.serviceWorker.ready;
         await registration.showNotification(title, {
@@ -179,10 +146,14 @@ class EnhancedMobileNotificationService {
         });
         
         console.log('📱 Service Worker notification shown');
+        return;
       } catch (error) {
         console.error('📱 Service Worker notification failed:', error);
       }
     }
+
+    // Fallback: just log if notifications aren't available
+    console.log('📱 Notification displayed in-app only (no SW available)');
   }
 
   private storeNotification(title: string, body: string, type: string): void {

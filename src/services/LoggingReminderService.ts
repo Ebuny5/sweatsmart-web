@@ -133,25 +133,22 @@ class LoggingReminderService {
       'warning'
     );
 
-    // Also try native notification directly
-    if ('Notification' in window && Notification.permission === 'granted') {
+    // Use ServiceWorkerRegistration.showNotification() for PWA compatibility
+    // Direct new Notification() fails on Android PWAs
+    if ('serviceWorker' in navigator && 'Notification' in window && Notification.permission === 'granted') {
       try {
-        const notification = new Notification('⏰ Time to Log Your Episode', {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.showNotification('⏰ Time to Log Your Episode', {
           body: 'Please record your sweat level for the last 4 hours.',
           icon: '/favicon.ico',
           badge: '/favicon.ico',
           tag: 'log-reminder',
-          requireInteraction: true
+          requireInteraction: true,
+          data: { url: '/climate' }
         });
-
-        notification.onclick = () => {
-          window.focus();
-          // Navigate to climate page
-          window.location.href = '/climate';
-          notification.close();
-        };
+        console.log('📅 Service Worker notification shown');
       } catch (error) {
-        console.error('📅 Native notification failed:', error);
+        console.error('📅 Service Worker notification failed:', error);
       }
     }
 
