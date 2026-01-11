@@ -1,9 +1,10 @@
 import { soundManager } from '@/utils/soundManager';
 import { enhancedMobileNotificationService } from './EnhancedMobileNotificationService';
 
-// Fixed 4-hour logging schedule (00:00, 04:00, 08:00, 12:00, 16:00, 20:00)
-const LOG_BLOCKS = [0, 4, 8, 12, 16, 20];
-const CHECK_INTERVAL = 60000; // Check every minute
+// Testing mode: 10-minute interval (set to false for production 4-hour blocks)
+const TESTING_MODE = true;
+const TEST_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes for testing
+const CHECK_INTERVAL = 30000; // Check every 30 seconds for faster response
 
 class LoggingReminderService {
   private static instance: LoggingReminderService;
@@ -28,6 +29,22 @@ class LoggingReminderService {
     this.startLogChecker();
     this.isInitialized = true;
     console.log('✅ Logging Reminder Service initialized');
+    
+    // Sync initial next log time with service worker
+    const nextLogTime = this.getNextScheduledTime();
+    if (nextLogTime) {
+      this.syncWithServiceWorker(nextLogTime);
+    }
+  }
+  
+  private syncWithServiceWorker(nextLogTime: number): void {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'SYNC_LOG_REMINDER',
+        nextLogTime
+      });
+      console.log('📅 Synced log reminder with service worker:', new Date(nextLogTime).toLocaleString());
+    }
   }
 
   private startLogChecker(): void {
@@ -41,14 +58,21 @@ class LoggingReminderService {
   }
 
   private getNextLogTime(): number {
-    const now = new Date();
-    const currentHour = now.getHours();
+    const now = Date.now();
     
-    // Find the next 4-hour block
+    if (TESTING_MODE) {
+      // Testing: next log in 10 minutes from now
+      return now + TEST_INTERVAL_MS;
+    }
+    
+    // Production: Fixed 4-hour blocks (00:00, 04:00, 08:00, 12:00, 16:00, 20:00)
+    const LOG_BLOCKS = [0, 4, 8, 12, 16, 20];
+    const currentDate = new Date();
+    const currentHour = currentDate.getHours();
+    
     let nextBlockHour = LOG_BLOCKS.find(block => block > currentHour);
     
-    // If no block found today, use first block of tomorrow
-    const next = new Date(now);
+    const next = new Date(currentDate);
     if (nextBlockHour === undefined) {
       next.setDate(next.getDate() + 1);
       nextBlockHour = 0;
@@ -86,6 +110,9 @@ class LoggingReminderService {
           const newNextTime = this.getNextLogTime();
           localStorage.setItem('climateNextLogTime', newNextTime.toString());
           console.log('📅 Next log time updated to:', new Date(newNextTime).toLocaleString());
+          
+          // Sync with service worker
+          this.syncWithServiceWorker(newNextTime);
         }
       }
     } catch (error) {

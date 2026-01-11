@@ -55,9 +55,11 @@ const RefreshIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 );
 
 const PHYSIOLOGICAL_EDA_THRESHOLD = 5.0;
-const LOG_INTERVAL = 4 * 60 * 60 * 1000;
+const TESTING_MODE = true; // Set to false for production
+const LOG_INTERVAL = TESTING_MODE ? 10 * 60 * 1000 : 4 * 60 * 60 * 1000; // 10 min (test) or 4 hours (prod)
 const DATA_SIMULATION_INTERVAL = 5000;
-const LOG_CHECK_INTERVAL = 60000;
+const LOG_CHECK_INTERVAL = 30000; // Check every 30 seconds
+const WEATHER_REFRESH_INTERVAL = 5 * 60 * 1000; // Refresh weather every 5 minutes
 
 type PermissionStatus = 'prompt' | 'granted' | 'denied';
 
@@ -276,9 +278,18 @@ const ClimateMonitor = () => {
     }
   }, []);
 
+  // Fetch weather on mount and refresh periodically
   useEffect(() => {
     if (location) {
       fetchWeatherData(location);
+      
+      // Refresh weather data periodically
+      const weatherInterval = setInterval(() => {
+        console.log('🌤️ Refreshing weather data...');
+        fetchWeatherData(location);
+      }, WEATHER_REFRESH_INTERVAL);
+      
+      return () => clearInterval(weatherInterval);
     }
   }, [location, fetchWeatherData]);
 
@@ -365,29 +376,35 @@ const ClimateMonitor = () => {
     }
   }, [weatherData, physiologicalData, thresholds, sendNotification, arePermissionsGranted]);
 
-  // Logging logic with fixed 4-hour schedule (00:00, 04:00, 08:00, 12:00, 16:00, 20:00)
+  // Logging logic - 10 min interval for testing, 4-hour blocks for production
   const updateNextLogTime = useCallback(() => {
-    const now = new Date();
-    const currentHour = now.getHours();
+    const now = Date.now();
+    let nextTime: number;
     
-    // Fixed 4-hour blocks
-    const blocks = [0, 4, 8, 12, 16, 20];
-    
-    // Find the next block
-    let nextBlockHour = blocks.find(block => block > currentHour);
-    
-    // If no block found today, use first block of tomorrow
-    const next = new Date(now);
-    if (nextBlockHour === undefined) {
-      next.setDate(next.getDate() + 1);
-      nextBlockHour = 0;
+    if (TESTING_MODE) {
+      // Testing: next log in 10 minutes
+      nextTime = now + LOG_INTERVAL;
+    } else {
+      // Production: Fixed 4-hour blocks
+      const blocks = [0, 4, 8, 12, 16, 20];
+      const currentDate = new Date();
+      const currentHour = currentDate.getHours();
+      
+      let nextBlockHour = blocks.find(block => block > currentHour);
+      
+      const next = new Date(currentDate);
+      if (nextBlockHour === undefined) {
+        next.setDate(next.getDate() + 1);
+        nextBlockHour = 0;
+      }
+      
+      next.setHours(nextBlockHour, 0, 0, 0);
+      nextTime = next.getTime();
     }
-    
-    next.setHours(nextBlockHour, 0, 0, 0);
 
-    const nextTime = next.getTime();
     setNextLogTime(nextTime);
     localStorage.setItem('climateNextLogTime', nextTime.toString());
+    console.log('📅 Next log time set to:', new Date(nextTime).toLocaleString());
   }, []);
 
   useEffect(() => {
@@ -481,13 +498,32 @@ const ClimateMonitor = () => {
   return (
     <AppLayout>
       <div className="min-h-full bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-400 p-6 rounded-xl space-y-6">
+        {/* Testing Mode Banner */}
+        {TESTING_MODE && (
+          <div className="bg-yellow-500/20 border border-yellow-500/50 text-yellow-200 px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-between">
+            <span>🧪 Testing Mode: Log reminders every 10 minutes</span>
+            <span className="text-xs text-yellow-300">Set TESTING_MODE=false for production</span>
+          </div>
+        )}
+        
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white drop-shadow-lg">Sweat Smart Climate Alerts</h1>
             <p className="text-white/80 mt-1">Real-time weather monitoring and personalized alerts</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            {/* Refresh Weather Button */}
+            {location && (
+              <Button 
+                className="bg-cyan-600 text-white hover:bg-cyan-500" 
+                onClick={() => fetchWeatherData(location)}
+                disabled={isFetchingWeather}
+              >
+                <RefreshIcon className={`h-4 w-4 mr-2 ${isFetchingWeather ? 'animate-spin' : ''}`} />
+                {isFetchingWeather ? 'Refreshing...' : 'Refresh'}
+              </Button>
+            )}
             <Button 
               className="bg-gray-900 text-white border-gray-700 hover:bg-gray-800" 
               onClick={() => navigate('/climate/history')}
@@ -587,13 +623,11 @@ const ClimateMonitor = () => {
             nextLogTime={nextLogTime}
           />
 
-          {/* Test Alert Button */}
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-cyan-300">Test Alerts</p>
-                <p className="text-xs text-gray-400">Verify sound and notifications are working</p>
-              </div>
+          {/* Test & Debug Section */}
+          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 space-y-4">
+            <p className="text-sm font-semibold text-cyan-300">Testing & Debug</p>
+            
+            <div className="flex flex-wrap gap-2">
               <Button
                 onClick={async () => {
                   playAlertSound('WARNING');
@@ -604,12 +638,45 @@ const ClimateMonitor = () => {
                     'Your alerts are working correctly! 🎉',
                     'success'
                   );
+                  
+                  // Also test service worker notification
+                  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.controller.postMessage({ type: 'TEST_NOTIFICATION' });
+                  }
                 }}
                 className="bg-cyan-600 hover:bg-cyan-500 text-white"
               >
                 Test Alert
               </Button>
+              
+              {/* Reset Timer for Testing */}
+              <Button
+                onClick={() => {
+                  // Set next log time to 10 seconds from now for immediate testing
+                  const testTime = Date.now() + 10000;
+                  localStorage.setItem('climateNextLogTime', testTime.toString());
+                  localStorage.removeItem('lastLogAlertTime');
+                  setNextLogTime(testTime);
+                  
+                  // Sync with service worker
+                  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.controller.postMessage({
+                      type: 'SYNC_LOG_REMINDER',
+                      nextLogTime: testTime
+                    });
+                  }
+                  
+                  alert('Timer reset! Log reminder will trigger in ~10 seconds.');
+                }}
+                className="bg-yellow-600 hover:bg-yellow-500 text-white"
+              >
+                🧪 Trigger in 10s
+              </Button>
             </div>
+            
+            <p className="text-xs text-gray-400">
+              Test Alert verifies sound/notifications. "Trigger in 10s" tests the log reminder system.
+            </p>
           </div>
         </div>
       </div>
