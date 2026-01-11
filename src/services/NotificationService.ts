@@ -84,25 +84,25 @@ class NotificationService {
       return false;
     }
 
+    // Use ServiceWorkerRegistration.showNotification() for PWA compatibility
+    // Direct new Notification() fails on Android PWAs with "Illegal constructor" error
     try {
-      const notification = new Notification(title, {
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
-        requireInteraction: true,
-        ...options
-      });
-
-      notification.onclick = () => {
-        window.focus();
-        notification.close();
-      };
-
-      console.log('Notification shown successfully:', title);
-      return true;
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.showNotification(title, {
+          icon: '/favicon.ico',
+          badge: '/favicon.ico',
+          requireInteraction: true,
+          ...options
+        });
+        console.log('Notification shown successfully via ServiceWorker:', title);
+        return true;
+      }
     } catch (error) {
       console.error('Error showing notification:', error);
       return false;
     }
+    return false;
   }
 
   scheduleReminder(time: string): void {
