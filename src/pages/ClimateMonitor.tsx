@@ -155,26 +155,26 @@ const CurrentStatusCard: React.FC<{
           {weatherError && <p className="text-red-400 font-semibold">{weatherError}</p>}
         </div>
       )}
-      <h3 className="text-xl font-bold text-cyan-300">Current Status</h3>
+      <h3 className="text-xl font-bold text-amber-400">Current Status</h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-gray-900 p-4 rounded-lg text-center">
           <ThermometerIcon className="w-8 h-8 mx-auto text-red-400 mb-2" />
-          <p className="text-2xl font-bold">{weather.temperature.toFixed(1)}°C</p>
+          <p className="text-2xl font-bold text-amber-200">{weather.temperature.toFixed(1)}°C</p>
           <p className="text-xs text-gray-400">Temperature</p>
         </div>
         <div className="bg-gray-900 p-4 rounded-lg text-center">
           <DropletIcon className="w-8 h-8 mx-auto text-blue-400 mb-2" />
-          <p className="text-2xl font-bold">{weather.humidity.toFixed(0)}%</p>
+          <p className="text-2xl font-bold text-amber-200">{weather.humidity.toFixed(0)}%</p>
           <p className="text-xs text-gray-400">Humidity</p>
         </div>
         <div className="bg-gray-900 p-4 rounded-lg text-center">
           <SunIcon className="w-8 h-8 mx-auto text-yellow-400 mb-2" />
-          <p className="text-2xl font-bold">{weather.uvIndex.toFixed(1)}</p>
+          <p className="text-2xl font-bold text-amber-200">{weather.uvIndex.toFixed(1)}</p>
           <p className="text-xs text-gray-400">UV Index</p>
         </div>
         <div className="bg-gray-900 p-4 rounded-lg text-center">
           <ZapIcon className="w-8 h-8 mx-auto text-purple-400 mb-2" />
-          <p className="text-2xl font-bold">{physiological.eda.toFixed(1)} µS</p>
+          <p className="text-2xl font-bold text-amber-200">{physiological.eda.toFixed(1)} µS</p>
           <p className="text-xs text-gray-400">EDA</p>
         </div>
       </div>
@@ -349,7 +349,10 @@ const ClimateMonitor = () => {
     [notificationPermission, playAlertSound]
   );
 
-  // Alert logic with sound alerts
+  // Track previous alert status to prevent duplicate alerts
+  const [lastAlertType, setLastAlertType] = useState<string | null>(null);
+
+  // Alert logic with sound alerts - only fire once per condition change
   useEffect(() => {
     if (!arePermissionsGranted) {
       setAlertStatus("Complete setup to begin.");
@@ -365,28 +368,39 @@ const ClimateMonitor = () => {
                          weatherData.uvIndex > thresholds.uvIndex;
     const isPhysioTrigger = physiologicalData.eda > PHYSIOLOGICAL_EDA_THRESHOLD;
 
+    let currentAlertType = 'optimal';
+    
     if (isEnvTrigger && isPhysioTrigger) {
+      currentAlertType = 'high';
       setAlertStatus("High Risk: Conditions and physiology indicate high sweat risk.");
-      if (soundEnabled) {
+    } else if (isEnvTrigger) {
+      currentAlertType = 'moderate';
+      setAlertStatus("Moderate Risk: Climate conditions may trigger sweating.");
+    } else {
+      setAlertStatus("Conditions Optimal: Low sweat risk detected.");
+    }
+
+    // Only send notification if alert type changed (prevents spam)
+    if (soundEnabled && currentAlertType !== lastAlertType && currentAlertType !== 'optimal') {
+      console.log('🚨 Alert triggered:', currentAlertType, 'previous:', lastAlertType);
+      
+      if (currentAlertType === 'high') {
         sendNotification(
           'Sweat Smart Alert',
           'High sweat risk detected based on climate and body signals.',
           'CRITICAL'
         );
-      }
-    } else if (isEnvTrigger) {
-      setAlertStatus("Moderate Risk: Climate conditions may trigger sweating.");
-      if (soundEnabled) {
+      } else if (currentAlertType === 'moderate') {
         sendNotification(
           'Sweat Smart Alert',
           'Moderate sweat risk detected. Consider logging your episode.',
           'WARNING'
         );
       }
-    } else {
-      setAlertStatus("Conditions Optimal: Low sweat risk detected.");
     }
-  }, [weatherData, physiologicalData, thresholds, sendNotification, arePermissionsGranted]);
+    
+    setLastAlertType(currentAlertType);
+  }, [weatherData, physiologicalData, thresholds, sendNotification, arePermissionsGranted, lastAlertType]);
 
   // Logging logic - 10 min interval for testing, 4-hour blocks for production
   const updateNextLogTime = useCallback(() => {
