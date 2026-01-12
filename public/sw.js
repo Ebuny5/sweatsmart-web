@@ -1,16 +1,18 @@
 // Professional Service Worker for SweatSmart App
 // Handles persistent notifications even when app is closed
 // Version control for cache busting
-const CACHE_VERSION = 'v2.1.0';
+const CACHE_VERSION = 'v2.2.0';
 const CACHE_NAME = `sweatsmart-${CACHE_VERSION}`;
 
-// Testing mode: 10-minute intervals
+// Testing mode: 10-minute intervals (set to false for production 4-hour intervals)
 const TESTING_MODE = true;
 const TEST_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+const PRODUCTION_INTERVAL_MS = 4 * 60 * 60 * 1000; // 4 hours
 const CHECK_INTERVAL_MS = 30000; // Check every 30 seconds
 
 let reminderCheckInterval = null;
 
+// ============= INSTALL & ACTIVATE =============
 self.addEventListener('install', (event) => {
   console.log('📱 SweatSmart Service Worker installed - version:', CACHE_VERSION);
   self.skipWaiting();
@@ -41,7 +43,7 @@ self.addEventListener('activate', (event) => {
   startLogReminderChecker();
 });
 
-// Background log reminder checker
+// ============= BACKGROUND LOG REMINDER CHECKER =============
 function startLogReminderChecker() {
   if (reminderCheckInterval) {
     clearInterval(reminderCheckInterval);
@@ -60,14 +62,12 @@ function startLogReminderChecker() {
 
 async function checkForDueLog() {
   try {
-    // Try to get next log time from IndexedDB or localStorage via client
     const clients = await self.clients.matchAll({ type: 'window' });
     
     if (clients.length === 0) {
-      // App is closed - use cached value or estimate
+      // App is closed - use cached value
       console.log('📅 SW: App closed, checking cached log time');
       
-      // Try to read from cache
       const cache = await caches.open(CACHE_NAME);
       const cachedResponse = await cache.match('log-reminder-data');
       
@@ -79,8 +79,12 @@ async function checkForDueLog() {
           console.log('📅 SW: Log reminder due! Showing notification...');
           await showLogReminderNotification();
           
+          // Set app badge
+          await setAppBadge(1);
+          
           // Update next log time
-          const nextTime = now + (TESTING_MODE ? TEST_INTERVAL_MS : 4 * 60 * 60 * 1000);
+          const interval = TESTING_MODE ? TEST_INTERVAL_MS : PRODUCTION_INTERVAL_MS;
+          const nextTime = now + interval;
           await cache.put('log-reminder-data', new Response(JSON.stringify({
             nextLogTime: nextTime,
             lastAlertTime: now
@@ -100,18 +104,19 @@ async function showLogReminderNotification() {
   const title = '⏰ Time to Log Your Episode';
   const options = {
     body: 'Please record your sweat level. Tap to open Climate Alerts.',
-    icon: '/favicon.ico',
-    badge: '/favicon.ico',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
     tag: 'log-reminder',
     requireInteraction: true,
     vibrate: [400, 100, 400, 100, 400],
     data: {
       url: '/climate',
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      type: 'log-reminder'
     },
     actions: [
-      { action: 'log', title: 'Log Now' },
-      { action: 'later', title: 'Later' }
+      { action: 'log', title: '📝 Log Now' },
+      { action: 'later', title: '⏰ Later' }
     ]
   };
 
@@ -123,7 +128,32 @@ async function showLogReminderNotification() {
   }
 }
 
-// Listen for messages from the main app
+// ============= BADGING API =============
+async function setAppBadge(count) {
+  try {
+    if ('setAppBadge' in navigator) {
+      await navigator.setAppBadge(count);
+      console.log('🔴 SW: App badge set to:', count);
+    }
+  } catch (error) {
+    console.log('🔴 SW: Badging not supported:', error);
+  }
+}
+
+async function clearAppBadge() {
+  try {
+    if ('clearAppBadge' in navigator) {
+      await navigator.clearAppBadge();
+      console.log('🔴 SW: App badge cleared');
+    } else if ('setAppBadge' in navigator) {
+      await navigator.setAppBadge(0);
+    }
+  } catch (error) {
+    console.log('🔴 SW: Badging not supported:', error);
+  }
+}
+
+// ============= MESSAGE HANDLER =============
 self.addEventListener('message', async (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     console.log('📱 Skip waiting requested, activating new service worker');
@@ -151,19 +181,42 @@ self.addEventListener('message', async (event) => {
     console.log('📱 SW: Test notification requested');
     await self.registration.showNotification('✅ Test Alert', {
       body: 'Your alerts are working correctly! 🎉',
-      icon: '/favicon.ico',
-      badge: '/favicon.ico',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
       tag: 'test-alert',
       vibrate: [200, 100, 200]
     });
   }
+  
+  // Set badge from main app
+  if (event.data && event.data.type === 'SET_BADGE') {
+    await setAppBadge(event.data.count || 1);
+  }
+  
+  // Clear badge from main app
+  if (event.data && event.data.type === 'CLEAR_BADGE') {
+    await clearAppBadge();
+  }
+  
+  // Show notification from main app
+  if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
+    const { title, options } = event.data;
+    await self.registration.showNotification(title, {
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      ...options
+    });
+  }
 });
 
-// Handle notification clicks
+// ============= NOTIFICATION CLICK HANDLER =============
 self.addEventListener('notificationclick', (event) => {
   console.log('📱 Notification clicked:', event.notification.tag, 'action:', event.action);
   
   event.notification.close();
+  
+  // Clear badge when notification is clicked
+  clearAppBadge();
   
   const urlToOpen = event.notification.data?.url || '/climate';
   
@@ -191,21 +244,48 @@ self.addEventListener('notificationclick', (event) => {
   }
 });
 
-// Handle notification close
+// ============= NOTIFICATION CLOSE HANDLER =============
 self.addEventListener('notificationclose', (event) => {
   console.log('📱 Notification closed:', event.notification.tag);
 });
 
-// Handle background sync for notifications
+// ============= BACKGROUND SYNC =============
 self.addEventListener('sync', (event) => {
   console.log('📱 Background sync:', event.tag);
   
   if (event.tag === 'sweatsmart-log-reminder') {
     event.waitUntil(checkForDueLog());
   }
+  
+  if (event.tag === 'sweatsmart-sync-data') {
+    event.waitUntil(syncLocalData());
+  }
 });
 
-// Handle push notifications (for future integration)
+async function syncLocalData() {
+  console.log('📱 SW: Syncing local data...');
+  // Future: sync offline episodes to server
+}
+
+// ============= PERIODIC BACKGROUND SYNC =============
+self.addEventListener('periodicsync', (event) => {
+  console.log('📱 Periodic sync:', event.tag);
+  
+  if (event.tag === 'sweatsmart-log-check') {
+    event.waitUntil(checkForDueLog());
+  }
+  
+  if (event.tag === 'sweatsmart-weather-update') {
+    event.waitUntil(updateWeatherData());
+  }
+});
+
+async function updateWeatherData() {
+  console.log('📱 SW: Updating weather data in background...');
+  // Future: fetch weather data and cache it
+}
+
+// ============= PUSH NOTIFICATIONS =============
 self.addEventListener('push', (event) => {
   console.log('📱 Push notification received');
   
@@ -214,25 +294,50 @@ self.addEventListener('push', (event) => {
     
     const options = {
       body: data.body,
-      icon: '/favicon.ico',
-      badge: '/favicon.ico',
-      tag: 'sweatsmart-push',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      tag: data.tag || 'sweatsmart-push',
       requireInteraction: data.type === 'critical',
       vibrate: data.type === 'critical' ? [800, 200, 800, 200, 800] : [400, 100, 400],
       data: {
         url: data.url || '/',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        type: data.type || 'info'
       },
       actions: data.type === 'critical' ? [
-        { action: 'view', title: 'View Alert' },
-        { action: 'dismiss', title: 'Dismiss' }
+        { action: 'view', title: '👁️ View Alert' },
+        { action: 'dismiss', title: '❌ Dismiss' }
       ] : undefined
     };
+
+    // Set badge for push notifications
+    setAppBadge(1);
 
     event.waitUntil(
       self.registration.showNotification(data.title, options)
     );
   }
 });
+
+// ============= FETCH HANDLER (for share target) =============
+self.addEventListener('fetch', (event) => {
+  // Handle share target POST requests
+  if (event.request.url.includes('/share-target/') && event.request.method === 'POST') {
+    event.respondWith(handleShareTarget(event.request));
+    return;
+  }
+  
+  // Default: let the browser handle it
+});
+
+async function handleShareTarget(request) {
+  const formData = await request.formData();
+  const title = formData.get('title') || '';
+  const text = formData.get('text') || '';
+  
+  // Redirect to log page with shared data
+  const redirectUrl = `/log?shared_title=${encodeURIComponent(title)}&shared_text=${encodeURIComponent(text)}`;
+  return Response.redirect(redirectUrl, 303);
+}
 
 console.log('📱 SweatSmart Professional Service Worker loaded - version:', CACHE_VERSION);
