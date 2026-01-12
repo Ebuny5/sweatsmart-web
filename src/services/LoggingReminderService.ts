@@ -311,6 +311,6 @@ class LoggingReminderService {
     document.removeEventListener('visibilitychange', this.handleVisibilityChange);
     console.log('🧹 Logging Reminder Service cleaned up');
   }
-
+}
 
 export const loggingReminderService = LoggingReminderService.getInstance();
