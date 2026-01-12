@@ -36,15 +36,13 @@ export class SoundManager {
   }
 
   private async initializeAudioContext(): Promise<void> {
-    if (!this.userInteracted) return;
-
     try {
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
+
       if (this.audioContext.state === 'suspended') {
         await this.audioContext.resume();
       }
-      
+
       console.log('🔊 Audio context initialized');
     } catch (error) {
       console.warn('🔊 Audio context initialization failed:', error);
@@ -52,9 +50,14 @@ export class SoundManager {
   }
 
   async playNotificationSound(severity: 'CRITICAL' | 'WARNING' | 'REMINDER' = 'WARNING'): Promise<void> {
-    if (!this.soundEnabled || !this.userInteracted) {
-      console.log('🔊 Sound disabled or no user interaction');
+    if (!this.soundEnabled) {
+      console.log('🔊 Sound disabled');
       return;
+    }
+
+    if (!this.userInteracted) {
+      // Audio may be blocked until a user gesture; vibration can still work.
+      console.log('🔊 No user interaction yet; attempting vibration + best-effort audio');
     }
 
     // Enhanced vibration patterns for mobile devices
