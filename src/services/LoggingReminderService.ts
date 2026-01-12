@@ -4,6 +4,7 @@ import { enhancedMobileNotificationService } from './EnhancedMobileNotificationS
 // Testing mode: 10-minute interval (set to false for production 4-hour blocks)
 const TESTING_MODE = true;
 const TEST_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes for testing
+const PRODUCTION_INTERVAL_MS = 4 * 60 * 60 * 1000; // 4 hours for production
 const CHECK_INTERVAL = 30000; // Check every 30 seconds for faster response
 
 class LoggingReminderService {
@@ -22,10 +23,17 @@ class LoggingReminderService {
     return LoggingReminderService.instance;
   }
 
-  private initialize(): void {
+  private async initialize(): Promise<void> {
     if (this.isInitialized) return;
     
     console.log('📅 Logging Reminder Service initializing...');
+    
+    // Register periodic background sync
+    await this.registerPeriodicSync();
+    
+    // Register regular background sync
+    await this.registerBackgroundSync();
+    
     this.startLogChecker();
     this.isInitialized = true;
     console.log('✅ Logging Reminder Service initialized');
@@ -34,6 +42,50 @@ class LoggingReminderService {
     const nextLogTime = this.getNextScheduledTime();
     if (nextLogTime) {
       this.syncWithServiceWorker(nextLogTime);
+    }
+  }
+  
+  private async registerPeriodicSync(): Promise<void> {
+    try {
+      if (!('serviceWorker' in navigator) || !('periodicSync' in (await navigator.serviceWorker.ready))) {
+        console.log('📅 Periodic background sync not supported');
+        return;
+      }
+      
+      // Check permission
+      const permission = await navigator.permissions.query({
+        name: 'periodic-background-sync' as PermissionName,
+      });
+      
+      if (permission.state === 'granted') {
+        const registration = await navigator.serviceWorker.ready;
+        
+        // Register periodic sync for log reminders
+        await (registration as any).periodicSync.register('sweatsmart-log-check', {
+          minInterval: TESTING_MODE ? TEST_INTERVAL_MS : PRODUCTION_INTERVAL_MS
+        });
+        
+        console.log('✅ Periodic background sync registered');
+      } else {
+        console.log('📅 Periodic background sync permission not granted:', permission.state);
+      }
+    } catch (error) {
+      console.log('📅 Periodic background sync registration failed:', error);
+    }
+  }
+  
+  private async registerBackgroundSync(): Promise<void> {
+    try {
+      if (!('serviceWorker' in navigator) || !('SyncManager' in window)) {
+        console.log('📅 Background sync not supported');
+        return;
+      }
+      
+      const registration = await navigator.serviceWorker.ready;
+      await (registration as any).sync.register('sweatsmart-log-reminder');
+      console.log('✅ Background sync registered');
+    } catch (error) {
+      console.log('📅 Background sync registration failed:', error);
     }
   }
   
@@ -51,7 +103,7 @@ class LoggingReminderService {
     // Initial check
     this.checkForDueLog();
 
-    // Check every minute
+    // Check periodically
     this.checkInterval = setInterval(() => {
       this.checkForDueLog();
     }, CHECK_INTERVAL);
@@ -126,6 +178,9 @@ class LoggingReminderService {
     // Play reminder sound
     await soundManager.triggerMedicalAlert('REMINDER');
 
+    // Set app badge
+    await this.setAppBadge(1);
+
     // Show notification through enhanced service
     await enhancedMobileNotificationService.showNotification(
       '⏰ Time to Log Your Episode',
@@ -134,17 +189,16 @@ class LoggingReminderService {
     );
 
     // Use ServiceWorkerRegistration.showNotification() for PWA compatibility
-    // Direct new Notification() fails on Android PWAs
     if ('serviceWorker' in navigator && 'Notification' in window && Notification.permission === 'granted') {
       try {
         const registration = await navigator.serviceWorker.ready;
         await registration.showNotification('⏰ Time to Log Your Episode', {
           body: 'Please record your sweat level for the last 4 hours.',
-          icon: '/favicon.ico',
-          badge: '/favicon.ico',
+          icon: '/icon-192.png',
+          badge: '/icon-192.png',
           tag: 'log-reminder',
           requireInteraction: true,
-          data: { url: '/climate' }
+          data: { url: '/climate', type: 'log-reminder' }
         });
         console.log('📅 Service Worker notification shown');
       } catch (error) {
@@ -157,6 +211,46 @@ class LoggingReminderService {
       detail: { timestamp: Date.now() }
     });
     window.dispatchEvent(event);
+  }
+  
+  // Badging API
+  private async setAppBadge(count: number): Promise<void> {
+    try {
+      if ('setAppBadge' in navigator) {
+        await (navigator as any).setAppBadge(count);
+        console.log('🔴 App badge set to:', count);
+      }
+      
+      // Also tell service worker
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'SET_BADGE',
+          count
+        });
+      }
+    } catch (error) {
+      console.log('🔴 Badging not supported:', error);
+    }
+  }
+  
+  async clearAppBadge(): Promise<void> {
+    try {
+      if ('clearAppBadge' in navigator) {
+        await (navigator as any).clearAppBadge();
+        console.log('🔴 App badge cleared');
+      } else if ('setAppBadge' in navigator) {
+        await (navigator as any).setAppBadge(0);
+      }
+      
+      // Also tell service worker
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'CLEAR_BADGE'
+        });
+      }
+    } catch (error) {
+      console.log('🔴 Badging not supported:', error);
+    }
   }
 
   getNextScheduledTime(): number | null {
