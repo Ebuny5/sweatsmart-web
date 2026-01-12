@@ -179,6 +179,54 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string | null
+          endpoint: string
+          humidity_threshold: number | null
+          id: string
+          is_active: boolean | null
+          latitude: number | null
+          longitude: number | null
+          p256dh: string
+          temperature_threshold: number | null
+          updated_at: string | null
+          user_id: string | null
+          uv_threshold: number | null
+        }
+        Insert: {
+          auth: string
+          created_at?: string | null
+          endpoint: string
+          humidity_threshold?: number | null
+          id?: string
+          is_active?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          p256dh: string
+          temperature_threshold?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          uv_threshold?: number | null
+        }
+        Update: {
+          auth?: string
+          created_at?: string | null
+          endpoint?: string
+          humidity_threshold?: number | null
+          id?: string
+          is_active?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          p256dh?: string
+          temperature_threshold?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          uv_threshold?: number | null
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
           created_at: string
