@@ -25,12 +25,12 @@ export const CurrentStatusCard: React.FC<CurrentStatusCardProps> = ({ weather, p
                     {weatherError && <p className="text-red-400 font-semibold">{weatherError}</p>}
                 </div>
             )}
-            <h3 className="text-lg font-bold text-cyan-300">Current Status</h3>
+            <h3 className="text-lg font-bold text-amber-400">Current Status</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                <div className="bg-gray-900 p-3 rounded-lg"><ThermometerIcon className="w-6 h-6 mx-auto text-red-400 mb-1" /><p className="text-lg font-bold">{weather.temperature.toFixed(1)}°C</p><p className="text-xs text-gray-400">Temp</p></div>
-                <div className="bg-gray-900 p-3 rounded-lg"><DropletIcon className="w-6 h-6 mx-auto text-blue-400 mb-1" /><p className="text-lg font-bold">{weather.humidity.toFixed(0)}%</p><p className="text-xs text-gray-400">Humidity</p></div>
-                <div className="bg-gray-900 p-3 rounded-lg"><SunIcon className="w-6 h-6 mx-auto text-yellow-400 mb-1" /><p className="text-lg font-bold">{weather.uvIndex.toFixed(1)}</p><p className="text-xs text-gray-400">UV Index</p></div>
-                <div className="bg-gray-900 p-3 rounded-lg"><ZapIcon className="w-6 h-6 mx-auto text-purple-400 mb-1" /><p className="text-lg font-bold">{physiological.eda.toFixed(1)} µS</p><p className="text-xs text-gray-400">EDA</p></div>
+                <div className="bg-gray-900 p-3 rounded-lg"><ThermometerIcon className="w-6 h-6 mx-auto text-red-400 mb-1" /><p className="text-lg font-bold text-amber-200">{weather.temperature.toFixed(1)}°C</p><p className="text-xs text-gray-400">Temp</p></div>
+                <div className="bg-gray-900 p-3 rounded-lg"><DropletIcon className="w-6 h-6 mx-auto text-blue-400 mb-1" /><p className="text-lg font-bold text-amber-200">{weather.humidity.toFixed(0)}%</p><p className="text-xs text-gray-400">Humidity</p></div>
+                <div className="bg-gray-900 p-3 rounded-lg"><SunIcon className="w-6 h-6 mx-auto text-yellow-400 mb-1" /><p className="text-lg font-bold text-amber-200">{weather.uvIndex.toFixed(1)}</p><p className="text-xs text-gray-400">UV Index</p></div>
+                <div className="bg-gray-900 p-3 rounded-lg"><ZapIcon className="w-6 h-6 mx-auto text-purple-400 mb-1" /><p className="text-lg font-bold text-amber-200">{physiological.eda.toFixed(1)} µS</p><p className="text-xs text-gray-400">EDA</p></div>
             </div>
             <div className={`bg-gray-900 p-3 rounded-lg text-center ${statusColor}`}>
                 <p className="font-semibold">{alertStatus}</p>
