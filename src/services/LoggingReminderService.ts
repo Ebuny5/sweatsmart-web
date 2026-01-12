@@ -1,10 +1,10 @@
 import { soundManager } from '@/utils/soundManager';
 import { enhancedMobileNotificationService } from './EnhancedMobileNotificationService';
 
-// Testing mode: 10-minute interval (set to false for production 4-hour blocks)
-const TESTING_MODE = true;
-const TEST_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes for testing
-const PRODUCTION_INTERVAL_MS = 4 * 60 * 60 * 1000; // 4 hours for production
+// Production mode: 4-hour blocks
+const TESTING_MODE = false;
+const TEST_INTERVAL_MS = 10 * 60 * 1000; // (kept for reference)
+const PRODUCTION_INTERVAL_MS = 4 * 60 * 60 * 1000; // 4 hours
 
 class LoggingReminderService {
   private static instance: LoggingReminderService;

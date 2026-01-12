@@ -3,7 +3,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { LoggingSystem } from "../components/climate/LoggingSystem";
 import { SettingsPanel } from "../components/climate/SettingsPanel";
-import { History, Settings as SettingsIcon } from "lucide-react";
+
 import { useNavigate } from "react-router-dom";
 import { supabase } from '@/integrations/supabase/client';
 import { edaManager } from '@/utils/edaManager';
@@ -55,8 +55,8 @@ const RefreshIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 );
 
 const PHYSIOLOGICAL_EDA_THRESHOLD = 5.0;
-const TESTING_MODE = true; // Set to false for production
-const LOG_INTERVAL = TESTING_MODE ? 10 * 60 * 1000 : 4 * 60 * 60 * 1000; // 10 min (test) or 4 hours (prod)
+const TESTING_MODE = false;
+const LOG_INTERVAL = 4 * 60 * 60 * 1000; // 4 hours
 const DATA_SIMULATION_INTERVAL = 5000;
 const LOG_CHECK_INTERVAL = 30000; // Check every 30 seconds
 const WEATHER_REFRESH_INTERVAL = 5 * 60 * 1000; // Refresh weather every 5 minutes
@@ -434,6 +434,12 @@ const ClimateMonitor = () => {
   }, []);
 
   useEffect(() => {
+    // Force production schedule (4-hour blocks) even if an old testing time is stored
+    if (!TESTING_MODE) {
+      updateNextLogTime();
+      return;
+    }
+
     const stored = localStorage.getItem('climateNextLogTime');
     const storedTime = stored ? parseInt(stored, 10) : NaN;
 
@@ -532,14 +538,6 @@ const ClimateMonitor = () => {
   return (
     <AppLayout>
       <div className="min-h-full bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-400 p-6 rounded-xl space-y-6">
-        {/* Testing Mode Banner */}
-        {TESTING_MODE && (
-          <div className="bg-yellow-500/20 border border-yellow-500/50 text-yellow-200 px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-between">
-            <span>🧪 Testing Mode: Log reminders every 10 minutes</span>
-            <span className="text-xs text-yellow-300">Set TESTING_MODE=false for production</span>
-          </div>
-        )}
-        
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -558,20 +556,6 @@ const ClimateMonitor = () => {
                 {isFetchingWeather ? 'Refreshing...' : 'Refresh'}
               </Button>
             )}
-            <Button 
-              className="bg-gray-900 text-white border-gray-700 hover:bg-gray-800" 
-              onClick={() => navigate('/climate/history')}
-            >
-              <History className="h-4 w-4 mr-2" />
-              History
-            </Button>
-            <Button 
-              className="bg-gray-900 text-white border-gray-700 hover:bg-gray-800" 
-              onClick={() => navigate('/climate/settings')}
-            >
-              <SettingsIcon className="h-4 w-4 mr-2" />
-              Settings
-            </Button>
           </div>
         </div>
 
