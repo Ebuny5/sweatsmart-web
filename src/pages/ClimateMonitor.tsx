@@ -59,7 +59,7 @@ const TESTING_MODE = false;
 const LOG_INTERVAL = 4 * 60 * 60 * 1000; // 4 hours
 const DATA_SIMULATION_INTERVAL = 5000;
 const LOG_CHECK_INTERVAL = 30000; // Check every 30 seconds
-const WEATHER_REFRESH_INTERVAL = 5 * 60 * 1000; // Refresh weather every 5 minutes
+const WEATHER_REFRESH_INTERVAL = 2 * 60 * 1000; // Refresh weather every 2 minutes for real-time updates
 
 type PermissionStatus = 'prompt' | 'granted' | 'denied';
 
@@ -147,15 +147,39 @@ const CurrentStatusCard: React.FC<{
     return "text-green-400";
   }, [alertStatus]);
 
+  const getLastUpdatedText = () => {
+    if (!weather.lastUpdated) return null;
+    const diff = Math.floor((Date.now() - weather.lastUpdated) / 1000);
+    if (diff < 60) return 'Just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    return `${Math.floor(diff / 3600)}h ago`;
+  };
+
   return (
     <div className="relative bg-gray-800/50 border border-gray-700 rounded-xl p-6 space-y-4">
-      {(isFetching || weatherError) && (
+      {isFetching && (
         <div className="absolute inset-0 bg-gray-800/90 flex flex-col items-center justify-center rounded-xl z-10">
-          {isFetching && <p className="text-white font-semibold animate-pulse">Fetching local weather...</p>}
-          {weatherError && <p className="text-red-400 font-semibold">{weatherError}</p>}
+          <p className="text-white font-semibold animate-pulse">Fetching local weather...</p>
         </div>
       )}
-      <h3 className="text-xl font-bold text-amber-400">Current Status</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-xl font-bold text-amber-400">Current Status</h3>
+        <div className="flex items-center gap-2">
+          {weather.location && (
+            <span className="text-xs text-cyan-300">{weather.location}</span>
+          )}
+          {weather.lastUpdated && (
+            <span className="text-xs text-gray-400 bg-gray-700/50 px-2 py-1 rounded">
+              🔄 {getLastUpdatedText()}
+            </span>
+          )}
+          {weatherError && (
+            <span className="text-xs text-yellow-400 bg-yellow-900/30 px-2 py-1 rounded">
+              ⚠️ Simulated
+            </span>
+          )}
+        </div>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-gray-900 p-4 rounded-lg text-center">
           <ThermometerIcon className="w-8 h-8 mx-auto text-red-400 mb-2" />
@@ -178,6 +202,9 @@ const CurrentStatusCard: React.FC<{
           <p className="text-xs text-gray-400">EDA</p>
         </div>
       </div>
+      {weather.description && (
+        <p className="text-center text-sm text-cyan-200 capitalize">{weather.description}</p>
+      )}
       <div className={`bg-gray-900 p-4 rounded-lg text-center ${statusColor}`}>
         <p className="text-lg font-semibold">{alertStatus}</p>
       </div>
@@ -230,8 +257,27 @@ const ClimateMonitor = () => {
     }
   }, []);
 
+  // Auto-fetch location if permission already granted
   useEffect(() => {
     checkPermissions();
+    
+    // If location permission is already granted, auto-fetch location
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          console.log('🌍 Auto-fetched location:', position.coords.latitude, position.coords.longitude);
+          setLocation(position.coords);
+          setLocationPermission('granted');
+        },
+        (error) => {
+          console.log('🌍 Geolocation not available or denied:', error.message);
+          if (error.code === error.PERMISSION_DENIED) {
+            setLocationPermission('denied');
+          }
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+      );
+    }
   }, [checkPermissions]);
 
   // Load EDA from Palm Scanner on mount
@@ -253,6 +299,7 @@ const ClimateMonitor = () => {
 
   // Fetch weather
   const fetchWeatherData = useCallback(async (coords: GeolocationCoordinates) => {
+    console.log('🌤️ Fetching weather for:', coords.latitude, coords.longitude);
     setIsFetchingWeather(true);
     setWeatherError(null);
     try {
@@ -260,19 +307,23 @@ const ClimateMonitor = () => {
         body: { latitude: coords.latitude, longitude: coords.longitude }
       });
       
+      console.log('🌤️ Weather response:', data, error);
+      
       if (error) throw error;
       
       if (data.simulated) {
+        console.warn('🌤️ Using simulated weather data:', data.error);
         setWeatherError(data.error || 'Using simulated data');
-        setWeatherData(data.data);
+        setWeatherData({ ...data.data, lastUpdated: Date.now() });
       } else {
-        setWeatherData(data);
+        console.log('🌤️ Real weather data received:', data);
+        setWeatherData({ ...data, lastUpdated: Date.now() });
       }
     } catch (error) {
-      console.error("Error fetching weather:", error);
+      console.error("🌤️ Error fetching weather:", error);
       setWeatherError("Could not fetch weather. Using simulated data.");
       // Fallback to simulation
-      setWeatherData({ temperature: 22, humidity: 60, uvIndex: 4 });
+      setWeatherData({ temperature: 22, humidity: 60, uvIndex: 4, lastUpdated: Date.now() });
     } finally {
       setIsFetchingWeather(false);
     }

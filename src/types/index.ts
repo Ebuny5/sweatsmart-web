@@ -3,6 +3,9 @@ export interface WeatherData {
   temperature: number;
   humidity: number;
   uvIndex: number;
+  lastUpdated?: number;
+  description?: string;
+  location?: string;
 }
 
 export interface PhysiologicalData {
