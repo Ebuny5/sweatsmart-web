@@ -3,6 +3,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { LoggingSystem } from "../components/climate/LoggingSystem";
 import { SettingsPanel } from "../components/climate/SettingsPanel";
+import { WebPushSettings } from "../components/climate/WebPushSettings";
 
 import { useNavigate } from "react-router-dom";
 import { supabase } from '@/integrations/supabase/client';
@@ -682,6 +683,8 @@ const ClimateMonitor = () => {
           </div>
 
           <SettingsPanel thresholds={thresholds} onThresholdChange={handleThresholdChange} />
+
+          <WebPushSettings thresholds={thresholds} />
 
           <LoggingSystem
             logs={logs}
