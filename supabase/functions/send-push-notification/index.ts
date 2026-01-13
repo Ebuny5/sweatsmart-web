@@ -6,7 +6,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Web Push VAPID implementation
+// Helper to convert base64url to Uint8Array
+function base64UrlToBytes(base64url: string): Uint8Array {
+  const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+  const binary = atob(padded);
+  return Uint8Array.from(binary, c => c.charCodeAt(0));
+}
+
+// Helper to convert Uint8Array to base64url
+function bytesToBase64Url(bytes: Uint8Array): string {
+  const binary = String.fromCharCode(...bytes);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// Web Push VAPID implementation using JWK format
 async function generateVapidSignature(
   endpoint: string,
   vapidPublicKey: string,
@@ -25,25 +39,31 @@ async function generateVapidSignature(
     sub: vapidSubject,
   };
 
-  // Base64URL encode
-  const base64UrlEncode = (data: Uint8Array | string): string => {
-    const str = typeof data === 'string' ? data : new TextDecoder().decode(data);
-    const base64 = btoa(str);
-    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  };
-
+  // Base64URL encode for JWT parts
   const base64UrlEncodeJson = (obj: object): string => {
-    return base64UrlEncode(JSON.stringify(obj));
+    const json = JSON.stringify(obj);
+    const bytes = new TextEncoder().encode(json);
+    return bytesToBase64Url(bytes);
   };
 
-  // Import the private key
-  const privateKeyBase64 = vapidPrivateKey.replace(/-/g, '+').replace(/_/g, '/');
-  const privateKeyBytes = Uint8Array.from(atob(privateKeyBase64), c => c.charCodeAt(0));
-  
-  // Create the key for ECDSA signing
+  // Decode the private and public keys from base64url
+  const privateKeyBytes = base64UrlToBytes(vapidPrivateKey);
+  const publicKeyBytes = base64UrlToBytes(vapidPublicKey);
+
+  // Build JWK for the ECDSA P-256 private key
+  // Private key is 32 bytes (d), public key is 65 bytes (04 || x || y)
+  const jwk = {
+    kty: "EC",
+    crv: "P-256",
+    x: bytesToBase64Url(publicKeyBytes.slice(1, 33)),
+    y: bytesToBase64Url(publicKeyBytes.slice(33, 65)),
+    d: bytesToBase64Url(privateKeyBytes),
+  };
+
+  // Import the private key as JWK
   const cryptoKey = await crypto.subtle.importKey(
-    "raw",
-    privateKeyBytes,
+    "jwk",
+    jwk,
     { name: "ECDSA", namedCurve: "P-256" },
     false,
     ["sign"]
@@ -53,14 +73,14 @@ async function generateVapidSignature(
   const unsignedToken = `${base64UrlEncodeJson(header)}.${base64UrlEncodeJson(payload)}`;
   
   // Sign the token
-  const signature = await crypto.subtle.sign(
+  const signatureBuffer = await crypto.subtle.sign(
     { name: "ECDSA", hash: "SHA-256" },
     cryptoKey,
     new TextEncoder().encode(unsignedToken)
   );
 
   // Convert signature to base64url
-  const signatureBase64Url = base64UrlEncode(new Uint8Array(signature));
+  const signatureBase64Url = bytesToBase64Url(new Uint8Array(signatureBuffer));
   const jwt = `${unsignedToken}.${signatureBase64Url}`;
 
   return {
