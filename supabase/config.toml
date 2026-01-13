@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.hyper-ai-chat]
 verify_jwt = true
+
+[functions.send-push-notification]
+verify_jwt = false
