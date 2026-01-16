@@ -7,13 +7,13 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.generate-sensor-reading]
-verify_jwt = false
+verify_jwt = true
 
 [functions.analyze-palm-image]
-verify_jwt = false
+verify_jwt = true
 
 [functions.get-fused-status]
-verify_jwt = false
+verify_jwt = true
 
 [functions.get-weather-data]
 verify_jwt = false

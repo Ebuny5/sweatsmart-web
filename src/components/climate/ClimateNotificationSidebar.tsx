@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { GoogleGenAI, Type } from "@google/genai";
+import { supabase } from '@/integrations/supabase/client';
 
 // --- Inlined types.ts content ---
 export interface WeatherData {
@@ -431,33 +431,30 @@ const ClimateNotificationSidebar: React.FC<ClimateNotificationSidebarProps> = ({
         setIsFetchingWeather(true);
         setWeatherError(null);
         try {
-            // Assume API_KEY is accessible in the environment where this component is used.
-            // If not, it needs to be passed as a prop or fetched differently.
-            const apiKey = process.env.API_KEY || (window as any).SWEAT_SMART_API_KEY; 
-            if (!apiKey) {
-                throw new Error("API Key for Google GenAI is not defined.");
-            }
-            const ai = new GoogleGenAI({ apiKey: apiKey as string });
-            const response = await ai.models.generateContent({
-                model: "gemini-2.5-flash",
-                contents: `What is the current temperature in Celsius, humidity percentage, and UV index for latitude ${coords.latitude} and longitude ${coords.longitude}? Provide only the JSON object.`,
-                config: {
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: Type.OBJECT,
-                        properties: {
-                            temperature: { type: Type.NUMBER, description: "Temperature in Celsius" },
-                            humidity: { type: Type.NUMBER, description: "Humidity in percentage" },
-                            uvIndex: { type: Type.NUMBER, description: "UV Index" },
-                        },
-                        required: ["temperature", "humidity", "uvIndex"],
-                    },
-                },
+            // Use the secure server-side edge function instead of client-side API keys
+            const { data, error } = await supabase.functions.invoke('get-weather-data', {
+                body: { latitude: coords.latitude, longitude: coords.longitude }
             });
-            const weather = JSON.parse(response.text) as WeatherData;
-            setWeatherData(weather);
+            
+            if (error) {
+                throw new Error(error.message || 'Failed to fetch weather data');
+            }
+            
+            // Handle simulated/fallback data from the edge function
+            if (data.simulated && data.data) {
+                setWeatherData(data.data as WeatherData);
+                console.log('Using simulated weather data');
+            } else if (data.temperature !== undefined) {
+                setWeatherData({
+                    temperature: data.temperature,
+                    humidity: data.humidity,
+                    uvIndex: data.uvIndex
+                } as WeatherData);
+            } else {
+                throw new Error('Invalid weather data response');
+            }
         } catch (error) {
-            console.error("Error fetching weather data from Gemini:", error);
+            console.error("Error fetching weather data:", error);
             setWeatherError("Could not fetch weather. Using simulated data.");
         } finally {
             setIsFetchingWeather(false);

@@ -12,62 +12,92 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, userId } = await req.json();
+    // Validate JWT authentication
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - missing or invalid authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    // Create client with user's auth to validate JWT
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    // Validate the JWT and get the authenticated user ID
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims?.sub) {
+      console.error('JWT validation failed:', claimsError);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Use the authenticated user ID from JWT, NOT from client input
+    const userId = claimsData.claims.sub as string;
+    
+    const { messages } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    // Get user's episode data for context
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Get user's episode data for context using service role (bypasses RLS for efficiency)
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     let userContext = '';
-    if (userId) {
-      const { data: episodes } = await supabase
-        .from('episodes')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(10);
+    // userId is now guaranteed to be the authenticated user from JWT
+    const { data: episodes } = await supabase
+      .from('episodes')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(10);
 
-      if (episodes && episodes.length > 0) {
-        const totalEpisodes = episodes.length;
-        const avgSeverity = episodes.reduce((sum, e) => sum + e.severity, 0) / totalEpisodes;
-        const commonTriggers = new Map();
-        const commonAreas = new Map();
+    if (episodes && episodes.length > 0) {
+      const totalEpisodes = episodes.length;
+      const avgSeverity = episodes.reduce((sum, e) => sum + e.severity, 0) / totalEpisodes;
+      const commonTriggers = new Map();
+      const commonAreas = new Map();
 
-        episodes.forEach(episode => {
-          episode.body_areas?.forEach((area: string) => {
-            commonAreas.set(area, (commonAreas.get(area) || 0) + 1);
-          });
-          const triggers = Array.isArray(episode.triggers) ? episode.triggers : [];
-          triggers.forEach((trigger: any) => {
-            const label = trigger.label || trigger.value || trigger;
-            commonTriggers.set(label, (commonTriggers.get(label) || 0) + 1);
-          });
+      episodes.forEach(episode => {
+        episode.body_areas?.forEach((area: string) => {
+          commonAreas.set(area, (commonAreas.get(area) || 0) + 1);
         });
+        const triggers = Array.isArray(episode.triggers) ? episode.triggers : [];
+        triggers.forEach((trigger: any) => {
+          const label = trigger.label || trigger.value || trigger;
+          commonTriggers.set(label, (commonTriggers.get(label) || 0) + 1);
+        });
+      });
 
-        const topTriggers = Array.from(commonTriggers.entries())
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 3)
-          .map(([trigger]) => trigger);
+      const topTriggers = Array.from(commonTriggers.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([trigger]) => trigger);
 
-        const topAreas = Array.from(commonAreas.entries())
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 3)
-          .map(([area]) => area);
+      const topAreas = Array.from(commonAreas.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([area]) => area);
 
-        userContext = `\n\nUSER CONTEXT (last 10 episodes):
+      userContext = `\n\nUSER CONTEXT (last 10 episodes):
 - Total episodes logged: ${totalEpisodes}
 - Average severity: ${avgSeverity.toFixed(1)}/5
 - Most common triggers: ${topTriggers.join(', ') || 'None logged'}
 - Most affected areas: ${topAreas.join(', ') || 'None logged'}
 
 Use this data to provide personalized insights when relevant.`;
-      }
     }
 
     const systemPrompt = `You are Hyper AI, a warm and knowledgeable AI companion for people managing hyperhidrosis (excessive sweating). You're integrated into the SweatSmart app.
