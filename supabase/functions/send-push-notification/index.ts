@@ -250,14 +250,79 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY')!;
     const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY')!;
     const vapidSubject = Deno.env.get('VAPID_SUBJECT')!;
+    const cronSecret = Deno.env.get('CRON_SECRET');
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { action, userId, endpoint, notification } = await req.json();
+    
+    // For send_climate_alerts, require cron secret (for scheduled jobs only)
+    if (action === 'send_climate_alerts') {
+      const cronHeader = req.headers.get('x-cron-secret');
+      if (!cronSecret || cronHeader !== cronSecret) {
+        console.error('Unauthorized cron attempt - invalid or missing cron secret');
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized - this action requires cron authentication' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } else {
+      // For user-specific actions (send_to_user, send_to_endpoint), require JWT auth
+      const authHeader = req.headers.get('authorization');
+      if (!authHeader?.startsWith('Bearer ')) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized - missing or invalid authorization header' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Validate the JWT
+      const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } }
+      });
+      
+      const token = authHeader.replace('Bearer ', '');
+      const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+      
+      if (claimsError || !claimsData?.claims?.sub) {
+        console.error('JWT validation failed:', claimsError);
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized - invalid token' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      const authenticatedUserId = claimsData.claims.sub as string;
+      
+      // For send_to_user, ensure user can only send to themselves
+      if (action === 'send_to_user' && userId && userId !== authenticatedUserId) {
+        return new Response(
+          JSON.stringify({ error: 'Forbidden - cannot send notifications to other users' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // For send_to_endpoint, verify the endpoint belongs to the authenticated user
+      if (action === 'send_to_endpoint' && endpoint) {
+        const { data: subscriptionCheck } = await supabase
+          .from('push_subscriptions')
+          .select('user_id')
+          .eq('endpoint', endpoint)
+          .single();
+        
+        if (subscriptionCheck && subscriptionCheck.user_id !== authenticatedUserId) {
+          return new Response(
+            JSON.stringify({ error: 'Forbidden - endpoint does not belong to authenticated user' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+    }
 
     if (action === 'send_to_user' && userId) {
       // Send to a specific user
