@@ -24,6 +24,7 @@ function bytesToBase64Url(bytes: Uint8Array): string {
 }
 
 // Web Push VAPID implementation using JWK format
+// Supports both raw base64url keys and full uncompressed public keys
 async function generateVapidSignature(
   endpoint: string,
   vapidPublicKey: string,
@@ -50,18 +51,56 @@ async function generateVapidSignature(
   };
 
   // Decode the private and public keys from base64url
-  const privateKeyBytes = base64UrlToBytes(vapidPrivateKey);
-  const publicKeyBytes = base64UrlToBytes(vapidPublicKey);
+  let privateKeyBytes = base64UrlToBytes(vapidPrivateKey);
+  let publicKeyBytes = base64UrlToBytes(vapidPublicKey);
+
+  // Validate and normalize key formats
+  // Private key should be exactly 32 bytes (256 bits)
+  if (privateKeyBytes.length !== 32) {
+    console.error(`Invalid private key length: ${privateKeyBytes.length}, expected 32`);
+    throw new Error(`Invalid VAPID private key length: ${privateKeyBytes.length} bytes (expected 32)`);
+  }
+
+  // Public key should be 65 bytes (uncompressed: 0x04 prefix + 32 bytes X + 32 bytes Y)
+  // Some keys might be provided without the 0x04 prefix (64 bytes)
+  if (publicKeyBytes.length === 64) {
+    // Add the uncompressed point prefix
+    const fullPublicKey = new Uint8Array(65);
+    fullPublicKey[0] = 0x04;
+    fullPublicKey.set(publicKeyBytes, 1);
+    publicKeyBytes = fullPublicKey;
+    console.log('Added 0x04 prefix to public key (was 64 bytes, now 65)');
+  } else if (publicKeyBytes.length !== 65) {
+    console.error(`Invalid public key length: ${publicKeyBytes.length}, expected 65 (or 64 without prefix)`);
+    throw new Error(`Invalid VAPID public key length: ${publicKeyBytes.length} bytes (expected 65)`);
+  }
+
+  // Verify the public key starts with 0x04 (uncompressed point format)
+  if (publicKeyBytes[0] !== 0x04) {
+    console.error(`Invalid public key format: first byte is ${publicKeyBytes[0]}, expected 0x04`);
+    throw new Error('Invalid VAPID public key format: must be uncompressed (start with 0x04)');
+  }
+
+  // Extract X and Y coordinates (each 32 bytes)
+  const x = publicKeyBytes.slice(1, 33);
+  const y = publicKeyBytes.slice(33, 65);
 
   // Build JWK for the ECDSA P-256 private key
-  // Private key is 32 bytes (d), public key is 65 bytes (04 || x || y)
   const jwk = {
     kty: "EC",
     crv: "P-256",
-    x: bytesToBase64Url(publicKeyBytes.slice(1, 33)),
-    y: bytesToBase64Url(publicKeyBytes.slice(33, 65)),
+    x: bytesToBase64Url(x),
+    y: bytesToBase64Url(y),
     d: bytesToBase64Url(privateKeyBytes),
   };
+
+  console.log('VAPID JWK structure:', {
+    kty: jwk.kty,
+    crv: jwk.crv,
+    xLength: x.length,
+    yLength: y.length,
+    dLength: privateKeyBytes.length,
+  });
 
   // Import the private key as JWK
   const cryptoKey = await crypto.subtle.importKey(
@@ -418,6 +457,33 @@ serve(async (req) => {
       let sent = 0;
       let failed = 0;
 
+      // Smart risk calculation based on hyperhidrosis research
+      const calculateSweatRisk = (temp: number, humidity: number, uv: number) => {
+        // Calculate heat index for more accurate assessment
+        const tempF = (temp * 9/5) + 32;
+        let heatIndexC = temp;
+        if (tempF >= 80) {
+          const hiF = -42.379 + 2.04901523 * tempF + 10.14333127 * humidity
+            - 0.22475541 * tempF * humidity - 0.00683783 * tempF * tempF
+            - 0.05481717 * humidity * humidity + 0.00122874 * tempF * tempF * humidity
+            + 0.00085282 * tempF * humidity * humidity - 0.00000199 * tempF * tempF * humidity * humidity;
+          heatIndexC = (hiF - 32) * 5/9;
+        }
+        
+        const effectiveTemp = Math.max(temp, heatIndexC);
+        
+        // Risk levels based on hyperhidrosis research
+        // Below 24°C: Safe, 24-27°C: Low, 28-31°C: Moderate, 32-35°C: High, 35+°C: Extreme
+        if (effectiveTemp < 24) return { level: 'safe', shouldAlert: false };
+        if (effectiveTemp < 28) return { level: 'low', shouldAlert: false };
+        if (effectiveTemp < 32) {
+          // Moderate risk - only alert if humidity is also high
+          return { level: 'moderate', shouldAlert: humidity >= 70 };
+        }
+        if (effectiveTemp < 35) return { level: 'high', shouldAlert: true };
+        return { level: 'extreme', shouldAlert: true };
+      };
+
       for (const sub of subscriptions || []) {
         // Check weather conditions for this subscription
         if (sub.latitude && sub.longitude) {
@@ -428,16 +494,8 @@ serve(async (req) => {
             );
             const weather = await weatherRes.json();
 
-            const alerts: string[] = [];
             const temp = weather.main?.temp || 0;
             const humidity = weather.main?.humidity || 0;
-
-            if (temp >= (sub.temperature_threshold || 24)) {
-              alerts.push(`🌡️ Temperature: ${temp.toFixed(1)}°C`);
-            }
-            if (humidity >= (sub.humidity_threshold || 70)) {
-              alerts.push(`💧 Humidity: ${humidity}%`);
-            }
 
             // Get UV index
             const uvRes = await fetch(
@@ -446,18 +504,44 @@ serve(async (req) => {
             const uvData = await uvRes.json();
             const uv = uvData.value || 0;
 
-            if (uv >= (sub.uv_threshold || 6)) {
+            // Use smart risk calculation
+            const risk = calculateSweatRisk(temp, humidity, uv);
+            
+            // Also check user-defined thresholds as additional triggers
+            const alerts: string[] = [];
+            const userTempThreshold = sub.temperature_threshold || 28; // Updated default
+            const userHumidityThreshold = sub.humidity_threshold || 70;
+            const userUvThreshold = sub.uv_threshold || 6;
+            
+            if (temp >= userTempThreshold) {
+              alerts.push(`🌡️ Temperature: ${temp.toFixed(1)}°C`);
+            }
+            if (humidity >= userHumidityThreshold) {
+              alerts.push(`💧 Humidity: ${humidity}%`);
+            }
+            if (uv >= userUvThreshold) {
               alerts.push(`☀️ UV Index: ${uv}`);
             }
 
-            if (alerts.length > 0) {
+            // Only send notification if risk is moderate+ OR user thresholds exceeded
+            if (risk.shouldAlert || alerts.length > 0) {
+              const riskMessage = risk.level === 'extreme' 
+                ? 'Extreme heat - stay indoors with AC'
+                : risk.level === 'high' 
+                ? 'High sweat risk - use cooling devices'
+                : risk.level === 'moderate' 
+                ? 'Sweating likely - prepare cooling aids'
+                : 'Warm conditions - monitor symptoms';
+
               const result = await sendPushNotification(
                 { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
                 {
-                  title: '🚨 Climate Alert',
-                  body: `Conditions may trigger sweating:\n${alerts.join('\n')}`,
+                  title: `🚨 ${risk.level === 'extreme' || risk.level === 'high' ? 'High Risk' : 'Climate'} Alert`,
+                  body: alerts.length > 0 
+                    ? `${riskMessage}\n${alerts.join('\n')}`
+                    : riskMessage,
                   tag: 'climate-alert',
-                  type: 'critical',
+                  type: risk.level === 'extreme' || risk.level === 'high' ? 'critical' : 'warning',
                   url: '/climate',
                 },
                 vapidPublicKey,

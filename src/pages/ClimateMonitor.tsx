@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { edaManager } from '@/utils/edaManager';
 import type { WeatherData, PhysiologicalData, Thresholds, LogEntry, HDSSLevel } from "@/types";
 import { soundManager } from '@/utils/soundManager';
+import { calculateSweatRisk, getRiskSeverity, type SweatRiskLevel } from '@/utils/sweatRiskCalculator';
 
 // Icons
 const ThermometerIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
@@ -143,8 +144,10 @@ const CurrentStatusCard: React.FC<{
   weatherError: string | null;
 }> = ({ weather, physiological, alertStatus, isFetching, weatherError }) => {
   const statusColor = useMemo(() => {
+    if (alertStatus.includes("Extreme Risk")) return "text-red-500";
     if (alertStatus.includes("High Risk")) return "text-red-400";
     if (alertStatus.includes("Moderate Risk")) return "text-yellow-400";
+    if (alertStatus.includes("Low Risk")) return "text-yellow-300";
     return "text-green-400";
   }, [alertStatus]);
 
@@ -226,7 +229,8 @@ const ClimateMonitor = () => {
 
   const [thresholds, setThresholds] = useState<Thresholds>(() => {
     const saved = localStorage.getItem('sweatSmartThresholds');
-    return saved ? JSON.parse(saved) : { temperature: 24, humidity: 70, uvIndex: 6 };
+    // Updated defaults based on hyperhidrosis research: 28°C is when sweating typically starts
+    return saved ? JSON.parse(saved) : { temperature: 28, humidity: 70, uvIndex: 6 };
   });
 
   const [logs, setLogs] = useState<LogEntry[]>(() => {
@@ -415,44 +419,50 @@ const ClimateMonitor = () => {
     const settings = localStorage.getItem('climateAppSettings');
     const soundEnabled = settings ? JSON.parse(settings).soundAlerts !== false : true;
 
-    const isEnvTrigger = weatherData.temperature > thresholds.temperature || 
-                         weatherData.humidity > thresholds.humidity || 
-                         weatherData.uvIndex > thresholds.uvIndex;
-    const isPhysioTrigger = physiologicalData.eda > PHYSIOLOGICAL_EDA_THRESHOLD;
-
-    let currentAlertType = 'optimal';
+    // Use the new medically-accurate sweat risk calculator
+    const risk = calculateSweatRisk(
+      weatherData.temperature,
+      weatherData.humidity,
+      weatherData.uvIndex,
+      physiologicalData.eda
+    );
     
-    if (isEnvTrigger && isPhysioTrigger) {
-      currentAlertType = 'high';
-      setAlertStatus("High Risk: Conditions and physiology indicate high sweat risk.");
-    } else if (isEnvTrigger) {
-      currentAlertType = 'moderate';
-      setAlertStatus("Moderate Risk: Climate conditions may trigger sweating.");
+    // Map risk levels to alert types for notification logic
+    const riskToAlertType: Record<SweatRiskLevel, string> = {
+      'safe': 'optimal',
+      'low': 'optimal',
+      'moderate': 'moderate',
+      'high': 'high',
+      'extreme': 'high',
+    };
+    
+    const currentAlertType = riskToAlertType[risk.level];
+    
+    // Build status message with trigger details
+    if (risk.level === 'safe') {
+      setAlertStatus("Conditions Optimal: Comfortable conditions for hyperhidrosis management.");
+    } else if (risk.level === 'low') {
+      setAlertStatus("Low Risk: Mild conditions - stay hydrated and monitor.");
     } else {
-      setAlertStatus("Conditions Optimal: Low sweat risk detected.");
+      setAlertStatus(`${risk.message}: ${risk.description}`);
     }
 
-    // Only send notification if alert type changed (prevents spam)
+    // Only send notification if alert type changed to a warning level (prevents spam)
     if (soundEnabled && currentAlertType !== lastAlertType && currentAlertType !== 'optimal') {
-      console.log('🚨 Alert triggered:', currentAlertType, 'previous:', lastAlertType);
+      console.log('🚨 Alert triggered:', risk.level, 'triggers:', risk.triggers);
       
-      if (currentAlertType === 'high') {
-        sendNotification(
-          'Sweat Smart Alert',
-          'High sweat risk detected based on climate and body signals.',
-          'CRITICAL'
-        );
-      } else if (currentAlertType === 'moderate') {
-        sendNotification(
-          'Sweat Smart Alert',
-          'Moderate sweat risk detected. Consider logging your episode.',
-          'WARNING'
-        );
-      }
+      const severity = getRiskSeverity(risk.level);
+      const triggerText = risk.triggers.length > 0 ? `\n${risk.triggers.join(', ')}` : '';
+      
+      sendNotification(
+        `Sweat Smart Alert - ${risk.message}`,
+        `${risk.description}${triggerText}`,
+        severity
+      );
     }
     
     setLastAlertType(currentAlertType);
-  }, [weatherData, physiologicalData, thresholds, sendNotification, arePermissionsGranted, lastAlertType]);
+  }, [weatherData, physiologicalData, sendNotification, arePermissionsGranted, lastAlertType]);
 
   // Logging logic - 10 min interval for testing, 4-hour blocks for production
   const updateNextLogTime = useCallback(() => {
