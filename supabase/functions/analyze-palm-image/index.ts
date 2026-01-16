@@ -5,6 +5,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Input validation constants
+const MAX_IMAGE_SIZE = 10_000_000; // ~7MB base64
+
 // Retry logic for handling 503 errors
 async function fetchWithRetry(
   url: string,
@@ -56,6 +59,22 @@ serve(async (req) => {
 
   try {
     const { base64ImageData } = await req.json();
+    
+    // Input validation
+    if (!base64ImageData || typeof base64ImageData !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Image data is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (base64ImageData.length > MAX_IMAGE_SIZE) {
+      return new Response(
+        JSON.stringify({ error: 'Image too large. Maximum size is approximately 7MB.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const API_KEY = Deno.env.get('GOOGLE_AI_STUDIO_API_KEY');
     
     if (!API_KEY) {

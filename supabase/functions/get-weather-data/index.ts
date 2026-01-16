@@ -5,6 +5,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Input validation constants
+const MIN_LATITUDE = -90;
+const MAX_LATITUDE = 90;
+const MIN_LONGITUDE = -180;
+const MAX_LONGITUDE = 180;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -13,8 +19,19 @@ serve(async (req) => {
   try {
     const { latitude, longitude } = await req.json();
     
-    if (!latitude || !longitude) {
-      throw new Error('Latitude and longitude are required');
+    // Input validation
+    if (typeof latitude !== 'number' || isNaN(latitude) || latitude < MIN_LATITUDE || latitude > MAX_LATITUDE) {
+      return new Response(
+        JSON.stringify({ error: `Latitude must be a number between ${MIN_LATITUDE} and ${MAX_LATITUDE}` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (typeof longitude !== 'number' || isNaN(longitude) || longitude < MIN_LONGITUDE || longitude > MAX_LONGITUDE) {
+      return new Response(
+        JSON.stringify({ error: `Longitude must be a number between ${MIN_LONGITUDE} and ${MAX_LONGITUDE}` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const OPENWEATHER_API_KEY = Deno.env.get('OPENWEATHER_API_KEY');
@@ -44,7 +61,7 @@ serve(async (req) => {
     }
     
     const weatherData = await weatherResponse.json();
-    console.log('Weather data received:', JSON.stringify(weatherData));
+    console.log('Weather data received');
 
     // Fetch UV index (separate endpoint)
     let uvIndex = 5; // Default UV
@@ -78,7 +95,7 @@ serve(async (req) => {
       timestamp: Date.now()
     };
 
-    console.log('Returning weather:', JSON.stringify(result));
+    console.log('Returning weather data');
 
     return new Response(
       JSON.stringify(result),
@@ -91,7 +108,7 @@ serve(async (req) => {
     // Return simulated data on error
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Weather service temporarily unavailable',
         simulated: true,
         data: { temperature: 25, humidity: 60, uvIndex: 5 }
       }),

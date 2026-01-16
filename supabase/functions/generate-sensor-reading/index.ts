@@ -5,6 +5,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Valid modes whitelist
+const ALLOWED_MODES = ['Resting', 'Active', 'Trigger'];
+
 // Generate fallback data locally when API fails
 function generateFallbackData(mode: string) {
   const timestamp = new Date().toISOString();
@@ -92,6 +95,15 @@ serve(async (req) => {
 
   try {
     const { mode } = await req.json();
+    
+    // Input validation - whitelist allowed modes
+    if (!mode || typeof mode !== 'string' || !ALLOWED_MODES.includes(mode)) {
+      return new Response(
+        JSON.stringify({ error: `Invalid mode. Must be one of: ${ALLOWED_MODES.join(', ')}` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const API_KEY = Deno.env.get('GOOGLE_AI_STUDIO_API_KEY');
     
     if (!API_KEY) {

@@ -5,17 +5,40 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Input validation constants
+const MIN_EDA = 0;
+const MAX_EDA = 100;
+const ALLOWED_PALM_RESULTS = ['Moisture detected.', 'No significant moisture.'];
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { eda, palmResult } = await req.json();
+    const body = await req.json();
+    const { eda, palmResult } = body;
+    
+    // Input validation
+    if (typeof eda !== 'number' || isNaN(eda) || eda < MIN_EDA || eda > MAX_EDA) {
+      return new Response(
+        JSON.stringify({ error: `EDA must be a number between ${MIN_EDA} and ${MAX_EDA}` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!palmResult || typeof palmResult !== 'string' || !ALLOWED_PALM_RESULTS.includes(palmResult)) {
+      return new Response(
+        JSON.stringify({ error: `Palm result must be one of: ${ALLOWED_PALM_RESULTS.join(', ')}` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const API_KEY = Deno.env.get('GOOGLE_AI_STUDIO_API_KEY');
     
     if (!API_KEY) {
-      throw new Error("GOOGLE_AI_STUDIO_API_KEY not configured");
+      // Return fallback when API key not configured
+      return generateFallbackResponse(eda, palmResult);
     }
 
     const prompt = `A wearable device reports an EDA reading of ${eda.toFixed(2)} μS and a palm scan reports "${palmResult}".
@@ -61,7 +84,7 @@ Example for "Early Alert": "Your EDA reading is elevated, suggesting an increase
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Gemini API error:', errorText);
-      throw new Error('Failed to get fused status');
+      return generateFallbackResponse(eda, palmResult);
     }
 
     const result = await response.json();
@@ -70,7 +93,7 @@ Example for "Early Alert": "Your EDA reading is elevated, suggesting an increase
 
     // Validate response
     if (!data.status || !['Stable', 'Early Alert', 'Episode Likely'].includes(data.status) || !data.explanation) {
-      throw new Error("Invalid fused analysis in response");
+      return generateFallbackResponse(eda, palmResult);
     }
 
     return new Response(JSON.stringify(data), {
@@ -79,29 +102,45 @@ Example for "Early Alert": "Your EDA reading is elevated, suggesting an increase
   } catch (error) {
     console.error('Error in get-fused-status:', error);
     
-    // Fallback logic
-    const { eda, palmResult } = await req.json();
-    let fallbackData;
-    
-    if (eda >= 10.0 || (eda >= 5.0 && palmResult === 'Moisture detected.')) {
-      fallbackData = { 
-        status: 'Episode Likely', 
-        explanation: 'High stress indicators detected based on sensor readings and palm scan. Please take a moment to relax and re-center.' 
-      };
-    } else if (eda >= 5.0 || palmResult === 'Moisture detected.') {
-      fallbackData = { 
-        status: 'Early Alert', 
-        explanation: 'Slight elevation in stress indicators detected. Consider taking a short break or a few deep breaths.' 
-      };
-    } else {
-      fallbackData = { 
-        status: 'Stable', 
-        explanation: 'All clear. Your readings are within the normal range.' 
-      };
+    // Try to get original values for fallback
+    try {
+      const body = await req.clone().json();
+      const { eda, palmResult } = body;
+      if (typeof eda === 'number' && typeof palmResult === 'string') {
+        return generateFallbackResponse(eda, palmResult);
+      }
+    } catch {
+      // If we can't parse the body, return a generic error
     }
     
-    return new Response(JSON.stringify(fallbackData), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ error: 'Unable to process request' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 });
+
+function generateFallbackResponse(eda: number, palmResult: string): Response {
+  let fallbackData;
+  
+  if (eda >= 10.0 || (eda >= 5.0 && palmResult === 'Moisture detected.')) {
+    fallbackData = { 
+      status: 'Episode Likely', 
+      explanation: 'High stress indicators detected based on sensor readings and palm scan. Please take a moment to relax and re-center.' 
+    };
+  } else if (eda >= 5.0 || palmResult === 'Moisture detected.') {
+    fallbackData = { 
+      status: 'Early Alert', 
+      explanation: 'Slight elevation in stress indicators detected. Consider taking a short break or a few deep breaths.' 
+    };
+  } else {
+    fallbackData = { 
+      status: 'Stable', 
+      explanation: 'All clear. Your readings are within the normal range.' 
+    };
+  }
+  
+  return new Response(JSON.stringify(fallbackData), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}

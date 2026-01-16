@@ -6,6 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Minimum cron secret length for security
+const MIN_CRON_SECRET_LENGTH = 32;
+
 // Helper to convert base64url to Uint8Array
 function base64UrlToBytes(base64url: string): Uint8Array {
   const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
@@ -261,10 +264,20 @@ serve(async (req) => {
 
     const { action, userId, endpoint, notification } = await req.json();
     
-    // For send_climate_alerts, require cron secret (for scheduled jobs only)
+    // For send_climate_alerts, require strong cron secret (for scheduled jobs only)
     if (action === 'send_climate_alerts') {
       const cronHeader = req.headers.get('x-cron-secret');
-      if (!cronSecret || cronHeader !== cronSecret) {
+      
+      // Validate cron secret exists and is strong enough
+      if (!cronSecret || cronSecret.length < MIN_CRON_SECRET_LENGTH) {
+        console.error('CRON_SECRET must be at least 32 characters for security');
+        return new Response(
+          JSON.stringify({ error: 'Server configuration error - cron secret not properly configured' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      if (!cronHeader || cronHeader !== cronSecret) {
         console.error('Unauthorized cron attempt - invalid or missing cron secret');
         return new Response(
           JSON.stringify({ error: 'Unauthorized - this action requires cron authentication' }),

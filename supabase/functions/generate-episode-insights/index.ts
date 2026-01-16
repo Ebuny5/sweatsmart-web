@@ -7,6 +7,13 @@ const corsHeaders = {
 
 const API_KEY = Deno.env.get('GOOGLE_AI_STUDIO_API_KEY');
 
+// Input validation constants
+const MAX_NOTES_LENGTH = 5000;
+const MAX_TRIGGERS = 50;
+const MAX_BODY_AREAS = 20;
+const MIN_SEVERITY = 1;
+const MAX_SEVERITY = 10;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -15,23 +22,95 @@ serve(async (req) => {
   try {
     const { severity, bodyAreas, triggers, notes } = await req.json();
 
-    console.log('Generating insights for episode:', { severity, bodyAreas, triggers, notes });
+    // Input validation
+    if (typeof severity !== 'number' || severity < MIN_SEVERITY || severity > MAX_SEVERITY) {
+      return new Response(
+        JSON.stringify({ error: `Severity must be between ${MIN_SEVERITY} and ${MAX_SEVERITY}` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!Array.isArray(bodyAreas) || bodyAreas.length === 0 || bodyAreas.length > MAX_BODY_AREAS) {
+      return new Response(
+        JSON.stringify({ error: `Body areas must be an array with 1-${MAX_BODY_AREAS} items` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate each body area is a string
+    for (const area of bodyAreas) {
+      if (typeof area !== 'string' || area.length > 100) {
+        return new Response(
+          JSON.stringify({ error: 'Each body area must be a string with max 100 characters' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    if (!Array.isArray(triggers) || triggers.length > MAX_TRIGGERS) {
+      return new Response(
+        JSON.stringify({ error: `Triggers must be an array with max ${MAX_TRIGGERS} items` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate each trigger
+    for (const trigger of triggers) {
+      if (typeof trigger !== 'object' || trigger === null) {
+        return new Response(
+          JSON.stringify({ error: 'Each trigger must be an object' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const label = trigger.label || trigger.value;
+      if (typeof label !== 'string' || label.length > 200) {
+        return new Response(
+          JSON.stringify({ error: 'Trigger label/value must be a string with max 200 characters' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    if (notes !== undefined && notes !== null) {
+      if (typeof notes !== 'string' || notes.length > MAX_NOTES_LENGTH) {
+        return new Response(
+          JSON.stringify({ error: `Notes must be a string with max ${MAX_NOTES_LENGTH} characters` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    console.log('Generating insights for episode:', { severity, bodyAreas: bodyAreas.length, triggers: triggers.length });
 
     if (!API_KEY) {
       throw new Error('GOOGLE_AI_STUDIO_API_KEY is not configured');
     }
 
     // Build a detailed prompt with hyperhidrosis medical knowledge
-    const triggersList = triggers.map((t: any) => `${t.label || t.value} (${t.type})`).join(', ');
-    const areasAffected = bodyAreas.join(', ');
+    // Sanitize user inputs for prompt (escape special characters and limit length)
+    const sanitizedTriggers = triggers
+      .slice(0, MAX_TRIGGERS)
+      .map((t: any) => {
+        const label = String(t.label || t.value || '').slice(0, 200);
+        const type = String(t.type || 'unknown').slice(0, 50);
+        return `${label} (${type})`;
+      })
+      .join(', ');
+    
+    const sanitizedAreas = bodyAreas
+      .slice(0, MAX_BODY_AREAS)
+      .map((a: string) => String(a).slice(0, 100))
+      .join(', ');
+    
+    const sanitizedNotes = notes ? String(notes).slice(0, MAX_NOTES_LENGTH) : '';
 
     const prompt = `You are a specialized medical AI assistant with deep knowledge of hyperhidrosis (excessive sweating). A patient has logged a sweating episode with the following details:
 
 **Episode Details:**
 - Severity: ${severity}/5
-- Body areas affected: ${areasAffected}
-- Triggers: ${triggersList}
-${notes ? `- Patient notes: ${notes}` : ''}
+- Body areas affected: ${sanitizedAreas}
+- Triggers: ${sanitizedTriggers}
+${sanitizedNotes ? `- Patient notes: ${sanitizedNotes}` : ''}
 
 **Your Medical Knowledge Base:**
 Hyperhidrosis is a condition characterized by excessive sweating beyond what's needed for thermoregulation. It can be:
