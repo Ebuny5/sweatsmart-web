@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, BellOff, MapPin, CheckCircle, AlertCircle, Loader2, Send } from 'lucide-react';
+import { Bell, BellOff, MapPin, CheckCircle, AlertCircle, Loader2, Send, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { webPushService } from '@/services/WebPushService';
@@ -18,6 +18,7 @@ export const WebPushSettings: React.FC<WebPushSettingsProps> = ({ thresholds }) 
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSendingTest, setIsSendingTest] = useState(false);
+  const [isRefreshingSub, setIsRefreshingSub] = useState(false);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
@@ -123,6 +124,7 @@ export const WebPushSettings: React.FC<WebPushSettingsProps> = ({ thresholds }) 
           description: 'Check your notification panel.',
         });
       } else {
+        // If the backend reports VAPID mismatch, guide the user to refresh.
         toast.error('Failed to send test notification', {
           description: result.error || 'Unknown error',
         });
@@ -136,6 +138,75 @@ export const WebPushSettings: React.FC<WebPushSettingsProps> = ({ thresholds }) 
       setIsSendingTest(false);
     }
   };
+
+  const handleRefreshSubscription = async () => {
+    setIsRefreshingSub(true);
+    try {
+      const refreshed = await webPushService.refreshSubscription(
+        user?.id,
+        location?.lat,
+        location?.lng,
+        {
+          temperature: thresholds.temperature,
+          humidity: thresholds.humidity,
+          uv: thresholds.uvIndex,
+        }
+      );
+
+      if (refreshed) {
+        setIsSubscribed(true);
+        setPermission('granted');
+        toast.success('Push subscription refreshed', {
+          description: 'Updated to match the latest notification keys.',
+        });
+      } else {
+        toast.error('Failed to refresh subscription', {
+          description: 'Try turning notifications off and on again.',
+        });
+      }
+    } catch (error) {
+      console.error('Refresh subscription error:', error);
+      toast.error('Failed to refresh subscription', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    } finally {
+      setIsRefreshingSub(false);
+    }
+  };
+
+  // Auto-refresh subscription if VAPID keys changed
+  useEffect(() => {
+    if (!isSupported || !isSubscribed || permission !== 'granted' || !user?.id) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await webPushService.ensureFreshSubscription(user.id, undefined, undefined, {
+          temperature: thresholds.temperature,
+          humidity: thresholds.humidity,
+          uv: thresholds.uvIndex,
+        });
+
+        if (cancelled) return;
+
+        if (res.refreshed) {
+          toast.success('Push notifications updated', {
+            description: 'We refreshed your subscription to match the latest keys.',
+          });
+          setIsSubscribed(true);
+          setPermission('granted');
+        }
+      } catch (e) {
+        // Non-fatal
+        console.warn('Auto-refresh push subscription failed:', e);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isSupported, isSubscribed, permission, user?.id, thresholds.temperature, thresholds.humidity, thresholds.uvIndex]);
 
   // Update thresholds when they change
   useEffect(() => {
@@ -209,20 +280,36 @@ export const WebPushSettings: React.FC<WebPushSettingsProps> = ({ thresholds }) 
               <CheckCircle className="w-4 h-4 text-green-400" />
               <span>Push notifications active</span>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleTestNotification}
-              disabled={isSendingTest}
-              className="text-xs"
-            >
-              {isSendingTest ? (
-                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-              ) : (
-                <Send className="w-3 h-3 mr-1" />
-              )}
-              Test
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefreshSubscription}
+                disabled={isRefreshingSub || isSendingTest}
+                className="text-xs"
+              >
+                {isRefreshingSub ? (
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3 h-3 mr-1" />
+                )}
+                Refresh
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTestNotification}
+                disabled={isSendingTest || isRefreshingSub}
+                className="text-xs"
+              >
+                {isSendingTest ? (
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                ) : (
+                  <Send className="w-3 h-3 mr-1" />
+                )}
+                Test
+              </Button>
+            </div>
           </div>
 
           {location && (

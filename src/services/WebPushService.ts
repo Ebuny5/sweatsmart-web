@@ -5,13 +5,20 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-// VAPID public key - this is safe to expose in client code
-const VAPID_PUBLIC_KEY = 'BLg3PxY0fWoqQ2kVlxXfTnXFV9JXHDTMqNvVXzQLJqhz7mGnPsH8eY_kZVJQJxFdKhEfQTbNqPmRvXYqVqxQfQE';
+// VAPID public key is safe to expose in client code.
+// We keep a fallback value, but prefer fetching the *current* public key from the
+// edge function so it always matches the server-side VAPID private key.
+const FALLBACK_VAPID_PUBLIC_KEY = 'BLg3PxY0fWoqQ2kVlxXfTnXFV9JXHDTMqNvVXzQLJqhz7mGnPsH8eY_kZVJQJxFdKhEfQTbNqPmRvXYqVqxQfQE';
+
+const LS_VAPID_PUBLIC_KEY = 'sweatsmart:webpush:vapid_public_key';
 
 class WebPushService {
   private static instance: WebPushService;
   private registration: ServiceWorkerRegistration | null = null;
   private subscription: PushSubscription | null = null;
+
+  private vapidPublicKeyCache: string | null = null;
+  private vapidPublicKeyFetchPromise: Promise<string> | null = null;
 
   private constructor() {}
 
@@ -22,13 +29,66 @@ class WebPushService {
     return WebPushService.instance;
   }
 
-  /**
+/**
    * Check if push notifications are supported
    */
   isSupported(): boolean {
-    return 'serviceWorker' in navigator && 
-           'PushManager' in window && 
-           'Notification' in window;
+    return 'serviceWorker' in navigator &&
+      'PushManager' in window &&
+      'Notification' in window;
+  }
+
+  private getStoredVapidPublicKey(): string | null {
+    try {
+      return localStorage.getItem(LS_VAPID_PUBLIC_KEY);
+    } catch {
+      return null;
+    }
+  }
+
+  private setStoredVapidPublicKey(key: string | null) {
+    try {
+      if (key) {
+        localStorage.setItem(LS_VAPID_PUBLIC_KEY, key);
+      } else {
+        localStorage.removeItem(LS_VAPID_PUBLIC_KEY);
+      }
+    } catch {
+      // ignore storage errors (private mode, etc.)
+    }
+  }
+
+  /**
+   * Fetch the current VAPID public key from the edge function.
+   * This keeps the client subscription aligned with the server-side VAPID private key.
+   */
+  private async getVapidPublicKey(): Promise<string> {
+    if (this.vapidPublicKeyCache) return this.vapidPublicKeyCache;
+
+    if (this.vapidPublicKeyFetchPromise) {
+      return await this.vapidPublicKeyFetchPromise;
+    }
+
+    this.vapidPublicKeyFetchPromise = (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('send-push-notification', {
+          body: { action: 'get_vapid_public_key' },
+        });
+
+        if (!error && data?.publicKey && typeof data.publicKey === 'string') {
+          return data.publicKey;
+        }
+      } catch {
+        // ignore and fall back
+      }
+
+      return FALLBACK_VAPID_PUBLIC_KEY;
+    })();
+
+    const key = await this.vapidPublicKeyFetchPromise;
+    this.vapidPublicKeyCache = key;
+    this.vapidPublicKeyFetchPromise = null;
+    return key;
   }
 
   /**
@@ -71,7 +131,7 @@ class WebPushService {
 
       // Check for existing subscription
       this.subscription = await this.registration.pushManager.getSubscription();
-      
+
       if (this.subscription) {
         console.log('📱 Existing push subscription found');
         return true;
@@ -121,8 +181,11 @@ class WebPushService {
         return null;
       }
 
+      // Fetch the current VAPID public key (kept in sync with the backend)
+      const vapidPublicKey = await this.getVapidPublicKey();
+
       // Convert VAPID key to Uint8Array
-      const applicationServerKey = this.urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+      const applicationServerKey = this.urlBase64ToUint8Array(vapidPublicKey);
 
       // Subscribe to push
       this.subscription = await this.registration.pushManager.subscribe({
@@ -162,6 +225,7 @@ class WebPushService {
       }
 
       console.log('📱 Push subscription stored in database');
+      this.setStoredVapidPublicKey(vapidPublicKey);
       return this.subscription;
     } catch (error) {
       console.error('Failed to subscribe to push:', error);
@@ -174,6 +238,11 @@ class WebPushService {
    */
   async unsubscribe(): Promise<boolean> {
     if (!this.subscription) {
+      await this.getSubscription();
+    }
+
+    if (!this.subscription) {
+      this.setStoredVapidPublicKey(null);
       return true;
     }
 
@@ -187,6 +256,7 @@ class WebPushService {
       // Unsubscribe from push
       await this.subscription.unsubscribe();
       this.subscription = null;
+      this.setStoredVapidPublicKey(null);
 
       console.log('📱 Push subscription removed');
       return true;
@@ -194,6 +264,89 @@ class WebPushService {
       console.error('Failed to unsubscribe:', error);
       return false;
     }
+  }
+
+  /**
+   * Force a fresh subscription using the currently configured VAPID keys.
+   * This is the main fix for "VAPID credentials mismatch".
+   */
+  async refreshSubscription(
+    userId?: string,
+    latitude?: number,
+    longitude?: number,
+    thresholds?: {
+      temperature?: number;
+      humidity?: number;
+      uv?: number;
+    }
+  ): Promise<PushSubscription | null> {
+    if (!this.registration) {
+      await this.initialize();
+    }
+
+    if (!this.registration) {
+      console.error('Service worker not ready');
+      return null;
+    }
+
+    try {
+      const existing = await this.registration.pushManager.getSubscription();
+
+      if (existing) {
+        // Best-effort cleanup of the old endpoint
+        try {
+          await supabase
+            .from('push_subscriptions')
+            .delete()
+            .eq('endpoint', existing.endpoint);
+        } catch {
+          // ignore
+        }
+
+        try {
+          await existing.unsubscribe();
+        } catch {
+          // ignore
+        }
+      }
+
+      this.subscription = null;
+      this.setStoredVapidPublicKey(null);
+
+      return await this.subscribe(userId, latitude, longitude, thresholds);
+    } catch (error) {
+      console.error('Failed to refresh push subscription:', error);
+      return null;
+    }
+  }
+
+  /**
+   * If we have a subscription created with older VAPID keys, recreate it automatically.
+   */
+  async ensureFreshSubscription(
+    userId?: string,
+    latitude?: number,
+    longitude?: number,
+    thresholds?: {
+      temperature?: number;
+      humidity?: number;
+      uv?: number;
+    }
+  ): Promise<{ refreshed: boolean; subscription: PushSubscription | null }> {
+    const subscribed = await this.isSubscribed();
+    if (!subscribed || Notification.permission !== 'granted') {
+      return { refreshed: false, subscription: this.subscription };
+    }
+
+    const currentKey = await this.getVapidPublicKey();
+    const storedKey = this.getStoredVapidPublicKey();
+
+    if (storedKey && storedKey === currentKey) {
+      return { refreshed: false, subscription: this.subscription };
+    }
+
+    const newSub = await this.refreshSubscription(userId, latitude, longitude, thresholds);
+    return { refreshed: newSub !== null, subscription: newSub };
   }
 
   /**

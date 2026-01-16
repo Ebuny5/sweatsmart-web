@@ -347,6 +347,22 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { action, userId, endpoint, notification } = await req.json();
+
+    // Public action: return the *current* VAPID public key that matches VAPID_PRIVATE_KEY
+    // (safe to expose; required on the client to create compatible subscriptions)
+    if (action === 'get_vapid_public_key') {
+      const { cryptoKey } = await generateVapidSignature(
+        'https://example.com',
+        vapidPublicKey,
+        vapidPrivateKey,
+        vapidSubject
+      );
+
+      return new Response(
+        JSON.stringify({ success: true, publicKey: cryptoKey }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     // For send_climate_alerts, require strong cron secret (for scheduled jobs only)
     if (action === 'send_climate_alerts') {
