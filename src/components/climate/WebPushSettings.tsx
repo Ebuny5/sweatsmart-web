@@ -117,17 +117,21 @@ export const WebPushSettings: React.FC<WebPushSettingsProps> = ({ thresholds }) 
   const handleTestNotification = async () => {
     setIsSendingTest(true);
     try {
-      const success = await webPushService.sendTestNotification();
-      if (success) {
+      const result = await webPushService.sendTestNotification();
+      if (result.success) {
         toast.success('Test notification sent!', {
           description: 'Check your notification panel.',
         });
       } else {
-        toast.error('Failed to send test notification');
+        toast.error('Failed to send test notification', {
+          description: result.error || 'Unknown error',
+        });
       }
     } catch (error) {
       console.error('Test notification error:', error);
-      toast.error('Failed to send test');
+      toast.error('Failed to send test', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
     } finally {
       setIsSendingTest(false);
     }

@@ -23,8 +23,11 @@ function bytesToBase64Url(bytes: Uint8Array): string {
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-// Web Push VAPID implementation using JWK format
-// Supports both raw base64url keys and full uncompressed public keys
+// Web Push VAPID implementation
+// Accepts either:
+// - Raw VAPID private key (32 bytes, base64url) like web-push generates
+// - PKCS8 DER private key (commonly ~138 bytes when decoded)
+// Public key is expected to be the uncompressed P-256 point (65 bytes) in base64url
 async function generateVapidSignature(
   endpoint: string,
   vapidPublicKey: string,
@@ -33,8 +36,7 @@ async function generateVapidSignature(
 ): Promise<{ authorization: string; cryptoKey: string }> {
   const endpointUrl = new URL(endpoint);
   const audience = `${endpointUrl.protocol}//${endpointUrl.host}`;
-  
-  // Create JWT header and payload
+
   const header = { typ: "JWT", alg: "ES256" };
   const now = Math.floor(Date.now() / 1000);
   const payload = {
@@ -43,91 +45,86 @@ async function generateVapidSignature(
     sub: vapidSubject,
   };
 
-  // Base64URL encode for JWT parts
   const base64UrlEncodeJson = (obj: object): string => {
     const json = JSON.stringify(obj);
     const bytes = new TextEncoder().encode(json);
     return bytesToBase64Url(bytes);
   };
 
-  // Decode the private and public keys from base64url
-  let privateKeyBytes = base64UrlToBytes(vapidPrivateKey);
+  // Normalize public key (accept 64 bytes without 0x04 prefix)
   let publicKeyBytes = base64UrlToBytes(vapidPublicKey);
-
-  // Validate and normalize key formats
-  // Private key should be exactly 32 bytes (256 bits)
-  if (privateKeyBytes.length !== 32) {
-    console.error(`Invalid private key length: ${privateKeyBytes.length}, expected 32`);
-    throw new Error(`Invalid VAPID private key length: ${privateKeyBytes.length} bytes (expected 32)`);
-  }
-
-  // Public key should be 65 bytes (uncompressed: 0x04 prefix + 32 bytes X + 32 bytes Y)
-  // Some keys might be provided without the 0x04 prefix (64 bytes)
   if (publicKeyBytes.length === 64) {
-    // Add the uncompressed point prefix
     const fullPublicKey = new Uint8Array(65);
     fullPublicKey[0] = 0x04;
     fullPublicKey.set(publicKeyBytes, 1);
     publicKeyBytes = fullPublicKey;
-    console.log('Added 0x04 prefix to public key (was 64 bytes, now 65)');
-  } else if (publicKeyBytes.length !== 65) {
-    console.error(`Invalid public key length: ${publicKeyBytes.length}, expected 65 (or 64 without prefix)`);
-    throw new Error(`Invalid VAPID public key length: ${publicKeyBytes.length} bytes (expected 65)`);
+  }
+  if (publicKeyBytes.length !== 65 || publicKeyBytes[0] !== 0x04) {
+    console.error(`Invalid VAPID public key length/format: ${publicKeyBytes.length}`);
+    throw new Error(`Invalid VAPID public key format (expected 65 bytes uncompressed P-256 point)`);
   }
 
-  // Verify the public key starts with 0x04 (uncompressed point format)
-  if (publicKeyBytes[0] !== 0x04) {
-    console.error(`Invalid public key format: first byte is ${publicKeyBytes[0]}, expected 0x04`);
-    throw new Error('Invalid VAPID public key format: must be uncompressed (start with 0x04)');
+  const normalizedVapidPublicKey = bytesToBase64Url(publicKeyBytes);
+
+  // Decode private key
+  const privateKeyBytes = base64UrlToBytes(vapidPrivateKey);
+
+  let signingKey: CryptoKey;
+
+  // Case A: raw 32-byte private key scalar (d)
+  if (privateKeyBytes.length === 32) {
+    const x = publicKeyBytes.slice(1, 33);
+    const y = publicKeyBytes.slice(33, 65);
+
+    const jwk = {
+      kty: "EC",
+      crv: "P-256",
+      x: bytesToBase64Url(x),
+      y: bytesToBase64Url(y),
+      d: bytesToBase64Url(privateKeyBytes),
+    };
+
+    signingKey = await crypto.subtle.importKey(
+      "jwk",
+      jwk,
+      { name: "ECDSA", namedCurve: "P-256" },
+      false,
+      ["sign"]
+    );
+  } else {
+    // Case B: PKCS8 DER private key
+    // This matches the current failing logs: decoded length ~138 bytes.
+    try {
+      signingKey = await crypto.subtle.importKey(
+        "pkcs8",
+        privateKeyBytes.buffer,
+        { name: "ECDSA", namedCurve: "P-256" },
+        false,
+        ["sign"]
+      );
+    } catch (e) {
+      console.error('Failed to import PKCS8 VAPID private key:', e);
+      throw new Error(
+        `Invalid VAPID private key format (decoded ${privateKeyBytes.length} bytes). ` +
+          `Expected 32-byte raw key or PKCS8 DER.`
+      );
+    }
   }
 
-  // Extract X and Y coordinates (each 32 bytes)
-  const x = publicKeyBytes.slice(1, 33);
-  const y = publicKeyBytes.slice(33, 65);
-
-  // Build JWK for the ECDSA P-256 private key
-  const jwk = {
-    kty: "EC",
-    crv: "P-256",
-    x: bytesToBase64Url(x),
-    y: bytesToBase64Url(y),
-    d: bytesToBase64Url(privateKeyBytes),
-  };
-
-  console.log('VAPID JWK structure:', {
-    kty: jwk.kty,
-    crv: jwk.crv,
-    xLength: x.length,
-    yLength: y.length,
-    dLength: privateKeyBytes.length,
-  });
-
-  // Import the private key as JWK
-  const cryptoKey = await crypto.subtle.importKey(
-    "jwk",
-    jwk,
-    { name: "ECDSA", namedCurve: "P-256" },
-    false,
-    ["sign"]
-  );
-
-  // Create unsigned token
   const unsignedToken = `${base64UrlEncodeJson(header)}.${base64UrlEncodeJson(payload)}`;
-  
-  // Sign the token
+
   const signatureBuffer = await crypto.subtle.sign(
     { name: "ECDSA", hash: "SHA-256" },
-    cryptoKey,
+    signingKey,
     new TextEncoder().encode(unsignedToken)
   );
 
-  // Convert signature to base64url
   const signatureBase64Url = bytesToBase64Url(new Uint8Array(signatureBuffer));
   const jwt = `${unsignedToken}.${signatureBase64Url}`;
 
   return {
-    authorization: `vapid t=${jwt}, k=${vapidPublicKey}`,
-    cryptoKey: vapidPublicKey,
+    authorization: `vapid t=${jwt}, k=${normalizedVapidPublicKey}`,
+    cryptoKey: normalizedVapidPublicKey,
   };
 }
 

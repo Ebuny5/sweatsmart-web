@@ -266,10 +266,10 @@ class WebPushService {
   /**
    * Send a test notification through the edge function
    */
-  async sendTestNotification(): Promise<boolean> {
+  async sendTestNotification(): Promise<{ success: boolean; error?: string }> {
     if (!this.subscription) {
       console.warn('No active subscription');
-      return false;
+      return { success: false, error: 'No active subscription' };
     }
 
     try {
@@ -279,7 +279,7 @@ class WebPushService {
           endpoint: this.subscription.endpoint,
           notification: {
             title: '✅ Test Notification',
-            body: 'Web Push is working! You\'ll receive climate alerts even when the app is closed.',
+            body: "Web Push is working! You'll receive climate alerts even when the app is closed.",
             tag: 'test-push',
             type: 'info',
             url: '/climate',
@@ -288,15 +288,19 @@ class WebPushService {
       });
 
       if (error) {
-        console.error('Test notification failed:', error);
-        return false;
+        console.error('Test notification failed (invoke):', error);
+        return { success: false, error: error.message };
+      }
+
+      if (!data?.success) {
+        return { success: false, error: data?.error || 'Unknown push error' };
       }
 
       console.log('📱 Test notification sent:', data);
-      return data?.success || false;
-    } catch (error) {
-      console.error('Failed to send test notification:', error);
-      return false;
+      return { success: true };
+    } catch (err) {
+      console.error('Failed to send test notification:', err);
+      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
     }
   }
 
