@@ -25,9 +25,8 @@ function bytesToBase64Url(bytes: Uint8Array): string {
 
 // Web Push VAPID implementation
 // Accepts either:
-// - Raw VAPID private key (32 bytes, base64url) like web-push generates
-// - PKCS8 DER private key (commonly ~138 bytes when decoded)
-// Public key is expected to be the uncompressed P-256 point (65 bytes) in base64url
+// - Raw VAPID private key (32 bytes, base64url) like web-push generates (requires VAPID_PUBLIC_KEY)
+// - PKCS8 DER private key (commonly ~138 bytes when decoded) (public key is derived automatically)
 async function generateVapidSignature(
   endpoint: string,
   vapidPublicKey: string,
@@ -51,57 +50,104 @@ async function generateVapidSignature(
     return bytesToBase64Url(bytes);
   };
 
-  // Normalize public key (accept 64 bytes without 0x04 prefix)
-  let publicKeyBytes = base64UrlToBytes(vapidPublicKey);
-  if (publicKeyBytes.length === 64) {
-    const fullPublicKey = new Uint8Array(65);
-    fullPublicKey[0] = 0x04;
-    fullPublicKey.set(publicKeyBytes, 1);
-    publicKeyBytes = fullPublicKey;
-  }
-  if (publicKeyBytes.length !== 65 || publicKeyBytes[0] !== 0x04) {
-    console.error(`Invalid VAPID public key length/format: ${publicKeyBytes.length}`);
-    throw new Error(`Invalid VAPID public key format (expected 65 bytes uncompressed P-256 point)`);
-  }
+  const normalizeUncompressedPoint = (bytes: Uint8Array): Uint8Array => {
+    // Accept 64 bytes (x||y) and add 0x04 prefix
+    if (bytes.length === 64) {
+      const full = new Uint8Array(65);
+      full[0] = 0x04;
+      full.set(bytes, 1);
+      return full;
+    }
+    return bytes;
+  };
 
-  const normalizedVapidPublicKey = bytesToBase64Url(publicKeyBytes);
+  const decodeAndValidatePublicKey = (publicKeyB64Url: string): Uint8Array => {
+    const pk = normalizeUncompressedPoint(base64UrlToBytes(publicKeyB64Url));
+    if (pk.length !== 65 || pk[0] !== 0x04) {
+      console.error(`Invalid VAPID public key length/format: ${pk.length}`);
+      throw new Error(
+        `Invalid VAPID public key format (expected 65 bytes uncompressed P-256 point)`
+      );
+    }
+    return pk;
+  };
 
   // Decode private key
   const privateKeyBytes = base64UrlToBytes(vapidPrivateKey);
 
   let signingKey: CryptoKey;
+  let publicKeyBytes: Uint8Array;
 
-  // Case A: raw 32-byte private key scalar (d)
+  // Case A: raw 32-byte private key scalar (d) -> requires explicit VAPID public key
   if (privateKeyBytes.length === 32) {
+    if (!vapidPublicKey) {
+      throw new Error(
+        'VAPID_PUBLIC_KEY is required when VAPID_PRIVATE_KEY is a 32-byte raw scalar'
+      );
+    }
+
+    publicKeyBytes = decodeAndValidatePublicKey(vapidPublicKey);
+
     const x = publicKeyBytes.slice(1, 33);
     const y = publicKeyBytes.slice(33, 65);
 
     const jwk = {
-      kty: "EC",
-      crv: "P-256",
+      kty: 'EC',
+      crv: 'P-256',
       x: bytesToBase64Url(x),
       y: bytesToBase64Url(y),
       d: bytesToBase64Url(privateKeyBytes),
     };
 
     signingKey = await crypto.subtle.importKey(
-      "jwk",
+      'jwk',
       jwk,
-      { name: "ECDSA", namedCurve: "P-256" },
+      { name: 'ECDSA', namedCurve: 'P-256' },
       false,
-      ["sign"]
+      ['sign']
     );
   } else {
-    // Case B: PKCS8 DER private key
-    // This matches the current failing logs: decoded length ~138 bytes.
+    // Case B: PKCS8 DER private key (public key derived automatically)
     try {
       signingKey = await crypto.subtle.importKey(
-        "pkcs8",
+        'pkcs8',
         privateKeyBytes.buffer,
-        { name: "ECDSA", namedCurve: "P-256" },
-        false,
-        ["sign"]
+        { name: 'ECDSA', namedCurve: 'P-256' },
+        true, // extractable so we can derive x/y
+        ['sign']
       );
+
+      const jwk = await crypto.subtle.exportKey('jwk', signingKey);
+      if (!('x' in jwk) || !('y' in jwk) || typeof jwk.x !== 'string' || typeof jwk.y !== 'string') {
+        throw new Error('PKCS8 key did not contain public coordinates');
+      }
+
+      const x = base64UrlToBytes(jwk.x);
+      const y = base64UrlToBytes(jwk.y);
+      if (x.length !== 32 || y.length !== 32) {
+        throw new Error(`Invalid public coordinates length (x=${x.length}, y=${y.length})`);
+      }
+
+      publicKeyBytes = new Uint8Array(65);
+      publicKeyBytes[0] = 0x04;
+      publicKeyBytes.set(x, 1);
+      publicKeyBytes.set(y, 33);
+
+      // If a public key was provided, validate it but don't hard-fail (prevents bad secrets from breaking pushes)
+      if (vapidPublicKey) {
+        try {
+          const provided = decodeAndValidatePublicKey(vapidPublicKey);
+          const derivedB64 = bytesToBase64Url(publicKeyBytes);
+          const providedB64 = bytesToBase64Url(provided);
+          if (derivedB64 !== providedB64) {
+            console.warn(
+              'VAPID_PUBLIC_KEY does not match derived public key from VAPID_PRIVATE_KEY. Using derived key.'
+            );
+          }
+        } catch {
+          console.warn('Invalid VAPID_PUBLIC_KEY provided; using derived public key from private key.');
+        }
+      }
     } catch (e) {
       console.error('Failed to import PKCS8 VAPID private key:', e);
       throw new Error(
@@ -111,10 +157,12 @@ async function generateVapidSignature(
     }
   }
 
+  const normalizedVapidPublicKey = bytesToBase64Url(publicKeyBytes);
+
   const unsignedToken = `${base64UrlEncodeJson(header)}.${base64UrlEncodeJson(payload)}`;
 
   const signatureBuffer = await crypto.subtle.sign(
-    { name: "ECDSA", hash: "SHA-256" },
+    { name: 'ECDSA', hash: 'SHA-256' },
     signingKey,
     new TextEncoder().encode(unsignedToken)
   );
@@ -291,7 +339,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY')!;
+    const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY') ?? '';
     const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY')!;
     const vapidSubject = Deno.env.get('VAPID_SUBJECT')!;
     const cronSecret = Deno.env.get('CRON_SECRET');
