@@ -107,6 +107,13 @@ const analysisSchema = {
   required: ['confidence', 'severity', 'sweatGlandActivity', 'moistureSource', 'detectedTriggers', 'treatmentRecommendations', 'analysisNotes', 'visualAssessment', 'decision']
 };
 
+// Input validation constants
+const MAX_IMAGE_SIZE = 10_000_000; // ~7MB base64
+const MIN_HR = 30;
+const MAX_HR = 250;
+const MIN_GSR = 0;
+const MAX_GSR = 100;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -116,9 +123,42 @@ serve(async (req) => {
     const reqBody = await req.json();
     const { imageData, hrData, gsrData, sensorReliability = 'low', simulationScenario } = reqBody;
 
+    // Input validation
+    if (!imageData || typeof imageData !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Image data is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (imageData.length > MAX_IMAGE_SIZE) {
+      return new Response(
+        JSON.stringify({ error: 'Image too large. Maximum size is approximately 7MB.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (hrData !== null && hrData !== undefined) {
+      if (typeof hrData !== 'number' || hrData < MIN_HR || hrData > MAX_HR) {
+        return new Response(
+          JSON.stringify({ error: `Heart rate must be between ${MIN_HR} and ${MAX_HR} bpm` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    if (gsrData !== null && gsrData !== undefined) {
+      if (typeof gsrData !== 'number' || gsrData < MIN_GSR || gsrData > MAX_GSR) {
+        return new Response(
+          JSON.stringify({ error: `GSR must be between ${MIN_GSR} and ${MAX_GSR} µS` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     console.log('=== GEMINI API DEBUG START ===');
     console.log('GOOGLE_AI_STUDIO_API_KEY exists:', !!API_KEY);
-    console.log('Incoming imageData length:', imageData ? imageData.length : 'NO IMAGE DATA');
+    console.log('Incoming imageData length:', imageData.length);
     console.log('Heart Rate:', hrData);
     console.log('GSR:', gsrData);
     console.log('Sensor reliability:', sensorReliability);
