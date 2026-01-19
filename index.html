@@ -25,9 +25,13 @@
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
     <script>
+      // Use the main SweatSmart service worker (handles push + reminders + offline)
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/pwabuilder-sw.js');
+          navigator.serviceWorker
+            .register('/sw.js')
+            .then(() => console.log('✅ Service Worker registered: /sw.js'))
+            .catch((err) => console.error('❌ Service Worker registration failed:', err));
         });
       }
     </script>

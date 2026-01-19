@@ -11,7 +11,27 @@ const MAX_LATITUDE = 90;
 const MIN_LONGITUDE = -180;
 const MAX_LONGITUDE = 180;
 
-serve(async (req) => {
+type WeatherResult = {
+  temperature: number;
+  humidity: number;
+  uvIndex: number;
+  description?: string;
+  icon?: string;
+  location?: string;
+  timestamp: number;
+};
+
+// Best-effort in-memory cache to reduce OpenWeather calls.
+// Note: Edge functions are ephemeral; this helps when the instance is warm.
+const WEATHER_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const weatherCache = new Map<string, { ts: number; payload: WeatherResult }>();
+
+function cacheKey(lat: number, lon: number) {
+  // Round to ~110m precision to avoid cache fragmentation
+  return `${lat.toFixed(3)},${lon.toFixed(3)}`;
+}
+
+serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -49,6 +69,23 @@ serve(async (req) => {
     }
 
     console.log(`Fetching weather for: ${latitude}, ${longitude}`);
+
+    // Serve from cache when possible
+    const key = cacheKey(latitude, longitude);
+    const cached = weatherCache.get(key);
+    if (cached && Date.now() - cached.ts < WEATHER_CACHE_TTL_MS) {
+      const payload = { ...cached.payload, cached: true, cacheAgeMs: Date.now() - cached.ts };
+      return new Response(
+        JSON.stringify(payload),
+        {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Cache-Control': `public, max-age=${Math.floor(WEATHER_CACHE_TTL_MS / 1000)}`,
+          },
+        }
+      );
+    }
 
     // Fetch current weather data
     const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${OPENWEATHER_API_KEY}`;
@@ -92,14 +129,23 @@ serve(async (req) => {
       description: weatherData.weather?.[0]?.description || 'Unknown',
       icon: weatherData.weather?.[0]?.icon,
       location: weatherData.name,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
+
+    // Update cache
+    weatherCache.set(cacheKey(latitude, longitude), { ts: Date.now(), payload: result });
 
     console.log('Returning weather data');
 
     return new Response(
       JSON.stringify(result),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'Cache-Control': `public, max-age=${Math.floor(WEATHER_CACHE_TTL_MS / 1000)}`,
+        },
+      }
     );
 
   } catch (error) {
