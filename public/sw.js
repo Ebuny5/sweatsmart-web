@@ -4,17 +4,33 @@
 const CACHE_VERSION = 'v2.3.0';
 const CACHE_NAME = `sweatsmart-${CACHE_VERSION}`;
 
+// Offline fallback (kept from the previous PWA Builder SW so we don't regress offline UX)
+const OFFLINE_FALLBACK_URL = '/offline.html';
+
 // Testing mode: 10-minute intervals (set to false for production 4-hour intervals)
 const TESTING_MODE = true;
 const TEST_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
 const PRODUCTION_INTERVAL_MS = 4 * 60 * 60 * 1000; // 4 hours
 const CHECK_INTERVAL_MS = 30000; // Check every 30 seconds
 
+
 let reminderCheckInterval = null;
 
 // ============= INSTALL & ACTIVATE =============
 self.addEventListener('install', (event) => {
   console.log('📱 SweatSmart Service Worker installed - version:', CACHE_VERSION);
+
+  event.waitUntil(
+    (async () => {
+      try {
+        const cache = await caches.open(CACHE_NAME);
+        await cache.addAll([OFFLINE_FALLBACK_URL]);
+      } catch (e) {
+        console.warn('📱 SW: Failed to cache offline fallback:', e);
+      }
+    })()
+  );
+
   self.skipWaiting();
 });
 
@@ -406,13 +422,28 @@ self.addEventListener('pushsubscriptionchange', (event) => {
 
 // ============= FETCH HANDLER (for share target) =============
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
   // Handle share target POST requests
-  if (event.request.url.includes('/share-target/') && event.request.method === 'POST') {
+  if (url.pathname.startsWith('/share-target/') && event.request.method === 'POST') {
     event.respondWith(handleShareTarget(event.request));
     return;
   }
-  
-  // Default: let the browser handle it
+
+  // Offline fallback for navigations
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      (async () => {
+        try {
+          return await fetch(event.request);
+        } catch (error) {
+          const cache = await caches.open(CACHE_NAME);
+          const cached = await cache.match(OFFLINE_FALLBACK_URL);
+          return cached || new Response('Offline', { status: 503, statusText: 'Offline' });
+        }
+      })()
+    );
+  }
 });
 
 async function handleShareTarget(request) {

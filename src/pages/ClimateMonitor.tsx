@@ -61,8 +61,8 @@ const TESTING_MODE = false;
 const LOG_INTERVAL = 4 * 60 * 60 * 1000; // 4 hours
 const DATA_SIMULATION_INTERVAL = 5000;
 const LOG_CHECK_INTERVAL = 30000; // Check every 30 seconds
-const WEATHER_REFRESH_INTERVAL = 2 * 60 * 1000; // Refresh weather every 2 minutes for real-time updates
-
+// OpenWeather fetches 2 endpoints per refresh (weather + UV). Keep this conservative to avoid daily quota issues.
+const WEATHER_REFRESH_INTERVAL = 15 * 60 * 1000; // Refresh weather every 15 minutes
 type PermissionStatus = 'prompt' | 'granted' | 'denied';
 
 // Using shared SoundManager for all alert sounds (see utils/soundManager).
