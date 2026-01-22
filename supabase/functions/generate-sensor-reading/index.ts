@@ -48,44 +48,14 @@ function generateFallbackData(mode: string) {
   };
 }
 
-// Retry function with exponential backoff
-async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 2): Promise<Response> {
-  let lastError: Error | null = null;
-  
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      const response = await fetch(url, options);
-      if (response.ok) {
-        return response;
-      }
-      
-      // If rate limited or overloaded, wait and retry
-      if (response.status === 429 || response.status === 503) {
-        const errorText = await response.text();
-        console.warn(`Attempt ${attempt + 1} failed with status ${response.status}: ${errorText}`);
-        
-        if (attempt < maxRetries) {
-          const delay = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
-          console.log(`Retrying in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          continue;
-        }
-      }
-      
-      // For other errors, throw immediately
-      const errorText = await response.text();
-      throw new Error(`API error ${response.status}: ${errorText}`);
-    } catch (error) {
-      lastError = error as Error;
-      if (attempt < maxRetries) {
-        const delay = Math.pow(2, attempt) * 1000;
-        console.log(`Fetch failed, retrying in ${delay}ms...`, error);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
+// Simple fetch - no retries to preserve quota, fallback handles failures
+async function fetchOnce(url: string, options: RequestInit): Promise<Response> {
+  const response = await fetch(url, options);
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`API error ${response.status}: ${errorText}`);
   }
-  
-  throw lastError || new Error('Max retries exceeded');
+  return response;
 }
 
 serve(async (req) => {
@@ -142,7 +112,7 @@ The notes field should briefly describe the simulation, reflecting the '${mode}'
     };
 
     try {
-      const response = await fetchWithRetry(
+      const response = await fetchOnce(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
         {
           method: 'POST',
@@ -155,8 +125,7 @@ The notes field should briefly describe the simulation, reflecting the '${mode}'
               temperature: 1,
             }
           })
-        },
-        2 // Max retries
+        }
       );
 
       const result = await response.json();
