@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Send, Sparkles, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -42,17 +43,24 @@ const HyperAI = () => {
     setIsLoading(true);
 
     try {
-      const CHAT_URL = `https://ujbcolxawpzfjkjviwqw.supabase.co/functions/v1/hyper-ai-chat`;
+      // Get the user's session token
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData.session) {
+        toast.error('Please log in to use Hyper AI');
+        setIsLoading(false);
+        return;
+      }
+      
+      const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hyper-ai-chat`;
       
       const response = await fetch(CHAT_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqYmNvbHhhd3B6ZmpranZpd3F3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIzNzY3NjksImV4cCI6MjA2Nzk1Mjc2OX0._wX5hpCparJdq7qzM4hv-PhHr_nfGPHaT2NkazBiPBE`
+          'Authorization': `Bearer ${sessionData.session.access_token}`
         },
         body: JSON.stringify({ 
-          messages: [...messages, userMessage],
-          userId: user?.id 
+          messages: [...messages, userMessage]
         }),
       });
 
