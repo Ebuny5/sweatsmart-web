@@ -19,6 +19,7 @@ import { SeverityLevel, BodyArea, Trigger } from "@/types";
 import { CalendarIcon, Clock, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { generateFallbackInsights } from "@/services/EpisodeInsightGenerator";
 
 const LogEpisode = () => {
   const navigate = useNavigate();
@@ -116,33 +117,46 @@ const LogEpisode = () => {
         description: "Generating personalized insights...",
       });
       
-      // Generate AI insights
+      // Generate AI insights with fallback
       setIsLoadingInsights(true);
       try {
+        const triggerData = triggers.map(t => ({ type: t.type, value: t.value, label: t.label }));
+        
+        // Try Gemini API first
         const { data: insightsData, error: insightsError } = await supabase.functions.invoke(
           'generate-episode-insights',
           {
             body: {
               severity,
               bodyAreas,
-              triggers: triggers.map(t => ({ type: t.type, value: t.value, label: t.label })),
+              triggers: triggerData,
               notes
             }
           }
         );
 
-        if (insightsError) {
-          console.error('Error generating insights:', insightsError);
+        if (insightsError || !insightsData?.insights) {
+          console.log('Gemini API failed, using fallback insight generator');
+          // Use fallback rule-based insights
+          const fallbackInsights = generateFallbackInsights(severity, bodyAreas, triggerData, notes);
+          setAiInsights(fallbackInsights);
           toast({
-            title: "Insights generation failed",
-            description: "Your episode was saved, but we couldn't generate insights. Please try again later.",
-            variant: "destructive",
+            title: "Insights generated",
+            description: "Your personalized insights are ready.",
           });
         } else {
           setAiInsights(insightsData.insights);
         }
       } catch (insightError) {
-        console.error('Error calling insights function:', insightError);
+        console.error('Error calling insights function, using fallback:', insightError);
+        // Fallback to rule-based insights
+        const triggerData = triggers.map(t => ({ type: t.type, value: t.value, label: t.label }));
+        const fallbackInsights = generateFallbackInsights(severity, bodyAreas, triggerData, notes);
+        setAiInsights(fallbackInsights);
+        toast({
+          title: "Insights generated",
+          description: "Your personalized insights are ready.",
+        });
       } finally {
         setIsLoadingInsights(false);
         setShowInsights(true);
