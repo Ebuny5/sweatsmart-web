@@ -86,6 +86,42 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_base: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          created_by: string | null
+          embedding: string | null
+          id: string
+          source: string
+          title: string | null
+          tokens_count: number | null
+        }
+        Insert: {
+          category: string
+          content: string
+          created_at?: string
+          created_by?: string | null
+          embedding?: string | null
+          id?: string
+          source: string
+          title?: string | null
+          tokens_count?: number | null
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          embedding?: string | null
+          id?: string
+          source?: string
+          title?: string | null
+          tokens_count?: number | null
+        }
+        Relationships: []
+      }
       newsletter_subscriptions: {
         Row: {
           email: string
@@ -272,6 +308,21 @@ export type Database = {
     }
     Functions: {
       keep_alive: { Args: never; Returns: undefined }
+      search_knowledge_base: {
+        Args: {
+          filter_category?: string
+          match_count?: number
+          query_embedding: string
+        }
+        Returns: {
+          category: string
+          content: string
+          id: string
+          similarity: number
+          source: string
+          title: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

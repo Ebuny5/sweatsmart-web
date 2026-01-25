@@ -10,6 +10,73 @@ const corsHeaders = {
 const MAX_MESSAGES = 100;
 const MAX_MESSAGE_LENGTH = 10000;
 
+// Generate embedding for RAG search
+async function generateEmbedding(text: string, apiKey: string): Promise<number[] | null> {
+  try {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/embeddings', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'text-embedding-3-small',
+        input: text,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Embedding API error:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    return data.data[0].embedding;
+  } catch (error) {
+    console.error('Embedding generation failed:', error);
+    return null;
+  }
+}
+
+// Search knowledge base for relevant context
+async function searchKnowledgeBase(
+  supabase: any, 
+  query: string, 
+  apiKey: string
+): Promise<string> {
+  try {
+    const embedding = await generateEmbedding(query, apiKey);
+    if (!embedding) return '';
+
+    const { data, error } = await supabase.rpc('search_knowledge_base', {
+      query_embedding: embedding,
+      match_count: 5,
+      filter_category: null,
+    });
+
+    if (error || !data || data.length === 0) {
+      console.log('No knowledge base results found');
+      return '';
+    }
+
+    // Format knowledge for context
+    const knowledgeContext = data
+      .filter((item: any) => item.similarity > 0.7)
+      .map((item: any) => `[Source: ${item.source}]\n${item.content}`)
+      .join('\n\n---\n\n');
+
+    if (knowledgeContext) {
+      console.log(`Found ${data.length} relevant knowledge chunks`);
+      return `\n\n📚 MEDICAL KNOWLEDGE BASE (cite these sources in your response):\n${knowledgeContext}`;
+    }
+
+    return '';
+  } catch (error) {
+    console.error('Knowledge base search failed:', error);
+    return '';
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -148,6 +215,13 @@ serve(async (req) => {
 Use this data to provide personalized insights when relevant.`;
     }
 
+    // RAG: Search knowledge base for relevant medical information
+    const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop();
+    let knowledgeContext = '';
+    if (lastUserMessage?.content) {
+      knowledgeContext = await searchKnowledgeBase(supabase, lastUserMessage.content, LOVABLE_API_KEY);
+    }
+
     const systemPrompt = `You are Hyper AI, a warm and knowledgeable AI companion for people managing hyperhidrosis (excessive sweating). You're integrated into the SweatSmart app.
 
 YOUR PERSONALITY:
@@ -157,11 +231,17 @@ YOUR PERSONALITY:
 - Normalize experiences and reduce stigma around hyperhidrosis
 
 YOUR CAPABILITIES:
-1. **Instant Q&A**: Answer any hyperhidrosis questions in simple, clear language
+1. **Instant Q&A**: Answer any hyperhidrosis questions using the medical knowledge base below
 2. **Personalized Analysis**: Use the user's logged episode data to provide insights
 3. **Emotional Support**: Provide reassurance, normalize experiences, validate feelings
 4. **Treatment Guidance**: Explain treatment options, compare effectiveness, suggest products
 5. **Practical Tips**: Share strategies for managing episodes in real-life situations
+
+CRITICAL INSTRUCTION - USE KNOWLEDGE BASE:
+When answering medical questions, ALWAYS reference the knowledge base provided below. 
+- Cite sources using format: (Source: [source name])
+- Prioritize evidence-based information from the knowledge base
+- If the knowledge base doesn't have relevant info, use your general knowledge but note it's general advice
 
 MEDICAL KNOWLEDGE BASE:
 - Primary focal hyperhidrosis affects palms, soles, underarms, face
@@ -178,8 +258,9 @@ RESPONSE STYLE:
 - Use encouraging emojis sparingly (💪, 💙, 🌟)
 - Ask follow-up questions to better understand their situation
 - Always end with an actionable suggestion or question
+- When citing knowledge base sources, include "(Source: [name])" naturally
 
-Remember: You're here to reduce the emotional and physical burden of hyperhidrosis. Be the support system they need! 💙${userContext}`;
+Remember: You're here to reduce the emotional and physical burden of hyperhidrosis. Be the support system they need! 💙${userContext}${knowledgeContext}`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',

@@ -35,6 +35,8 @@ import Legal from "./pages/Legal";
 import ClimateMonitor from "./pages/ClimateMonitor";
 import ClimateHistory from "./pages/ClimateHistory";
 import HyperAI from "./pages/HyperAI";
+import KnowledgeBaseAdmin from "./pages/KnowledgeBaseAdmin";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -175,6 +177,11 @@ const AppRoutes = () => (
     <Route path="/hyper-ai" element={
       <ProtectedRoute>
         <HyperAI />
+      </ProtectedRoute>
+    } />
+    <Route path="/knowledge-admin" element={
+      <ProtectedRoute>
+        <KnowledgeBaseAdmin />
       </ProtectedRoute>
     } />
     <Route path="/contact" element={<Contact />} />
