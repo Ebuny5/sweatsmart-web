@@ -5,6 +5,12 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+// Type helper: pushManager exists on ServiceWorkerRegistration at runtime
+// but may not be in TS DOM lib depending on version
+function getPushManager(reg: ServiceWorkerRegistration): any {
+  return (reg as any).pushManager;
+}
+
 // VAPID public key is safe to expose in client code.
 // We keep a fallback value, but prefer fetching the *current* public key from the
 // edge function so it always matches the server-side VAPID private key.
@@ -130,7 +136,7 @@ class WebPushService {
       console.log('📱 Service worker ready for push');
 
       // Check for existing subscription
-      this.subscription = await this.registration.pushManager.getSubscription();
+      this.subscription = await getPushManager(this.registration).getSubscription();
 
       if (this.subscription) {
         console.log('📱 Existing push subscription found');
@@ -188,7 +194,7 @@ class WebPushService {
       const applicationServerKey = this.urlBase64ToUint8Array(vapidPublicKey);
 
       // Subscribe to push
-      this.subscription = await this.registration.pushManager.subscribe({
+      this.subscription = await getPushManager(this.registration).subscribe({
         userVisibleOnly: true,
         applicationServerKey: applicationServerKey.buffer as ArrayBuffer,
       });
@@ -290,7 +296,7 @@ class WebPushService {
     }
 
     try {
-      const existing = await this.registration.pushManager.getSubscription();
+      const existing = await getPushManager(this.registration).getSubscription();
 
       if (existing) {
         // Best-effort cleanup of the old endpoint
@@ -396,7 +402,7 @@ class WebPushService {
       return false;
     }
 
-    this.subscription = await this.registration.pushManager.getSubscription();
+    this.subscription = await getPushManager(this.registration).getSubscription();
     return this.subscription !== null;
   }
 
@@ -412,7 +418,7 @@ class WebPushService {
       return null;
     }
 
-    this.subscription = await this.registration.pushManager.getSubscription();
+    this.subscription = await getPushManager(this.registration).getSubscription();
     return this.subscription;
   }
 
