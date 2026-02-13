@@ -520,7 +520,6 @@ serve(async (req) => {
 
       // Smart risk calculation based on hyperhidrosis research
       const calculateSweatRisk = (temp: number, humidity: number, uv: number) => {
-        // Calculate heat index for more accurate assessment
         const tempF = (temp * 9/5) + 32;
         let heatIndexC = temp;
         if (tempF >= 80) {
@@ -530,15 +529,10 @@ serve(async (req) => {
             + 0.00085282 * tempF * humidity * humidity - 0.00000199 * tempF * tempF * humidity * humidity;
           heatIndexC = (hiF - 32) * 5/9;
         }
-        
         const effectiveTemp = Math.max(temp, heatIndexC);
-        
-        // Risk levels based on hyperhidrosis research
-        // Below 24°C: Safe, 24-27°C: Low, 28-31°C: Moderate, 32-35°C: High, 35+°C: Extreme
         if (effectiveTemp < 24) return { level: 'safe', shouldAlert: false };
         if (effectiveTemp < 28) return { level: 'low', shouldAlert: false };
         if (effectiveTemp < 32) {
-          // Moderate risk - only alert if humidity is also high
           return { level: 'moderate', shouldAlert: humidity >= 70 };
         }
         if (effectiveTemp < 35) return { level: 'high', shouldAlert: true };
@@ -546,7 +540,6 @@ serve(async (req) => {
       };
 
       for (const sub of subscriptions || []) {
-        // Check weather conditions for this subscription
         if (sub.latitude && sub.longitude) {
           try {
             const weatherApiKey = Deno.env.get('OPENWEATHER_API_KEY');
@@ -554,37 +547,25 @@ serve(async (req) => {
               `https://api.openweathermap.org/data/2.5/weather?lat=${sub.latitude}&lon=${sub.longitude}&units=metric&appid=${weatherApiKey}`
             );
             const weather = await weatherRes.json();
-
             const temp = weather.main?.temp || 0;
             const humidity = weather.main?.humidity || 0;
 
-            // Get UV index
             const uvRes = await fetch(
               `https://api.openweathermap.org/data/2.5/uvi?lat=${sub.latitude}&lon=${sub.longitude}&appid=${weatherApiKey}`
             );
             const uvData = await uvRes.json();
             const uv = uvData.value || 0;
 
-            // Use smart risk calculation
             const risk = calculateSweatRisk(temp, humidity, uv);
-            
-            // Also check user-defined thresholds as additional triggers
             const alerts: string[] = [];
-            const userTempThreshold = sub.temperature_threshold || 28; // Updated default
+            const userTempThreshold = sub.temperature_threshold || 28;
             const userHumidityThreshold = sub.humidity_threshold || 70;
             const userUvThreshold = sub.uv_threshold || 6;
             
-            if (temp >= userTempThreshold) {
-              alerts.push(`🌡️ Temperature: ${temp.toFixed(1)}°C`);
-            }
-            if (humidity >= userHumidityThreshold) {
-              alerts.push(`💧 Humidity: ${humidity}%`);
-            }
-            if (uv >= userUvThreshold) {
-              alerts.push(`☀️ UV Index: ${uv}`);
-            }
+            if (temp >= userTempThreshold) alerts.push(`🌡️ Temperature: ${temp.toFixed(1)}°C`);
+            if (humidity >= userHumidityThreshold) alerts.push(`💧 Humidity: ${humidity}%`);
+            if (uv >= userUvThreshold) alerts.push(`☀️ UV Index: ${uv}`);
 
-            // Only send notification if risk is moderate+ OR user thresholds exceeded
             if (risk.shouldAlert || alerts.length > 0) {
               const riskMessage = risk.level === 'extreme' 
                 ? 'Extreme heat - stay indoors with AC'
@@ -605,20 +586,14 @@ serve(async (req) => {
                   type: risk.level === 'extreme' || risk.level === 'high' ? 'critical' : 'warning',
                   url: '/climate',
                 },
-                vapidPublicKey,
-                vapidPrivateKey,
-                vapidSubject
+                vapidPublicKey, vapidPrivateKey, vapidSubject
               );
 
-              if (result.success) {
-                sent++;
-              } else {
+              if (result.success) { sent++; }
+              else {
                 failed++;
                 if (result.error === 'subscription_expired') {
-                  await supabase
-                    .from('push_subscriptions')
-                    .delete()
-                    .eq('id', sub.id);
+                  await supabase.from('push_subscriptions').delete().eq('id', sub.id);
                 }
               }
             }
@@ -631,6 +606,100 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({ success: true, sent, failed, total: subscriptions?.length || 0 }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ── 4-Hour Logging Reminders (cron-triggered) ──
+    if (action === 'send_logging_reminders') {
+      const cronHeader = req.headers.get('x-cron-secret');
+      if (!cronSecret || cronSecret.length < MIN_CRON_SECRET_LENGTH) {
+        return new Response(
+          JSON.stringify({ error: 'CRON_SECRET not configured' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (!cronHeader || cronHeader !== cronSecret) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Get all active push subscriptions
+      const { data: subscriptions, error: fetchError } = await supabase
+        .from('push_subscriptions')
+        .select('*')
+        .eq('is_active', true);
+
+      if (fetchError) {
+        throw new Error(`Failed to fetch subscriptions: ${fetchError.message}`);
+      }
+
+      const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
+      const now = Date.now();
+      let sent = 0;
+      let skipped = 0;
+      let failed = 0;
+
+      for (const sub of subscriptions || []) {
+        // For authenticated users, check last episode timestamp
+        if (sub.user_id) {
+          const { data: lastEpisode } = await supabase
+            .from('episodes')
+            .select('created_at')
+            .eq('user_id', sub.user_id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          if (lastEpisode) {
+            const lastLogTime = new Date(lastEpisode.created_at).getTime();
+            if (now - lastLogTime < FOUR_HOURS_MS) {
+              skipped++;
+              continue; // Logged recently, skip
+            }
+          }
+          // If no episodes at all, send reminder
+        }
+        // For anonymous subs (no user_id), always send if 4h since sub creation/update
+        else {
+          const lastUpdate = new Date(sub.updated_at || sub.created_at).getTime();
+          if (now - lastUpdate < FOUR_HOURS_MS) {
+            skipped++;
+            continue;
+          }
+        }
+
+        const result = await sendPushNotification(
+          { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
+          {
+            title: '⏰ Time to Log',
+            body: "It's been 4 hours — log your sweat episode now for accurate tracking!",
+            tag: 'logging-reminder',
+            type: 'reminder',
+            url: '/log-episode',
+          },
+          vapidPublicKey, vapidPrivateKey, vapidSubject
+        );
+
+        if (result.success) {
+          sent++;
+          // Update the subscription's updated_at to track last reminder sent
+          await supabase
+            .from('push_subscriptions')
+            .update({ updated_at: new Date().toISOString() })
+            .eq('id', sub.id);
+        } else {
+          failed++;
+          if (result.error === 'subscription_expired') {
+            await supabase.from('push_subscriptions').delete().eq('id', sub.id);
+          }
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, sent, skipped, failed, total: subscriptions?.length || 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
