@@ -364,13 +364,14 @@ serve(async (req) => {
       );
     }
     
-    // For send_climate_alerts, require strong cron secret (for scheduled jobs only)
-    if (action === 'send_climate_alerts') {
+    // For cron-triggered actions, require strong cron secret
+    const isCronAction = action === 'send_climate_alerts' || action === 'send_logging_reminders';
+    if (isCronAction) {
       const cronHeader = req.headers.get('x-cron-secret');
       
       // Validate cron secret exists and is strong enough
       if (!cronSecret || cronSecret.length < MIN_CRON_SECRET_LENGTH) {
-        console.error('CRON_SECRET must be at least 32 characters for security');
+        console.error('CRON_SECRET must be at least 32 characters for security. Current length:', cronSecret?.length || 0);
         return new Response(
           JSON.stringify({ error: 'Server configuration error - cron secret not properly configured' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -378,7 +379,7 @@ serve(async (req) => {
       }
       
       if (!cronHeader || cronHeader !== cronSecret) {
-        console.error('Unauthorized cron attempt - invalid or missing cron secret');
+        console.error('Unauthorized cron attempt - invalid or missing cron secret. Header present:', !!cronHeader, 'Match:', cronHeader === cronSecret);
         return new Response(
           JSON.stringify({ error: 'Unauthorized - this action requires cron authentication' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -612,19 +613,7 @@ serve(async (req) => {
 
     // ── 4-Hour Logging Reminders (cron-triggered) ──
     if (action === 'send_logging_reminders') {
-      const cronHeader = req.headers.get('x-cron-secret');
-      if (!cronSecret || cronSecret.length < MIN_CRON_SECRET_LENGTH) {
-        return new Response(
-          JSON.stringify({ error: 'CRON_SECRET not configured' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      if (!cronHeader || cronHeader !== cronSecret) {
-        return new Response(
-          JSON.stringify({ error: 'Unauthorized' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      // Cron secret already validated above
 
       // Get all active push subscriptions
       const { data: subscriptions, error: fetchError } = await supabase
