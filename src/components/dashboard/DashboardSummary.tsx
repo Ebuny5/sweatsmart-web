@@ -172,12 +172,6 @@ const DashboardSummary: React.FC<DashboardSummaryProps> = ({
           <p className="text-sm text-muted-foreground">{allEpisodes.length} episodes tracked</p>
         )}
 
-        {/* 🔥 DEBUG INFO (on-screen) */}
-        <div className="mt-2 rounded border bg-muted p-2 text-xs">
-          <div>Weekly data points: {processedWeeklyData.length}</div>
-          <div>Monthly data points: {processedMonthlyData.length}</div>
-          <div>Episodes received: {allEpisodes.length}</div>
-        </div>
       </CardHeader>
 
       <CardContent>

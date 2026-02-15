@@ -10,8 +10,7 @@ import {
   Users, 
   MessageSquare, 
   Settings,
-  Sparkles,
-  Database
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -26,7 +25,7 @@ const menuItems = [
   { path: '/community', icon: Users, label: 'Community' },
   { path: '/contact', icon: MessageSquare, label: 'Feedback' },
   { path: '/settings', icon: Settings, label: 'Settings' },
-  { path: '/knowledge-admin', icon: Database, label: 'Knowledge Base' },
+  
 ];
 
 const Sidebar: React.FC = () => {
