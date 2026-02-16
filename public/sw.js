@@ -303,98 +303,64 @@ async function updateWeatherData() {
 
 // ============= PUSH NOTIFICATIONS (WORKS WHEN APP IS CLOSED) =============
 self.addEventListener('push', (event) => {
-  console.log('📱 [SW] Push event received! App may be closed.');
+  console.log('📱 [SW] Push event received! Has data:', !!event.data);
   
-  // CRITICAL: event.waitUntil keeps SW alive until notification is shown
   event.waitUntil(
     (async () => {
       try {
-        let notificationData = {
-          title: 'SweatSmart Alert',
-          body: 'You have a new notification',
-          tag: 'sweatsmart-push',
-          type: 'general',
-          url: '/climate'
-        };
+        let data = {};
         
-        // Parse push data if available
         if (event.data) {
           try {
-            const data = event.data.json();
-            notificationData = {
-              title: data.title || 'SweatSmart Alert',
-              body: data.body || 'You have a new notification',
-              tag: data.tag || 'sweatsmart-push',
-              type: data.type || 'general',
-              url: data.url || '/climate'
-            };
-            console.log('📱 [SW] Push data parsed:', notificationData.title);
-          } catch (parseError) {
-            // Try as text
+            data = event.data.json();
+            console.log('📱 [SW] Push payload:', JSON.stringify(data));
+          } catch (e) {
             const text = event.data.text();
-            notificationData.body = text || notificationData.body;
-            console.log('📱 [SW] Push data as text:', text);
+            console.log('📱 [SW] Push text:', text);
+            data = { title: 'SweatSmart', body: text };
           }
         }
         
-        // Determine notification style based on type
-        const isCritical = notificationData.type === 'critical' || notificationData.type === 'climate';
-        const isLogging = notificationData.type === 'logging' || notificationData.tag === 'logging-reminder';
+        const title = data.title || 'SweatSmart';
+        const tag = data.tag || 'sweatsmart-push';
+        const type = data.type || 'general';
+        const url = data.url || '/dashboard';
+        
+        const isClimate = tag === 'climate-alert' || type === 'extreme' || type === 'moderate';
+        const isReminder = tag === 'logging-reminder' || type === 'reminder';
         
         const options = {
-          body: notificationData.body,
+          body: data.body || '',
           icon: '/icon-192.png',
           badge: '/icon-192.png',
-          tag: notificationData.tag,
-          // requireInteraction keeps notification visible until user acts (critical for medical alerts)
-          requireInteraction: isCritical || isLogging,
-          // Vibration pattern for emphasis
-          vibrate: isCritical ? [800, 200, 800, 200, 800] : [400, 100, 400],
-          // Silent false ensures sound plays
+          tag: tag,
+          requireInteraction: isClimate || isReminder,
+          vibrate: isClimate ? [800, 200, 800, 200, 800] : [400, 100, 400],
           silent: false,
-          // Renotify shows notification even if same tag exists
           renotify: true,
-          // Store data for click handler
-          data: {
-            url: notificationData.url,
-            timestamp: Date.now(),
-            type: notificationData.type
-          },
-          // Action buttons
-          actions: isCritical ? [
+          data: { url, timestamp: Date.now(), type },
+          actions: isClimate ? [
             { action: 'view', title: '👁️ View Alert' },
             { action: 'dismiss', title: '❌ Dismiss' }
-          ] : isLogging ? [
+          ] : isReminder ? [
             { action: 'log', title: '📝 Log Now' },
             { action: 'later', title: '⏰ Later' }
           ] : [
-            { action: 'open', title: '📱 Open App' }
+            { action: 'open', title: '📱 Open' }
           ]
         };
 
-        // Set app badge
-        try {
-          if ('setAppBadge' in self.navigator) {
-            await self.navigator.setAppBadge(1);
-          }
-        } catch (badgeError) {
-          console.log('📱 [SW] Badge not supported');
-        }
-
-        // SHOW THE NOTIFICATION - this works even when app is closed!
-        await self.registration.showNotification(notificationData.title, options);
-        console.log('📱 [SW] Notification shown successfully:', notificationData.title);
+        await self.registration.showNotification(title, options);
+        console.log('📱 [SW] Notification shown:', title);
         
       } catch (error) {
-        console.error('📱 [SW] Push notification error:', error);
-        
-        // Fallback notification on error
-        await self.registration.showNotification('SweatSmart Alert', {
-          body: 'You have a new notification. Tap to open.',
+        console.error('📱 [SW] Push error:', error);
+        await self.registration.showNotification('SweatSmart', {
+          body: 'New alert available',
           icon: '/icon-192.png',
           badge: '/icon-192.png',
           tag: 'sweatsmart-fallback',
-          data: { url: '/climate' }
+          data: { url: '/dashboard' }
         });
       }
     })()

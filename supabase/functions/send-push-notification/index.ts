@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import * as webpush from "jsr:@negrel/webpush@0.5";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,8 +9,7 @@ const corsHeaders = {
 
 const MIN_CRON_SECRET_LENGTH = 32;
 
-// ── Crypto helpers ──
-
+// ── Helpers for raw key to JWK conversion ──
 function base64UrlToBytes(base64url: string): Uint8Array {
   const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
   const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
@@ -22,106 +22,96 @@ function bytesToBase64Url(bytes: Uint8Array): string {
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-async function generateVapidSignature(
-  endpoint: string,
-  vapidPublicKey: string,
-  vapidPrivateKey: string,
-  vapidSubject: string
-): Promise<{ authorization: string; cryptoKey: string }> {
-  const endpointUrl = new URL(endpoint);
-  const audience = `${endpointUrl.protocol}//${endpointUrl.host}`;
+// ── Singleton application server (lazy init) ──
+let appServer: any = null;
 
-  const header = { typ: "JWT", alg: "ES256" };
-  const now = Math.floor(Date.now() / 1000);
-  const payload = { aud: audience, exp: now + 12 * 60 * 60, sub: vapidSubject };
+async function getAppServer() {
+  if (appServer) return appServer;
 
-  const base64UrlEncodeJson = (obj: object): string => {
-    return bytesToBase64Url(new TextEncoder().encode(JSON.stringify(obj)));
-  };
+  const vapidPublicKeyB64 = Deno.env.get('VAPID_PUBLIC_KEY') ?? '';
+  const vapidPrivateKeyB64 = Deno.env.get('VAPID_PRIVATE_KEY')!;
+  const vapidSubject = Deno.env.get('VAPID_SUBJECT')!;
 
-  const normalizeUncompressedPoint = (bytes: Uint8Array): Uint8Array => {
-    if (bytes.length === 64) {
-      const full = new Uint8Array(65);
-      full[0] = 0x04;
-      full.set(bytes, 1);
-      return full;
-    }
-    return bytes;
-  };
+  // Convert raw base64url keys to JWK format for importVapidKeys
+  const privateKeyBytes = base64UrlToBytes(vapidPrivateKeyB64);
+  let publicKeyBytes = base64UrlToBytes(vapidPublicKeyB64);
 
-  const decodeAndValidatePublicKey = (publicKeyB64Url: string): Uint8Array => {
-    const pk = normalizeUncompressedPoint(base64UrlToBytes(publicKeyB64Url));
-    if (pk.length !== 65 || pk[0] !== 0x04) {
-      throw new Error('Invalid VAPID public key format');
-    }
-    return pk;
-  };
-
-  const privateKeyBytes = base64UrlToBytes(vapidPrivateKey);
-  let signingKey: CryptoKey;
-  let publicKeyBytes: Uint8Array;
-
-  if (privateKeyBytes.length === 32) {
-    if (!vapidPublicKey) throw new Error('VAPID_PUBLIC_KEY required for 32-byte raw key');
-    publicKeyBytes = decodeAndValidatePublicKey(vapidPublicKey);
-    const x = publicKeyBytes.slice(1, 33);
-    const y = publicKeyBytes.slice(33, 65);
-    const jwk = { kty: 'EC', crv: 'P-256', x: bytesToBase64Url(x), y: bytesToBase64Url(y), d: bytesToBase64Url(privateKeyBytes) };
-    signingKey = await crypto.subtle.importKey('jwk', jwk, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
-  } else {
-    signingKey = await crypto.subtle.importKey('pkcs8', privateKeyBytes.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign']);
-    const jwk = await crypto.subtle.exportKey('jwk', signingKey);
-    if (!jwk.x || !jwk.y) throw new Error('PKCS8 key missing public coords');
-    const x = base64UrlToBytes(jwk.x);
-    const y = base64UrlToBytes(jwk.y);
-    publicKeyBytes = new Uint8Array(65);
-    publicKeyBytes[0] = 0x04;
-    publicKeyBytes.set(x, 1);
-    publicKeyBytes.set(y, 33);
+  // Handle SPKI/DER format (91 bytes) — extract raw 65-byte key
+  if (publicKeyBytes.length === 91) {
+    publicKeyBytes = publicKeyBytes.slice(26, 91); // Last 65 bytes of DER
+  }
+  // Handle raw key without 0x04 prefix
+  if (publicKeyBytes.length === 64) {
+    const full = new Uint8Array(65);
+    full[0] = 0x04;
+    full.set(publicKeyBytes, 1);
+    publicKeyBytes = full;
   }
 
-  const normalizedVapidPublicKey = bytesToBase64Url(publicKeyBytes);
-  const unsignedToken = `${base64UrlEncodeJson(header)}.${base64UrlEncodeJson(payload)}`;
-  const signatureBuffer = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, signingKey, new TextEncoder().encode(unsignedToken));
-  const jwt = `${unsignedToken}.${bytesToBase64Url(new Uint8Array(signatureBuffer))}`;
+  if (publicKeyBytes.length !== 65 || publicKeyBytes[0] !== 0x04) {
+    throw new Error(`Invalid VAPID public key length: ${publicKeyBytes.length}`);
+  }
 
-  return { authorization: `vapid t=${jwt}, k=${normalizedVapidPublicKey}`, cryptoKey: normalizedVapidPublicKey };
+  // Handle PKCS8 private key — extract raw 32-byte scalar
+  let rawPrivateKey = privateKeyBytes;
+  if (privateKeyBytes.length > 32) {
+    // Try to import as PKCS8 and export the raw d value
+    const pk8Key = await crypto.subtle.importKey(
+      'pkcs8', privateKeyBytes.buffer,
+      { name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign']
+    );
+    const jwk = await crypto.subtle.exportKey('jwk', pk8Key);
+    if (!jwk.d) throw new Error('Cannot extract private key d value');
+    rawPrivateKey = base64UrlToBytes(jwk.d);
+  }
+
+  const x = bytesToBase64Url(publicKeyBytes.slice(1, 33));
+  const y = bytesToBase64Url(publicKeyBytes.slice(33, 65));
+  const d = bytesToBase64Url(rawPrivateKey);
+
+  const vapidKeys = await webpush.importVapidKeys({
+    publicKey: { kty: 'EC', crv: 'P-256', x, y, ext: true, key_ops: ['verify'] },
+    privateKey: { kty: 'EC', crv: 'P-256', x, y, d, ext: true, key_ops: ['sign'] },
+  });
+
+  appServer = await webpush.ApplicationServer.new({
+    contactInformation: vapidSubject,
+    vapidKeys,
+  });
+
+  console.log('✅ WebPush ApplicationServer initialized');
+  return appServer;
 }
 
+// ── Send push with proper RFC 8291 encryption ──
 async function sendPushNotification(
   subscription: { endpoint: string; p256dh: string; auth: string },
   payload: object,
-  vapidPublicKey: string,
-  vapidPrivateKey: string,
-  vapidSubject: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { authorization, cryptoKey } = await generateVapidSignature(
-      subscription.endpoint, vapidPublicKey, vapidPrivateKey, vapidSubject
-    );
+    const server = await getAppServer();
 
-    const response = await fetch(subscription.endpoint, {
-      method: 'POST',
-      headers: {
-        'Authorization': authorization,
-        'Crypto-Key': `p256ecdsa=${cryptoKey}`,
-        'Content-Type': 'application/json',
-        'TTL': '86400',
-        'Urgency': 'high',
+    const sub = server.subscribe({
+      endpoint: subscription.endpoint,
+      keys: {
+        p256dh: subscription.p256dh,
+        auth: subscription.auth,
       },
-      body: JSON.stringify(payload),
     });
 
-    if (response.ok || response.status === 201) return { success: true };
-    if (response.status === 410 || response.status === 404) return { success: false, error: 'subscription_expired' };
-    const errorText = await response.text();
-    console.error(`Push failed: ${response.status} - ${errorText}`);
-    return { success: false, error: `${response.status}: ${errorText}` };
+    // pushTextMessage returns void on success, throws PushMessageError on failure
+    const payloadStr = JSON.stringify(payload);
+    await sub.pushTextMessage(payloadStr, { urgency: webpush.Urgency.High, ttl: 86400, topic: '' });
+    return { success: true };
   } catch (error) {
     console.error('Push notification error:', error);
+    if (error instanceof webpush.PushMessageError && error.isGone()) {
+      return { success: false, error: 'subscription_expired' };
+    }
     return { success: false, error: error.message };
   }
 }
+
 
 // ── Rate limit helpers ──
 
@@ -174,7 +164,7 @@ function calculateSweatRisk(temp: number, humidity: number, uv: number) {
   if (effectiveTemp >= 28 && humidity >= 70) {
     return 'moderate';
   }
-  return 'normal'; // No push for normal
+  return 'normal';
 }
 
 serve(async (req) => {
@@ -186,9 +176,6 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY') ?? '';
-    const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY')!;
-    const vapidSubject = Deno.env.get('VAPID_SUBJECT')!;
     const cronSecret = Deno.env.get('CRON_SECRET');
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -196,10 +183,22 @@ serve(async (req) => {
 
     // ── Public: Return VAPID public key ──
     if (action === 'get_vapid_public_key') {
-      const { cryptoKey } = await generateVapidSignature('https://example.com', vapidPublicKey, vapidPrivateKey, vapidSubject);
-      return new Response(JSON.stringify({ success: true, publicKey: cryptoKey }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      // Use the ApplicationServer to get the properly derived public key
+      try {
+        const server = await getAppServer();
+        const rawKey = await server.getVapidPublicKeyRaw();
+        const normalizedKey = bytesToBase64Url(rawKey);
+        return new Response(JSON.stringify({ success: true, publicKey: normalizedKey }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (e) {
+        console.error('Failed to get VAPID public key:', e);
+        // Fallback: return the raw env var
+        const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY') ?? '';
+        return new Response(JSON.stringify({ success: true, publicKey: vapidPublicKey }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     // ── Auth: cron vs JWT ──
@@ -242,7 +241,10 @@ serve(async (req) => {
       const { data: subscriptions } = await supabase.from('push_subscriptions').select('*').eq('user_id', userId).eq('is_active', true);
       const results = await Promise.all(
         (subscriptions || []).map(async (sub: any) => {
-          const result = await sendPushNotification({ endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth }, notification, vapidPublicKey, vapidPrivateKey, vapidSubject);
+          const result = await sendPushNotification(
+            { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
+            notification,
+          );
           if (!result.success && result.error === 'subscription_expired') await supabase.from('push_subscriptions').delete().eq('id', sub.id);
           return result;
         })
@@ -254,7 +256,10 @@ serve(async (req) => {
     if (action === 'send_to_endpoint' && endpoint) {
       const { data: subscription } = await supabase.from('push_subscriptions').select('*').eq('endpoint', endpoint).eq('is_active', true).single();
       if (!subscription) throw new Error('Subscription not found');
-      const result = await sendPushNotification({ endpoint: subscription.endpoint, p256dh: subscription.p256dh, auth: subscription.auth }, notification, vapidPublicKey, vapidPrivateKey, vapidSubject);
+      const result = await sendPushNotification(
+        { endpoint: subscription.endpoint, p256dh: subscription.p256dh, auth: subscription.auth },
+        notification,
+      );
       return new Response(JSON.stringify({ success: result.success, error: result.error }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -269,17 +274,14 @@ serve(async (req) => {
 
       for (const sub of subscriptions || []) {
         try {
-          // Rate limit: max 6 logging reminders per day
           const todayCount = await getNotificationCountToday(supabase, sub.id, 'logging_reminder');
           if (todayCount >= 6) { skipped++; continue; }
 
-          // Check last reminder sent
           if (sub.last_reminder_sent_at) {
             const lastSent = new Date(sub.last_reminder_sent_at).getTime();
             if (now - lastSent < FOUR_HOURS_MS) { skipped++; continue; }
           }
 
-          // For authenticated users, check last episode log time (reset timer on log)
           if (sub.user_id) {
             const { data: lastEpisode } = await supabase
               .from('episodes')
@@ -304,7 +306,6 @@ serve(async (req) => {
               type: 'reminder',
               url: '/log-episode',
             },
-            vapidPublicKey, vapidPrivateKey, vapidSubject
           );
 
           if (result.success) {
@@ -343,11 +344,10 @@ serve(async (req) => {
         if (!sub.latitude || !sub.longitude) { skipped++; continue; }
 
         try {
-          // Random jitter 0-30s to avoid thundering herd
+          // Random jitter 0-30s
           const jitter = Math.random() * 30000;
           await new Promise(r => setTimeout(r, jitter));
 
-          // Fetch weather
           const weatherRes = await fetch(
             `https://api.openweathermap.org/data/2.5/weather?lat=${sub.latitude}&lon=${sub.longitude}&units=metric&appid=${weatherApiKey}`
           );
@@ -355,7 +355,6 @@ serve(async (req) => {
           const temp = weather.main?.temp || 0;
           const humidity = weather.main?.humidity || 0;
 
-          // UV index
           let uv = 0;
           try {
             const uvRes = await fetch(
@@ -365,31 +364,25 @@ serve(async (req) => {
             uv = uvData.value || 0;
           } catch { /* UV fetch optional */ }
 
-          // Check user thresholds
           const userTempThreshold = sub.temperature_threshold || 28;
           const userHumidityThreshold = sub.humidity_threshold || 70;
           const userUvThreshold = sub.uv_threshold || 10;
 
           const risk = calculateSweatRisk(temp, humidity, uv);
 
-          // Only push for moderate or extreme
           if (risk === 'normal') { skipped++; continue; }
 
-          // Check if user thresholds are exceeded
           const thresholdsExceeded = temp >= userTempThreshold || humidity >= userHumidityThreshold || uv >= userUvThreshold;
           if (!thresholdsExceeded && risk === 'moderate') { skipped++; continue; }
 
-          // Rate limit: max 3 moderate + 3 extreme per day (total cap 6)
           const notifType = risk === 'extreme' ? 'climate_extreme' : 'climate_moderate';
           const todayCount = await getNotificationCountToday(supabase, sub.id, notifType);
           if (todayCount >= 3) { skipped++; continue; }
 
-          // Also check total climate alerts today
           const totalModerate = await getNotificationCountToday(supabase, sub.id, 'climate_moderate');
           const totalExtreme = await getNotificationCountToday(supabase, sub.id, 'climate_extreme');
           if (totalModerate + totalExtreme >= 6) { skipped++; continue; }
 
-          // Build specific message
           let title: string;
           let body: string;
           if (risk === 'extreme') {
@@ -403,7 +396,6 @@ serve(async (req) => {
           const result = await sendPushNotification(
             { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
             { title, body, tag: 'climate-alert', type: risk, url: '/climate' },
-            vapidPublicKey, vapidPrivateKey, vapidSubject
           );
 
           if (result.success) {
