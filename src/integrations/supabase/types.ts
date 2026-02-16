@@ -208,6 +208,41 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_log: {
+        Row: {
+          created_date: string
+          id: string
+          notification_type: string
+          sent_at: string
+          subscription_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_date?: string
+          id?: string
+          notification_type: string
+          sent_at?: string
+          subscription_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_date?: string
+          id?: string
+          notification_type?: string
+          sent_at?: string
+          subscription_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_log_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "push_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           created_at: string | null
@@ -282,6 +317,7 @@ export type Database = {
           humidity_threshold: number | null
           id: string
           is_active: boolean | null
+          last_reminder_sent_at: string | null
           latitude: number | null
           longitude: number | null
           p256dh: string
@@ -297,6 +333,7 @@ export type Database = {
           humidity_threshold?: number | null
           id?: string
           is_active?: boolean | null
+          last_reminder_sent_at?: string | null
           latitude?: number | null
           longitude?: number | null
           p256dh: string
@@ -312,6 +349,7 @@ export type Database = {
           humidity_threshold?: number | null
           id?: string
           is_active?: boolean | null
+          last_reminder_sent_at?: string | null
           latitude?: number | null
           longitude?: number | null
           p256dh?: string
