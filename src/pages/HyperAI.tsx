@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useEpisodes } from '@/hooks/useEpisodes';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -30,6 +31,7 @@ const WELCOME_MESSAGE: Message = {
 
 const HyperAI = () => {
   const { user } = useAuth();
+  const { episodes: rawEpisodes } = useEpisodes();
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -219,7 +221,7 @@ const HyperAI = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${sessionData.session.access_token}`
         },
-        body: JSON.stringify({ messages: allMessages }),
+        body: JSON.stringify({ messages: allMessages, dashboardAnalytics }),
       });
 
       if (!response.ok || !response.body) throw new Error('Failed to get response');
@@ -284,10 +286,91 @@ const HyperAI = () => {
     }
   };
 
+  // Build visual analytics summary to send to AI
+  const dashboardAnalytics = useMemo(() => {
+    if (!rawEpisodes || rawEpisodes.length === 0) return null;
+
+    const episodes = rawEpisodes.map(ep => ({
+      ...ep,
+      datetime: new Date(ep.datetime),
+      severityLevel: Number(ep.severityLevel),
+      triggers: Array.isArray(ep.triggers) ? ep.triggers : [],
+      bodyAreas: Array.isArray(ep.bodyAreas) ? ep.bodyAreas : [],
+    }));
+
+    // Trigger frequencies
+    const triggerCounts = new Map<string, { count: number; severities: number[] }>();
+    episodes.forEach(ep => {
+      ep.triggers.forEach((t: any) => {
+        const label = t.label || t.value || 'Unknown';
+        const existing = triggerCounts.get(label) || { count: 0, severities: [] };
+        existing.count += 1;
+        existing.severities.push(ep.severityLevel);
+        triggerCounts.set(label, existing);
+      });
+    });
+    const topTriggers = Array.from(triggerCounts.entries())
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 5)
+      .map(([name, data]) => ({
+        name,
+        count: data.count,
+        avgSeverity: (data.severities.reduce((a, b) => a + b, 0) / data.severities.length).toFixed(1),
+        percentage: Math.round((data.count / episodes.length) * 100),
+      }));
+
+    // Body area frequencies
+    const areaCounts = new Map<string, { count: number; severities: number[] }>();
+    episodes.forEach(ep => {
+      ep.bodyAreas.forEach((area: string) => {
+        const existing = areaCounts.get(area) || { count: 0, severities: [] };
+        existing.count += 1;
+        existing.severities.push(ep.severityLevel);
+        areaCounts.set(area, existing);
+      });
+    });
+    const topAreas = Array.from(areaCounts.entries())
+      .sort((a, b) => b[1].count - a[1].count)
+      .map(([area, data]) => ({
+        area,
+        count: data.count,
+        avgSeverity: (data.severities.reduce((a, b) => a + b, 0) / data.severities.length).toFixed(1),
+        percentage: Math.round((data.count / episodes.length) * 100),
+      }));
+
+    // Trend overview: episodes per week (last 8 weeks)
+    const now = new Date();
+    const weeklyTrends: { week: string; count: number; avgSeverity: string }[] = [];
+    for (let i = 7; i >= 0; i--) {
+      const weekStart = new Date(now.getTime() - (i + 1) * 7 * 86400000);
+      const weekEnd = new Date(now.getTime() - i * 7 * 86400000);
+      const weekEpisodes = episodes.filter(ep => ep.datetime >= weekStart && ep.datetime < weekEnd);
+      if (weekEpisodes.length > 0 || i < 4) {
+        weeklyTrends.push({
+          week: format(weekStart, 'MMM d'),
+          count: weekEpisodes.length,
+          avgSeverity: weekEpisodes.length > 0
+            ? (weekEpisodes.reduce((s, e) => s + e.severityLevel, 0) / weekEpisodes.length).toFixed(1)
+            : '0',
+        });
+      }
+    }
+
+    const avgSeverity = (episodes.reduce((s, e) => s + e.severityLevel, 0) / episodes.length).toFixed(1);
+
+    return {
+      totalEpisodes: episodes.length,
+      avgSeverity,
+      topTriggers,
+      topAreas,
+      weeklyTrends,
+    };
+  }, [rawEpisodes]);
+
   const suggestionPrompts = [
+    "Explain my visual analytics, charts & trends",
     "Why do my palms sweat when I'm nervous?",
     "What treatments work best for foot sweating?",
-    "How can I prepare for a job interview with sweaty hands?",
     "Tell me about my recent episode patterns"
   ];
 

@@ -116,7 +116,7 @@ serve(async (req) => {
     // Use the authenticated user ID from JWT, NOT from client input
     const userId = claimsData.claims.sub as string;
     
-    const { messages } = await req.json();
+    const { messages, dashboardAnalytics } = await req.json();
     
     // Input validation for messages
     if (!Array.isArray(messages)) {
@@ -215,6 +215,38 @@ serve(async (req) => {
 Use this data to provide personalized insights when relevant.`;
     }
 
+    // Build visual analytics context from dashboard data
+    let visualAnalyticsContext = '';
+    if (dashboardAnalytics && typeof dashboardAnalytics === 'object') {
+      const da = dashboardAnalytics;
+      visualAnalyticsContext = `\n\nDASHBOARD VISUAL ANALYTICS (this is what the user sees on their dashboard charts):
+- Total Episodes: ${da.totalEpisodes || 0}
+- Overall Average Severity: ${da.avgSeverity || 'N/A'}/5`;
+
+      if (da.topTriggers && da.topTriggers.length > 0) {
+        visualAnalyticsContext += `\n\nTOP TRIGGERS (bar chart data):`;
+        da.topTriggers.forEach((t: any) => {
+          visualAnalyticsContext += `\n  - ${t.name}: ${t.count} episodes (${t.percentage}% of all), avg severity ${t.avgSeverity}/5`;
+        });
+      }
+
+      if (da.topAreas && da.topAreas.length > 0) {
+        visualAnalyticsContext += `\n\nAFFECTED BODY AREAS (heatmap data):`;
+        da.topAreas.forEach((a: any) => {
+          visualAnalyticsContext += `\n  - ${a.area}: ${a.count} episodes (${a.percentage}%), avg severity ${a.avgSeverity}/5`;
+        });
+      }
+
+      if (da.weeklyTrends && da.weeklyTrends.length > 0) {
+        visualAnalyticsContext += `\n\nWEEKLY TREND (line chart - episode frequency & severity over last 8 weeks):`;
+        da.weeklyTrends.forEach((w: any) => {
+          visualAnalyticsContext += `\n  - Week of ${w.week}: ${w.count} episodes, avg severity ${w.avgSeverity}/5`;
+        });
+      }
+
+      visualAnalyticsContext += `\n\nWhen the user asks about their charts, trends, visual analytics, or dashboard data, use the above data to give a comprehensive, personalized analysis. Reference specific numbers and patterns.`;
+    }
+
     // RAG: Search knowledge base for relevant medical information
     const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop();
     let knowledgeContext = '';
@@ -262,7 +294,7 @@ RESPONSE STYLE:
 - NEVER use markdown formatting characters
 - Write in clean prose only
 
-Remember: You are here to reduce the emotional and physical burden of hyperhidrosis. Be the support system the Beyond Sweat community needs.${userContext}${knowledgeContext}`;
+Remember: You are here to reduce the emotional and physical burden of hyperhidrosis. Be the support system the Beyond Sweat community needs.${userContext}${visualAnalyticsContext}${knowledgeContext}`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
