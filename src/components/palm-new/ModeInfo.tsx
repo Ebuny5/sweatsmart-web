@@ -5,7 +5,7 @@ import { SimulationMode } from './types';
 const ModeInfo: React.FC = () => {
   return (
     <div className="w-full max-w-4xl mx-auto mb-8">
-      <h2 className="text-xl font-bold text-slate-300 mb-4 text-center sm:text-left">Simulation Parameters</h2>
+      <h2 className="text-xl font-bold text-amber-300 mb-4 text-center sm:text-left">Simulation Parameters</h2>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {(Object.keys(MODE_DETAILS) as SimulationMode[]).map((mode) => (
           <div key={mode} className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">

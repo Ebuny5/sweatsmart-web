@@ -28,11 +28,11 @@ const StatusDisplay: React.FC<StatusDisplayProps> = ({ analysis, eda, palmResult
                 )}
             </div>
             <div className="flex-grow text-center sm:text-left">
-                <h2 className="text-xl font-bold text-slate-200 mb-1">
+                <h2 className="text-xl font-bold text-amber-300 mb-1">
                     {status ? `Status: ${status}` : 'Combined Analysis'}
                 </h2>
-                <p className="text-slate-400 mb-3">
-                    {analysis?.explanation || 'Generate sensor data, then scan your palm for a comprehensive analysis.'}
+                <p className="text-amber-200/80 mb-3">
+                    {analysis?.explanation || 'Generate sensor data, then scan your affected area for a comprehensive analysis.'}
                 </p>
                 <div className="flex gap-3 flex-wrap justify-center sm:justify-start text-sm">
                     {eda !== null && (
@@ -56,7 +56,7 @@ const StatusDisplay: React.FC<StatusDisplayProps> = ({ analysis, eda, palmResult
                 ) : (
                   <>
                     <CameraIcon className="w-5 h-5"/>
-                    Scan Palm
+                    Scan Area
                   </>
                 )}
             </button>

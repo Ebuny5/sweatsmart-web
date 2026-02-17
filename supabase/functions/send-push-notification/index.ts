@@ -355,14 +355,23 @@ serve(async (req) => {
           const temp = weather.main?.temp || 0;
           const humidity = weather.main?.humidity || 0;
 
+          // Check if it's nighttime using sunrise/sunset from weather data
+          const sunrise = weather.sys?.sunrise || 0;
+          const sunset = weather.sys?.sunset || 0;
+          const nowUnix = Math.floor(Date.now() / 1000);
+          const isNight = nowUnix < sunrise || nowUnix > sunset;
+
           let uv = 0;
-          try {
-            const uvRes = await fetch(
-              `https://api.openweathermap.org/data/2.5/uvi?lat=${sub.latitude}&lon=${sub.longitude}&appid=${weatherApiKey}`
-            );
-            const uvData = await uvRes.json();
-            uv = uvData.value || 0;
-          } catch { /* UV fetch optional */ }
+          if (!isNight) {
+            try {
+              const uvRes = await fetch(
+                `https://api.openweathermap.org/data/2.5/uvi?lat=${sub.latitude}&lon=${sub.longitude}&appid=${weatherApiKey}`
+              );
+              const uvData = await uvRes.json();
+              uv = uvData.value || 0;
+            } catch { /* UV fetch optional */ }
+          }
+          // UV is always 0 at night — prevents false extreme alerts
 
           const userTempThreshold = sub.temperature_threshold || 28;
           const userHumidityThreshold = sub.humidity_threshold || 70;
