@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { Droplets, Activity, BarChart3, Brain, Menu, X, ClipboardList, Scan, Watch, CloudSun, Sparkles, Users } from 'lucide-react';
 
 // Dashboard Preview Component
@@ -94,6 +95,13 @@ function DashboardPreview() {
 export default function NewIndex() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   const handleGetStarted = () => {
     navigate('/auth');
