@@ -123,7 +123,7 @@ const PalmScannerModal: React.FC<PalmScannerProps> = ({ onCapture, onClose }) =>
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="palm-scanner-title">
       <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 w-full max-w-lg shadow-2xl">
-        <h3 id="palm-scanner-title" className="text-lg font-bold text-center text-slate-200 mb-4">Palm Scanner</h3>
+        <h3 id="palm-scanner-title" className="text-lg font-bold text-center text-slate-200 mb-4">Affected Area Scanner</h3>
         <div className="relative w-full aspect-square bg-slate-900 rounded-md overflow-hidden flex items-center justify-center">
             {error && !stream ? (
               <div className="text-center text-red-400 p-4">{error}</div>

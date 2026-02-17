@@ -84,6 +84,13 @@ const PalmScannerApp: React.FC = () => {
         
         if (fusedError) throw fusedError;
         setFusedAnalysis(fusedData);
+        
+        // Update sensor data notes with scan result
+        setSensorData(prev => prev ? {
+          ...prev,
+          notes: `Scan result: ${palmData.result} | Status: ${fusedData.status} — ${fusedData.explanation}`
+        } : prev);
+        
         toast.success('Analysis complete');
     } catch (err: any) {
         setError(err.message || 'An analysis error occurred.');
