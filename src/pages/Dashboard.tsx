@@ -4,7 +4,7 @@ import { SeverityLevel } from "@/types";
 import DashboardSummary from "@/components/dashboard/DashboardSummary";
 import RecentEpisodes from "@/components/dashboard/RecentEpisodes";
 import TriggerSummary from "@/components/dashboard/TriggerSummary";
-import BodyAreaHeatmap from "@/components/dashboard/BodyAreaHeatmap";
+// BodyAreaHeatmap moved to History page
 import QuickActions from "@/components/dashboard/QuickActions";
 import { TriggerFrequency, BodyAreaFrequency, BodyArea } from "@/types";
 import { useEpisodes } from "@/hooks/useEpisodes";
@@ -126,7 +126,7 @@ const Dashboard = () => {
     return (
       <AppLayout>
         <div className="space-y-6 animate-fade-in">
-          <h1 className="text-3xl font-bold">SweatSmart Dashboard</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">SweatSmart Dashboard</h1>
           <div className="grid gap-6 md:grid-cols-3">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="col-span-3 h-[300px] animate-pulse bg-muted rounded-lg" />
@@ -163,7 +163,7 @@ const Dashboard = () => {
     <AppLayout>
       <div className="space-y-6 animate-fade-in">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">SweatSmart Dashboard</h1>
+         <h1 className="text-2xl sm:text-3xl font-bold">SweatSmart Dashboard</h1>
           {dashboardData.allEpisodes.length > 0 && (
             <div className="text-sm text-muted-foreground">
               Total episodes: {dashboardData.allEpisodes.length}
@@ -173,7 +173,7 @@ const Dashboard = () => {
         
         <QuickActions />
         
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
           <DashboardSummary 
             weeklyData={[]} 
             monthlyData={[]}
@@ -183,10 +183,6 @@ const Dashboard = () => {
           <TriggerSummary 
             triggers={dashboardData.triggerFrequencies}
             allEpisodes={dashboardData.allEpisodes}
-          />
-          
-          <BodyAreaHeatmap 
-            bodyAreas={dashboardData.bodyAreas}
           />
           
           <RecentEpisodes episodes={dashboardData.recentEpisodes} />
