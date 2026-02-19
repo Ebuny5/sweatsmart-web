@@ -404,6 +404,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      increment_notification_count: {
+        Args: { p_date: string; p_user_id: string }
+        Returns: undefined
+      }
       keep_alive: { Args: never; Returns: undefined }
       search_knowledge_base: {
         Args: {

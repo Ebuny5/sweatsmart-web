@@ -2,7 +2,9 @@
 import { SidebarProvider } from "@/components/ui/sidebar";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
+import MobileBottomNav from "./MobileBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -14,8 +16,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   isAuthenticated,
 }) => {
   const { user, loading } = useAuth();
+  const isMobile = useIsMobile();
   
-  // Use auth context if isAuthenticated is not explicitly provided
   const authenticated = isAuthenticated ?? !!user;
 
   if (loading) {
@@ -31,11 +33,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({
       <div className="min-h-screen flex w-full flex-col">
         <Header isAuthenticated={authenticated} />
         <div className="flex flex-1">
-          {authenticated && <Sidebar />}
-          <main className="flex-1 container py-6">
+          {authenticated && !isMobile && <Sidebar />}
+          <main className={`flex-1 ${isMobile ? 'px-4 py-4 pb-20' : 'container py-6'}`}>
             {children}
           </main>
         </div>
+        {authenticated && isMobile && <MobileBottomNav />}
       </div>
     </SidebarProvider>
   );
