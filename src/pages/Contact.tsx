@@ -37,7 +37,7 @@ const Contact = () => {
                 </a>
               </div>
               <Button 
-                onClick={() => window.location.href = 'mailto:sweatsmart@beyondsweat.life'}
+                onClick={() => window.location.href = 'mailto:info@giftovate.world'}
                 className="w-full"
               >
                 Send Email
