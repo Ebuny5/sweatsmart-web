@@ -29,10 +29,10 @@ const Contact = () => {
               <div className="space-y-2">
                 <p className="font-medium text-foreground">General Support</p>
                 <a 
-                  href="mailto:sweatsmart@beyondsweat.life" 
+                  href="mailto:info@giftovate.world" 
                   className="text-primary hover:underline flex items-center gap-2"
                 >
-                  sweatsmart@beyondsweat.life
+                  info@giftovate.world
                   <Mail className="h-4 w-4" />
                 </a>
               </div>
