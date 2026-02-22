@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 export const NotificationPermissionModal = () => {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    // Show popup 2 seconds after login if permission not yet decided
     if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
       const timer = setTimeout(() => setShow(true), 2000);
       return () => clearTimeout(timer);
@@ -30,23 +29,19 @@ export const NotificationPermissionModal = () => {
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-gray-900 border border-cyan-500/30 rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300">
-        
-        {/* Icon */}
+
         <div className="w-16 h-16 bg-cyan-500/10 border border-cyan-500/30 rounded-full flex items-center justify-center mx-auto mb-4">
           <span className="text-3xl">🔔</span>
         </div>
 
-        {/* Title */}
         <h2 className="text-xl font-bold text-white text-center mb-2">
           Stay Protected
         </h2>
 
-        {/* Description */}
         <p className="text-gray-400 text-center text-sm mb-2 leading-relaxed">
           SweatSmart sends you two types of alerts:
         </p>
 
-        {/* Alert types */}
         <div className="space-y-2 mb-6">
           <div className="flex items-center gap-3 bg-gray-800/60 rounded-xl p-3">
             <span className="text-xl">🌡️</span>
@@ -64,7 +59,6 @@ export const NotificationPermissionModal = () => {
           </div>
         </div>
 
-        {/* Buttons */}
         <div className="space-y-3">
           <button
             onClick={handleEnable}
