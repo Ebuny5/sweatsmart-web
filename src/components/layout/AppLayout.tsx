@@ -12,13 +12,9 @@ interface AppLayoutProps {
   isAuthenticated?: boolean;
 }
 
-const AppLayout: React.FC<AppLayoutProps> = ({
-  children,
-  isAuthenticated,
-}) => {
+const AppLayout: React.FC<AppLayoutProps> = ({ children, isAuthenticated }) => {
   const { user, loading } = useAuth();
   const isMobile = useIsMobile();
-  
   const authenticated = isAuthenticated ?? !!user;
 
   if (loading) {
@@ -40,7 +36,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           </main>
         </div>
         {authenticated && isMobile && <MobileBottomNav />}
-        {/* Show notification permission popup after login */}
         {authenticated && <NotificationPermissionModal />}
       </div>
     </SidebarProvider>
