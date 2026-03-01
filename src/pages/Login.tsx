@@ -54,7 +54,7 @@ const Login = () => {
           title: "Login successful",
           description: "Welcome back to SweatSmart!",
         });
-        navigate("/dashboard");
+        navigate("/home");
       }
     } catch (error) {
       toast({

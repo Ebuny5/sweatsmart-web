@@ -73,8 +73,8 @@ const AuthCallback = () => {
       // Default: if we have a user, go to dashboard. If not, back to login.
       const t = setTimeout(() => {
         if (user) {
-          console.log('Redirecting to dashboard, user:', user.id);
-          navigate("/dashboard", { replace: true });
+          console.log('Redirecting to home, user:', user.id);
+          navigate("/home", { replace: true });
         } else {
           console.log('No user found, redirecting to login');
           navigate("/login", { replace: true });
