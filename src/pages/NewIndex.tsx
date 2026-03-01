@@ -99,7 +99,7 @@ export default function NewIndex() {
 
   useEffect(() => {
     if (!loading && user) {
-      navigate('/dashboard', { replace: true });
+      navigate('/home', { replace: true });
     }
   }, [user, loading, navigate]);
 

@@ -19,7 +19,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 // Colour for each nav item when active
 const primaryItems = [
   {
-    path: "/dashboard",
+    path: "/home",
     icon: LayoutDashboard,
     label: "Home",
     activeColor: "text-violet-600",

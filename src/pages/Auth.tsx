@@ -68,7 +68,7 @@ export default function Auth() {
             title: "Sign up successful",
             description: "Welcome to SweatSmart! Please check your email to verify your account.",
           });
-          navigate('/dashboard');
+          navigate('/home');
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
@@ -87,7 +87,7 @@ export default function Auth() {
             title: "Login successful",
             description: "Welcome back to SweatSmart!",
           });
-          navigate('/dashboard');
+          navigate('/home');
         }
       }
     } catch (error) {

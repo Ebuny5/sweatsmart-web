@@ -183,7 +183,7 @@ const LogEpisode = () => {
             {/* Action buttons */}
             <div className="grid grid-cols-1 gap-3 pt-2">
               <button
-                onClick={() => navigate("/dashboard")}
+                onClick={() => navigate("/home")}
                 className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold transition-all shadow-md shadow-blue-100"
               >
                 <LayoutDashboard className="h-4 w-4" />
@@ -356,7 +356,7 @@ const LogEpisode = () => {
             <div className="flex gap-3 pt-2 pb-6">
               <button
                 type="button"
-                onClick={() => navigate("/dashboard")}
+                onClick={() => navigate("/home")}
                 className="flex-1 py-3.5 rounded-xl border-2 border-gray-200 text-gray-600 font-semibold hover:bg-gray-50 transition-all text-sm"
               >
                 Cancel

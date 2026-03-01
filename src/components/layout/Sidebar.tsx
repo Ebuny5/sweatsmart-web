@@ -1,6 +1,7 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 import {
+  Home,
   LayoutDashboard,
   PlusCircle,
   History,
@@ -16,13 +17,22 @@ import { cn } from "@/lib/utils";
 
 const menuItems = [
   {
-    path: "/dashboard",
-    icon: LayoutDashboard,
-    label: "Dashboard",
+    path: "/home",
+    icon: Home,
+    label: "Home",
     activeGradient: "from-violet-500 to-purple-600",
     activeBg: "bg-violet-50",
     activeText: "text-violet-700",
     iconBg: "bg-violet-100",
+  },
+  {
+    path: "/dashboard",
+    icon: LayoutDashboard,
+    label: "Analytics",
+    activeGradient: "from-blue-500 to-indigo-600",
+    activeBg: "bg-blue-50",
+    activeText: "text-blue-700",
+    iconBg: "bg-blue-100",
   },
   {
     path: "/log-episode",
