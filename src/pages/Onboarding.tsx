@@ -15,7 +15,7 @@ const Onboarding = () => {
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     } else {
-      navigate("/dashboard");
+      navigate("/home");
     }
   };
 

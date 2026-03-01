@@ -105,7 +105,7 @@ const Dashboard = () => {
         name: label,
         category: data.type || 'environmental',
         count: data.count,
-        trigger: { label, type: (data.type || 'environmental') as const, value: label },
+        trigger: { label, type: data.type || 'environmental', value: label },
         averageSeverity,
         percentage: allEpisodes.length > 0 ? Math.round((data.count / allEpisodes.length) * 100) : 0
       };

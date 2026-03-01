@@ -74,7 +74,7 @@ const ResetPassword = () => {
           title: "Password updated",
           description: "Your password has been successfully updated.",
         });
-        navigate("/dashboard");
+        navigate("/home");
       }
     } catch (error) {
       toast({

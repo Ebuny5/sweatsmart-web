@@ -26,6 +26,7 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./pages/AuthCallback";
 import PalmScanner from "./pages/PalmScanner";
+import Home from "./pages/Home";
 import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
@@ -91,7 +92,7 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   }
   
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/home" replace />;
   }
   
   return <ErrorBoundary>{children}</ErrorBoundary>;
@@ -116,6 +117,11 @@ const AppRoutes = () => (
     <Route path="/onboarding" element={
       <ProtectedRoute>
         <Onboarding />
+      </ProtectedRoute>
+    } />
+    <Route path="/home" element={
+      <ProtectedRoute>
+        <Home />
       </ProtectedRoute>
     } />
     <Route path="/dashboard" element={

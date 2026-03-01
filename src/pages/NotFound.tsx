@@ -24,7 +24,7 @@ const NotFound = () => {
 
   const handleGoHome = () => {
     if (user) {
-      navigate("/dashboard");
+      navigate("/home");
     } else {
       navigate("/");
     }
