@@ -1,0 +1,437 @@
+import { useRef, useEffect, useState, useCallback } from "react";
+import { Download, Share2, RefreshCw } from "lucide-react";
+
+interface WarriorBadgeProps {
+  userName?: string;
+  episodeCount?: number;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Badge canvas renderer
+// ─────────────────────────────────────────────────────────────────────────────
+function drawBadge(
+  canvas: HTMLCanvasElement,
+  userName: string,
+  episodeCount: number,
+  variant: number = 0
+) {
+  const W = 600;
+  const H = 700;
+  canvas.width  = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d")!;
+
+  // ── Variants cycle through accent hues ──────────────────────────────────
+  const VARIANTS = [
+    { accent1: "#a78bfa", accent2: "#7c3aed", glow: "#8b5cf6" },  // violet
+    { accent1: "#f472b6", accent2: "#db2777", glow: "#ec4899" },  // pink
+    { accent1: "#fbbf24", accent2: "#d97706", glow: "#f59e0b" },  // gold
+    { accent1: "#34d399", accent2: "#059669", glow: "#10b981" },  // teal
+  ];
+  const v = VARIANTS[variant % VARIANTS.length];
+
+  ctx.clearRect(0, 0, W, H);
+
+  // ── Background ────────────────────────────────────────────────────────────
+  const bgGrad = ctx.createRadialGradient(W / 2, H / 2, 80, W / 2, H / 2, 420);
+  bgGrad.addColorStop(0, "#1e1b4b");
+  bgGrad.addColorStop(0.5, "#0f0d2e");
+  bgGrad.addColorStop(1, "#07051a");
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // ── Subtle star field ──────────────────────────────────────────────────────
+  ctx.save();
+  for (let i = 0; i < 80; i++) {
+    const x = Math.random() * W;
+    const y = Math.random() * H;
+    const r = Math.random() * 1.2;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${0.1 + Math.random() * 0.4})`;
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // ── Outer glow ring ───────────────────────────────────────────────────────
+  ctx.save();
+  const ringGrad = ctx.createRadialGradient(W / 2, H / 2, 240, W / 2, H / 2, 320);
+  ringGrad.addColorStop(0, `${v.glow}00`);
+  ringGrad.addColorStop(0.7, `${v.glow}22`);
+  ringGrad.addColorStop(1, `${v.glow}00`);
+  ctx.fillStyle = ringGrad;
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+
+  // ── Shield path ───────────────────────────────────────────────────────────
+  const shieldX   = W / 2;
+  const shieldTop = 60;
+  const shieldW   = 420;
+  const shieldH   = 540;
+  const shieldBot = shieldTop + shieldH;
+  const r         = 32; // corner radius
+
+  ctx.save();
+  ctx.beginPath();
+  // top-left arc
+  ctx.moveTo(shieldX - shieldW / 2 + r, shieldTop);
+  // top edge
+  ctx.lineTo(shieldX + shieldW / 2 - r, shieldTop);
+  // top-right arc
+  ctx.quadraticCurveTo(shieldX + shieldW / 2, shieldTop, shieldX + shieldW / 2, shieldTop + r);
+  // right edge — curves inward slightly
+  ctx.lineTo(shieldX + shieldW / 2, shieldTop + shieldH * 0.55);
+  // taper to pointed bottom
+  ctx.quadraticCurveTo(shieldX + shieldW / 2, shieldBot - 60, shieldX, shieldBot);
+  ctx.quadraticCurveTo(shieldX - shieldW / 2, shieldBot - 60, shieldX - shieldW / 2, shieldTop + shieldH * 0.55);
+  // left edge
+  ctx.lineTo(shieldX - shieldW / 2, shieldTop + r);
+  // top-left arc close
+  ctx.quadraticCurveTo(shieldX - shieldW / 2, shieldTop, shieldX - shieldW / 2 + r, shieldTop);
+  ctx.closePath();
+
+  // Shield fill — deep gradient
+  const shieldFill = ctx.createLinearGradient(shieldX, shieldTop, shieldX, shieldBot);
+  shieldFill.addColorStop(0, "#1a1740");
+  shieldFill.addColorStop(0.4, "#14113a");
+  shieldFill.addColorStop(1, "#0d0b28");
+  ctx.fillStyle = shieldFill;
+  ctx.fill();
+
+  // Shield border — gold/accent gradient
+  const borderGrad = ctx.createLinearGradient(shieldX - shieldW / 2, shieldTop, shieldX + shieldW / 2, shieldBot);
+  borderGrad.addColorStop(0, v.accent1);
+  borderGrad.addColorStop(0.5, "#fef3c7");
+  borderGrad.addColorStop(1, v.accent2);
+  ctx.strokeStyle = borderGrad;
+  ctx.lineWidth = 4;
+  ctx.shadowColor = v.glow;
+  ctx.shadowBlur = 24;
+  ctx.stroke();
+  ctx.restore();
+
+  // ── Inner shield border (double line effect) ─────────────────────────────
+  ctx.save();
+  ctx.beginPath();
+  const inset = 14;
+  ctx.moveTo(shieldX - shieldW / 2 + r + inset, shieldTop + inset);
+  ctx.lineTo(shieldX + shieldW / 2 - r - inset, shieldTop + inset);
+  ctx.quadraticCurveTo(shieldX + shieldW / 2 - inset, shieldTop + inset, shieldX + shieldW / 2 - inset, shieldTop + r + inset);
+  ctx.lineTo(shieldX + shieldW / 2 - inset, shieldTop + shieldH * 0.55);
+  ctx.quadraticCurveTo(shieldX + shieldW / 2 - inset, shieldBot - 70, shieldX, shieldBot - inset * 1.5);
+  ctx.quadraticCurveTo(shieldX - shieldW / 2 + inset, shieldBot - 70, shieldX - shieldW / 2 + inset, shieldTop + shieldH * 0.55);
+  ctx.lineTo(shieldX - shieldW / 2 + inset, shieldTop + r + inset);
+  ctx.quadraticCurveTo(shieldX - shieldW / 2 + inset, shieldTop + inset, shieldX - shieldW / 2 + r + inset, shieldTop + inset);
+  ctx.closePath();
+  ctx.strokeStyle = `${v.accent1}55`;
+  ctx.lineWidth = 1.5;
+  ctx.shadowBlur = 0;
+  ctx.stroke();
+  ctx.restore();
+
+  // ── Central water droplet emblem ──────────────────────────────────────────
+  const dropCX = shieldX;
+  const dropCY = shieldTop + 155;
+  const dropR  = 52;
+
+  ctx.save();
+  // Outer glow
+  const dropGlow = ctx.createRadialGradient(dropCX, dropCY, 0, dropCX, dropCY, dropR * 2);
+  dropGlow.addColorStop(0, `${v.accent1}60`);
+  dropGlow.addColorStop(1, `${v.accent1}00`);
+  ctx.fillStyle = dropGlow;
+  ctx.beginPath();
+  ctx.arc(dropCX, dropCY, dropR * 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Droplet shape
+  ctx.beginPath();
+  ctx.moveTo(dropCX, dropCY - dropR - 18);
+  ctx.bezierCurveTo(dropCX + dropR * 0.9, dropCY - dropR * 0.4, dropCX + dropR, dropCY + dropR * 0.3, dropCX, dropCY + dropR);
+  ctx.bezierCurveTo(dropCX - dropR, dropCY + dropR * 0.3, dropCX - dropR * 0.9, dropCY - dropR * 0.4, dropCX, dropCY - dropR - 18);
+  ctx.closePath();
+
+  const dropFill = ctx.createLinearGradient(dropCX - dropR, dropCY - dropR, dropCX + dropR, dropCY + dropR);
+  dropFill.addColorStop(0, v.accent1);
+  dropFill.addColorStop(0.5, "#ffffff");
+  dropFill.addColorStop(1, v.accent2);
+  ctx.fillStyle = dropFill;
+  ctx.shadowColor = v.glow;
+  ctx.shadowBlur = 30;
+  ctx.fill();
+
+  // Inner shine
+  ctx.beginPath();
+  ctx.ellipse(dropCX - 12, dropCY - 20, 10, 18, -0.4, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255,255,255,0.45)";
+  ctx.shadowBlur = 0;
+  ctx.fill();
+  ctx.restore();
+
+  // ── Decorative corner stars ───────────────────────────────────────────────
+  const drawStar = (cx: number, cy: number, size: number) => {
+    ctx.save();
+    ctx.shadowColor = v.accent1;
+    ctx.shadowBlur = 12;
+    for (let i = 0; i < 5; i++) {
+      const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+      const x = cx + Math.cos(angle) * size;
+      const y = cy + Math.sin(angle) * size;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = v.accent1;
+    ctx.fill();
+    ctx.restore();
+  };
+
+  ctx.beginPath(); drawStar(shieldX - 140, shieldTop + 100, 10);
+  ctx.beginPath(); drawStar(shieldX + 140, shieldTop + 100, 10);
+  ctx.beginPath(); drawStar(shieldX - 160, shieldTop + 200, 6);
+  ctx.beginPath(); drawStar(shieldX + 160, shieldTop + 200, 6);
+
+  // ── HYPERHIDROSIS WARRIOR title ───────────────────────────────────────────
+  ctx.save();
+  ctx.textAlign = "center";
+
+  // "HYPERHIDROSIS" — small caps above
+  ctx.font = "bold 22px 'Georgia', serif";
+  ctx.letterSpacing = "6px";
+  const letterSpacingGrad1 = ctx.createLinearGradient(shieldX - 160, 0, shieldX + 160, 0);
+  letterSpacingGrad1.addColorStop(0, v.accent1);
+  letterSpacingGrad1.addColorStop(0.5, "#fef3c7");
+  letterSpacingGrad1.addColorStop(1, v.accent2);
+  ctx.fillStyle = letterSpacingGrad1;
+  ctx.shadowColor = v.glow;
+  ctx.shadowBlur = 14;
+  ctx.fillText("HYPERHIDROSIS", shieldX + 3, shieldTop + 295); // letter-spacing offset
+  ctx.restore();
+
+  // Decorative divider line
+  ctx.save();
+  const divGrad = ctx.createLinearGradient(shieldX - 150, 0, shieldX + 150, 0);
+  divGrad.addColorStop(0, `${v.accent1}00`);
+  divGrad.addColorStop(0.5, v.accent1);
+  divGrad.addColorStop(1, `${v.accent1}00`);
+  ctx.strokeStyle = divGrad;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(shieldX - 150, shieldTop + 308);
+  ctx.lineTo(shieldX + 150, shieldTop + 308);
+  ctx.stroke();
+  ctx.restore();
+
+  // "WARRIOR" — large bold
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.font = "bold 72px 'Georgia', serif";
+  const warriorGrad = ctx.createLinearGradient(shieldX - 150, 0, shieldX + 150, 0);
+  warriorGrad.addColorStop(0, v.accent2);
+  warriorGrad.addColorStop(0.3, "#fef3c7");
+  warriorGrad.addColorStop(0.6, v.accent1);
+  warriorGrad.addColorStop(1, v.accent2);
+  ctx.fillStyle = warriorGrad;
+  ctx.shadowColor = v.glow;
+  ctx.shadowBlur = 28;
+  ctx.fillText("WARRIOR", shieldX, shieldTop + 385);
+  ctx.restore();
+
+  // ── Divider with diamond ──────────────────────────────────────────────────
+  ctx.save();
+  const divGrad2 = ctx.createLinearGradient(shieldX - 130, 0, shieldX + 130, 0);
+  divGrad2.addColorStop(0, `${v.accent1}00`);
+  divGrad2.addColorStop(0.5, `${v.accent1}bb`);
+  divGrad2.addColorStop(1, `${v.accent1}00`);
+  ctx.strokeStyle = divGrad2;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(shieldX - 130, shieldTop + 405);
+  ctx.lineTo(shieldX - 12, shieldTop + 405);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(shieldX + 12, shieldTop + 405);
+  ctx.lineTo(shieldX + 130, shieldTop + 405);
+  ctx.stroke();
+  // diamond
+  ctx.beginPath();
+  ctx.moveTo(shieldX, shieldTop + 399);
+  ctx.lineTo(shieldX + 7, shieldTop + 405);
+  ctx.lineTo(shieldX, shieldTop + 411);
+  ctx.lineTo(shieldX - 7, shieldTop + 405);
+  ctx.closePath();
+  ctx.fillStyle = v.accent1;
+  ctx.shadowColor = v.glow;
+  ctx.shadowBlur = 10;
+  ctx.fill();
+  ctx.restore();
+
+  // ── User name ─────────────────────────────────────────────────────────────
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.font = "italic 28px 'Georgia', serif";
+  ctx.fillStyle = "#e0d9ff";
+  ctx.shadowColor = v.glow;
+  ctx.shadowBlur = 10;
+
+  const name = userName.length > 20 ? userName.slice(0, 20) + "…" : userName;
+  ctx.fillText(name, shieldX, shieldTop + 450);
+  ctx.restore();
+
+  // ── Episode count badge ───────────────────────────────────────────────────
+  if (episodeCount > 0) {
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.font = "bold 15px 'Georgia', serif";
+    ctx.fillStyle = `${v.accent1}cc`;
+    ctx.shadowBlur = 0;
+    ctx.fillText(`${episodeCount} Episodes Tracked`, shieldX, shieldTop + 478);
+    ctx.restore();
+  }
+
+  // ── Bottom tagline ────────────────────────────────────────────────────────
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.font = "13px 'Georgia', serif";
+  ctx.fillStyle = `${v.accent1}99`;
+  ctx.letterSpacing = "3px";
+  ctx.fillText("SWEATSMART · NEVER SWEAT ALONE", shieldX + 2, shieldTop + 510);
+  ctx.restore();
+
+  // ── Bottom three dots ─────────────────────────────────────────────────────
+  [shieldX - 18, shieldX, shieldX + 18].forEach((x, i) => {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, shieldTop + 527, i === 1 ? 4 : 3, 0, Math.PI * 2);
+    ctx.fillStyle = i === 1 ? v.accent1 : `${v.accent1}88`;
+    ctx.shadowColor = v.glow;
+    ctx.shadowBlur = i === 1 ? 10 : 4;
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Component
+// ─────────────────────────────────────────────────────────────────────────────
+const WarriorBadge = ({ userName = "Warrior", episodeCount = 0 }: WarriorBadgeProps) => {
+  const canvasRef      = useRef<HTMLCanvasElement>(null);
+  const [variant, setVariant]   = useState(0);
+  const [sharing, setSharing]   = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
+
+  const redraw = useCallback(() => {
+    if (canvasRef.current) drawBadge(canvasRef.current, userName, episodeCount, variant);
+  }, [userName, episodeCount, variant]);
+
+  useEffect(() => { redraw(); }, [redraw]);
+
+  const handleDownload = () => {
+    if (!canvasRef.current) return;
+    const link = document.createElement("a");
+    link.download = `sweatsmart-warrior-badge-${userName.replace(/\s+/g, "-").toLowerCase()}.png`;
+    link.href = canvasRef.current.toDataURL("image/png");
+    link.click();
+    setDownloaded(true);
+    setTimeout(() => setDownloaded(false), 2000);
+  };
+
+  const handleShare = async () => {
+    if (!canvasRef.current) return;
+    setSharing(true);
+    try {
+      canvasRef.current.toBlob(async (blob) => {
+        if (!blob) return;
+        const file = new File([blob], "sweatsmart-warrior-badge.png", { type: "image/png" });
+        if (navigator.share && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: "I'm a Hyperhidrosis Warrior 💧",
+            text: `I'm a Hyperhidrosis Warrior, my sweat doesn't define me. 💧${episodeCount > 0 ? ` ${episodeCount} episodes tracked and still going strong.` : ""} #HyperhidrosisWarrior #StopTheStigma #SweatSmart`,
+            files: [file],
+          });
+        } else {
+          // Fallback — download with share message shown
+          handleDownload();
+          alert("Save the image and share it with the message:\n\n\"I'm a Hyperhidrosis Warrior, my sweat doesn't define me. 💧\"\n\n#HyperhidrosisWarrior #StopTheStigma #SweatSmart");
+        }
+        setSharing(false);
+      }, "image/png");
+    } catch {
+      setSharing(false);
+    }
+  };
+
+  const VARIANT_NAMES = ["Violet", "Rose", "Gold", "Teal"];
+
+  return (
+    <div className="rounded-3xl overflow-hidden border border-purple-200 shadow-xl shadow-purple-100"
+      style={{ background: "linear-gradient(135deg, #1e1b4b 0%, #0f0d2e 100%)" }}
+    >
+      {/* Header */}
+      <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+        <div>
+          <p className="text-xs font-black text-purple-300 uppercase tracking-widest">🏅 Your Badge</p>
+          <p className="text-white font-black text-base leading-tight mt-0.5">Hyperhidrosis Warrior</p>
+        </div>
+        {/* Variant switcher */}
+        <div className="flex gap-1.5">
+          {[0, 1, 2, 3].map(i => (
+            <button
+              key={i}
+              onClick={() => setVariant(i)}
+              title={VARIANT_NAMES[i]}
+              className={`w-6 h-6 rounded-full border-2 transition-all ${variant === i ? "scale-125 border-white" : "border-transparent opacity-60 hover:opacity-100"}`}
+              style={{
+                background: i === 0 ? "#8b5cf6" : i === 1 ? "#ec4899" : i === 2 ? "#f59e0b" : "#10b981"
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Canvas — badge preview */}
+      <div className="px-5">
+        <div className="rounded-2xl overflow-hidden shadow-2xl shadow-purple-900">
+          <canvas
+            ref={canvasRef}
+            className="w-full h-auto block"
+            style={{ maxHeight: "340px", objectFit: "contain" }}
+          />
+        </div>
+      </div>
+
+      {/* Action buttons */}
+      <div className="px-5 pt-4 pb-5 grid grid-cols-2 gap-3">
+        <button
+          onClick={handleDownload}
+          className={`flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm transition-all shadow-md
+            ${downloaded
+              ? "bg-green-500 text-white shadow-green-300"
+              : "bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-amber-200 hover:shadow-lg hover:scale-[1.02]"
+            }`}
+        >
+          {downloaded ? "✅ Saved!" : <><Download className="h-4 w-4" /> Save Badge</>}
+        </button>
+
+        <button
+          onClick={handleShare}
+          disabled={sharing}
+          className="flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-gradient-to-r from-violet-500 to-pink-500 text-white font-black text-sm shadow-md shadow-violet-200 hover:shadow-lg hover:scale-[1.02] transition-all disabled:opacity-70"
+        >
+          {sharing
+            ? <><RefreshCw className="h-4 w-4 animate-spin" /> Sharing…</>
+            : <><Share2 className="h-4 w-4" /> Share Badge</>
+          }
+        </button>
+      </div>
+
+      {/* Footer tag */}
+      <div className="px-5 pb-4 text-center">
+        <p className="text-[10px] text-purple-400 font-medium leading-snug">
+          #HyperhidrosisWarrior · <span className="text-purple-300 font-bold">#StopTheStigma</span> · #SweatSmart
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default WarriorBadge;
