@@ -18,7 +18,7 @@ const NotFound = () => {
     // For mobile apps, if user is authenticated but lands on 404, redirect to dashboard
     if (user && location.pathname !== '/') {
       console.log("Authenticated user on 404, redirecting to dashboard");
-      navigate("/dashboard", { replace: true });
+      navigate("/home", { replace: true });
     }
   }, [location.pathname, user, navigate]);
 

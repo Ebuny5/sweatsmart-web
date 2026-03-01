@@ -57,7 +57,7 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated }) => {
           {/* ── Logo ─────────────────────────────────────────────────── */}
           <div
             className="flex items-center gap-2.5 cursor-pointer"
-            onClick={() => navigate(user ? "/dashboard" : "/")}
+            onClick={() => navigate(user ? "/home" : "/")}
           >
             {/* Logo mark */}
             <div className="relative h-9 w-9 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-inner border border-white/30">
