@@ -49,7 +49,7 @@ async function generateVapidToken(
   if (privateKeyBytes.length > 32) {
     cryptoKey = await crypto.subtle.importKey(
       'pkcs8',
-      privateKeyBytes.buffer,
+      privateKeyBytes.buffer as ArrayBuffer,
       { name: 'ECDSA', namedCurve: 'P-256' },
       false,
       ['sign']
@@ -122,7 +122,7 @@ async function encryptPayload(
   // Import client public key
   const clientKey = await crypto.subtle.importKey(
     'raw',
-    clientPublicKey,
+    clientPublicKey as unknown as ArrayBuffer,
     { name: 'ECDH', namedCurve: 'P-256' },
     false,
     []
@@ -154,13 +154,13 @@ async function encryptPayload(
   const nonce = await hkdf(prk, salt, nonceInfo, 12);
 
   // Encrypt
-  const aesKey = await crypto.subtle.importKey('raw', cek, 'AES-GCM', false, ['encrypt']);
+  const aesKey = await crypto.subtle.importKey('raw', cek as unknown as ArrayBuffer, 'AES-GCM', false, ['encrypt']);
   const payloadBytes = new TextEncoder().encode(payload);
   const padded = new Uint8Array(payloadBytes.length + 2);
   padded.set(payloadBytes, 2);
 
   const ciphertext = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: nonce },
+    { name: 'AES-GCM', iv: nonce as unknown as ArrayBuffer },
     aesKey,
     padded
   );
@@ -169,9 +169,9 @@ async function encryptPayload(
 }
 
 async function hkdf(ikm: Uint8Array, salt: Uint8Array, info: Uint8Array, length: number): Promise<Uint8Array> {
-  const key = await crypto.subtle.importKey('raw', ikm, 'HKDF', false, ['deriveBits']);
+  const key = await crypto.subtle.importKey('raw', ikm as unknown as ArrayBuffer, 'HKDF', false, ['deriveBits']);
   const bits = await crypto.subtle.deriveBits(
-    { name: 'HKDF', hash: 'SHA-256', salt, info },
+    { name: 'HKDF', hash: 'SHA-256', salt: salt as unknown as ArrayBuffer, info: info as unknown as ArrayBuffer },
     key,
     length * 8
   );
@@ -241,7 +241,7 @@ async function sendWebPush(
     return { success: false, error: `HTTP ${response.status}: ${body}` };
   } catch (error) {
     console.error('Push error:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: (error as Error).message };
   }
 }
 
@@ -551,7 +551,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Edge function error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
