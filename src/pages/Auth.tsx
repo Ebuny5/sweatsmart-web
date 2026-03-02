@@ -45,12 +45,11 @@ export default function Auth() {
 
     try {
       if (isSignUp) {
-        const redirectUrl = `${window.location.origin}/`;
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: redirectUrl,
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
             data: {
               display_name: name,
             },
@@ -63,12 +62,21 @@ export default function Auth() {
             description: error.message,
             variant: "destructive",
           });
+        } else if (data?.user?.identities?.length === 0) {
+          toast({
+            title: "Account already exists",
+            description: "An account with this email already exists. Please login instead.",
+            variant: "destructive",
+          });
         } else {
           toast({
-            title: "Sign up successful",
-            description: "Welcome to SweatSmart! Please check your email to verify your account.",
+            title: "Check your email ✉️",
+            description: "We've sent a confirmation link to your email. Click it to activate your account, then login.",
           });
-          navigate('/home');
+          setIsSignUp(false);
+          setEmail(email);
+          setPassword('');
+          setConfirmPassword('');
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({

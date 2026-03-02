@@ -312,7 +312,7 @@ const HyperAI = () => {
     const stored = edaManager.getEDA();
     if (!stored) return null;
     const phase = stored.value >= 10 ? 'TRIGGER' : stored.value >= 5 ? 'ACTIVE' : 'RESTING';
-    return { value: stored.value, hr: stored.hr, phase, fresh: edaManager.isFresh() };
+    return { value: stored.value, phase, fresh: edaManager.isFresh() };
   }, []);
 
   // Climate snapshot for AI

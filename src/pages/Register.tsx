@@ -59,6 +59,16 @@ const Register = () => {
         },
       });
 
+      if (!error && data?.user?.identities?.length === 0) {
+        toast({
+          title: "Account already exists",
+          description: "An account with this email already exists. Please login instead.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
       if (error) {
         toast({
           title: "Registration failed",
