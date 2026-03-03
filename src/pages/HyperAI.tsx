@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Send, Sparkles, Loader2, Copy, Check, Download, Mic, MicOff,
   Plus, MessageSquare, Trash2, Volume2, VolumeX, FileText, ChevronRight,
-  Zap, Wind, AlertTriangle } from 'lucide-react';
+  Zap, Wind, AlertTriangle, Paperclip, Image as ImageIcon, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,11 +11,20 @@ import { useEpisodes } from '@/hooks/useEpisodes';
 import { useProfile } from '@/hooks/useProfile';
 import { useClimateData } from '@/hooks/useClimateData';
 import { edaManager } from '@/utils/edaManager';
+import ReactMarkdown from 'react-markdown';
+
+interface ChatAttachment {
+  type: 'image' | 'document';
+  name: string;
+  url: string;
+  file: File;
+}
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
   isReport?: boolean;
+  attachments?: ChatAttachment[];
 }
 
 interface Conversation {
@@ -100,6 +109,18 @@ const MessageBubble = ({
           }}
         >
           {message.content}
+          {message.attachments?.map((att, i) => (
+            <div key={i} className="mt-2">
+              {att.type === 'image' ? (
+                <img src={att.url} alt={att.name} className="max-w-full rounded-lg max-h-48 object-cover" />
+              ) : (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 text-xs">
+                  <FileText className="h-4 w-4" />
+                  <span className="truncate">{att.name}</span>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -122,7 +143,7 @@ const MessageBubble = ({
         {/* Glass bubble */}
         <div
           className={`px-4 py-3 rounded-2xl rounded-tl-sm text-sm leading-relaxed ${
-            isReport ? 'font-mono text-xs' : ''
+            isReport ? 'font-mono text-xs whitespace-pre-wrap' : ''
           }`}
           style={{
             background: 'rgba(255,255,255,0.06)',
@@ -131,10 +152,29 @@ const MessageBubble = ({
             border: '1px solid rgba(255,255,255,0.1)',
             boxShadow: '0 4px 24px rgba(0,0,0,0.2)',
             color: '#e2e8f0',
-            whiteSpace: 'pre-wrap',
           }}
         >
-          {message.content}
+          {isReport ? (
+            message.content
+          ) : (
+            <div className="hyper-prose">
+              <ReactMarkdown
+                components={{
+                  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                  ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+                  ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+                  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                  strong: ({ children }) => <span className="font-semibold">{children}</span>,
+                  em: ({ children }) => <span className="italic">{children}</span>,
+                  h1: ({ children }) => <p className="font-bold text-base mb-2">{children}</p>,
+                  h2: ({ children }) => <p className="font-bold text-sm mb-1.5">{children}</p>,
+                  h3: ({ children }) => <p className="font-semibold text-sm mb-1">{children}</p>,
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
+            </div>
+          )}
         </div>
 
         {/* Action row */}
@@ -207,7 +247,7 @@ const TypingIndicator = () => (
       <div className="w-2 h-2 rounded-full bg-teal-400 typing-dot-1" />
       <div className="w-2 h-2 rounded-full bg-teal-400 typing-dot-2" />
       <div className="w-2 h-2 rounded-full bg-teal-400 typing-dot-3" />
-      <span className="text-[10px] text-white/40 ml-1">Hyper AI is thinking...</span>
+      <span className="text-[10px] text-white/40 ml-1">Hyper is thinking...</span>
     </div>
   </div>
 );
@@ -262,7 +302,7 @@ const HistorySidebar = ({
 // ── Main component ────────────────────────────────────────────────────────────
 const WELCOME_MESSAGE: Message = {
   role: 'assistant',
-  content: "Hello, Warrior. I'm Hyper AI — your personal clinical companion for hyperhidrosis. I have access to your episode data, real-time biometric readings, and live climate data, so every insight I give you is personalised to your journey.\n\nWhat's on your mind today? You can ask me anything — clinical questions, treatment options, how to prepare for a job interview, or just talk about what it feels like to live with this condition. I'm here 24/7.",
+  content: "Hey there! 👋 I'm Hyper — your personal clinical companion for hyperhidrosis. I've already reviewed your complete episode history, biometric readings, and live climate data, so every insight I give you is deeply personalised to your journey 💙\n\nWhat's on your mind today? You can ask me anything — clinical questions, the latest treatment breakthroughs, how to prepare for a social event, or just talk about what it feels like to live with this condition. I'm here for you, always ✨",
 };
 
 const HyperAI = () => {
@@ -281,10 +321,12 @@ const HyperAI = () => {
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen]     = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const textareaRef    = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef   = useRef<HTMLInputElement>(null);
 
   // Inject CSS once
   useEffect(() => {
@@ -463,7 +505,7 @@ const HyperAI = () => {
   };
 
   const handleDownloadChat = () => {
-    const text = messages.map(m => `${m.role === 'user' ? 'You' : 'Hyper AI'}: ${m.content}`).join('\n\n---\n\n');
+    const text = messages.map(m => `${m.role === 'user' ? 'You' : 'Hyper'}: ${m.content}`).join('\n\n---\n\n');
     const blob = new Blob([text], { type: 'text/plain' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
@@ -524,11 +566,26 @@ const HyperAI = () => {
 
   const handleSend = async (overrideInput?: string) => {
     const text = (overrideInput || input).trim();
-    if (!text || isLoading) return;
+    if (!text && attachments.length === 0) return;
+    if (isLoading) return;
+    
+    const currentAttachments = [...attachments];
     setInput('');
+    setAttachments([]);
     setShowSuggestions(false);
 
-    const userMessage: Message = { role: 'user', content: text };
+    // Build content with attachment descriptions
+    let messageContent = text;
+    if (currentAttachments.length > 0) {
+      const attachDesc = currentAttachments.map(a => 
+        a.type === 'image' 
+          ? `[Attached image: ${a.name}]` 
+          : `[Attached document: ${a.name}]`
+      ).join('\n');
+      messageContent = messageContent ? `${messageContent}\n\n${attachDesc}` : attachDesc;
+    }
+
+    const userMessage: Message = { role: 'user', content: messageContent, attachments: currentAttachments };
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
 
@@ -675,8 +732,8 @@ const HyperAI = () => {
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-white font-black text-base leading-tight">Hyper AI</h1>
-              <p className="text-white/40 text-[10px]">World's first hyperhidrosis clinical companion</p>
+              <h1 className="text-white font-black text-base leading-tight">Hyper</h1>
+              <p className="text-white/40 text-[10px]">Your hyperhidrosis clinical companion</p>
             </div>
           </div>
 
@@ -790,6 +847,29 @@ const HyperAI = () => {
             borderTop: '1px solid rgba(255,255,255,0.06)',
           }}
         >
+          {/* Attachment previews */}
+          {attachments.length > 0 && (
+            <div className="flex gap-2 mb-2 flex-wrap">
+              {attachments.map((att, i) => (
+                <div key={i} className="relative group">
+                  {att.type === 'image' ? (
+                    <img src={att.url} alt={att.name} className="h-16 w-16 rounded-lg object-cover border border-white/10" />
+                  ) : (
+                    <div className="h-16 px-3 rounded-lg border border-white/10 bg-white/5 flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-white/50" />
+                      <span className="text-[10px] text-white/60 max-w-[80px] truncate">{att.name}</span>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setAttachments(p => p.filter((_, idx) => idx !== i))}
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="h-3 w-3 text-white" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="flex items-end gap-2">
             {/* Voice button */}
             <button
@@ -803,6 +883,34 @@ const HyperAI = () => {
             >
               {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
             </button>
+
+            {/* Attach button */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="p-3 rounded-xl transition-all shrink-0 hover:bg-white/10 text-white/30 hover:text-white/60"
+              style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+              title="Attach file or image"
+            >
+              <Paperclip className="h-4 w-4" />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              multiple
+              accept="image/*,.pdf,.doc,.docx,.txt"
+              onChange={(e) => {
+                const files = Array.from(e.target.files || []);
+                const newAttachments: ChatAttachment[] = files.map(file => ({
+                  type: file.type.startsWith('image/') ? 'image' as const : 'document' as const,
+                  name: file.name,
+                  url: URL.createObjectURL(file),
+                  file,
+                }));
+                setAttachments(prev => [...prev, ...newAttachments]);
+                e.target.value = '';
+              }}
+            />
 
             {/* Text input */}
             <div className="flex-1 relative">
