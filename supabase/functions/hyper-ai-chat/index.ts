@@ -42,14 +42,14 @@ async function searchKnowledgeBase(supabase: any, query: string, apiKey: string)
 }
 
 // ── Warrior Report generator ──────────────────────────────────────────────────
-function generateWarriorReport(analytics: any, userName: string): string {
-  if (!analytics) return "I don't have enough data to generate a report yet. Please log some episodes first.";
+function generateWarriorReport(analytics: any, userName: string, fullCtx: any): string {
+  if (!analytics && !fullCtx?.episodes?.length) return "I don't have enough data to generate a report yet. Please log some episodes first.";
 
-  const { totalEpisodes, avgSeverity, topTriggers, topAreas, weeklyTrends, edaData, climateData } = analytics;
+  const { totalEpisodes, avgSeverity, topTriggers, topAreas, weeklyTrends, edaData, climateData } = analytics || {};
 
-  const hdssInterpretation = parseFloat(avgSeverity) >= 3
+  const hdssInterpretation = parseFloat(avgSeverity || '0') >= 3
     ? "HDSS 3–4 range — prescription treatment is clinically indicated. Dermatology referral recommended."
-    : parseFloat(avgSeverity) >= 2
+    : parseFloat(avgSeverity || '0') >= 2
     ? "HDSS 2–3 range — condition is interfering with daily activities. Consider discussing prescription options."
     : "HDSS 1–2 range — mild-moderate. Continue current management and monitor trends.";
 
@@ -61,7 +61,6 @@ function generateWarriorReport(analytics: any, userName: string): string {
     `  ${i + 1}. ${a.area}: ${a.count} episodes (${a.percentage}%, avg HDSS ${a.avgSeverity})`
   ).join('\n') || '  No body area data logged yet.';
 
-  // Trend analysis
   const recentWeeks = weeklyTrends?.slice(-4) || [];
   const trend = recentWeeks.length >= 2
     ? parseFloat(recentWeeks[recentWeeks.length - 1].avgSeverity) < parseFloat(recentWeeks[0].avgSeverity)
@@ -71,7 +70,6 @@ function generateWarriorReport(analytics: any, userName: string): string {
       : "STABLE — consistent pattern over the past 4 weeks."
     : "INSUFFICIENT DATA — continue logging for trend analysis.";
 
-  // Clinical recommendation logic
   const primaryTrigger = topTriggers?.[0]?.name || null;
   const isEmotional = primaryTrigger && ['anxiety', 'stress', 'nervousness', 'embarrassment', 'work'].some(
     k => primaryTrigger.toLowerCase().includes(k)
@@ -81,16 +79,32 @@ function generateWarriorReport(analytics: any, userName: string): string {
   );
 
   let recommendation = '';
-  if (parseFloat(avgSeverity) >= 3) {
+  if (parseFloat(avgSeverity || '0') >= 3) {
     if (isEmotional) {
-      recommendation = `Based on your data, ${Math.round((topTriggers[0].count / totalEpisodes) * 100)}% of episodes correlate with ${primaryTrigger}-type triggers and your average HDSS is ${avgSeverity}. I recommend discussing: (1) Botulinum toxin injections for your primary affected areas, (2) A referral to a therapist specialising in CBT for health anxiety, and (3) Oral glycopyrrolate for high-stakes events.`;
+      recommendation = `Based on your data, ${Math.round((topTriggers[0].count / (totalEpisodes || 1)) * 100)}% of episodes correlate with ${primaryTrigger}-type triggers and your average HDSS is ${avgSeverity}. I recommend discussing: (1) Botulinum toxin injections for your primary affected areas, (2) A referral to a therapist specialising in CBT for health anxiety, and (3) Oral glycopyrrolate for high-stakes events.`;
     } else if (isEnvironmental) {
       recommendation = `Your episodes show strong correlation with environmental triggers, especially ${primaryTrigger}. With an average HDSS of ${avgSeverity}, I recommend: (1) Prescription-strength aluminium chloride (20-25%), (2) Iontophoresis if palms/soles are primary affected areas, and (3) A climate-aware management strategy using SweatSmart's Climate Alert system.`;
     } else {
       recommendation = `With an average HDSS of ${avgSeverity} across ${totalEpisodes} episodes, prescription treatment is clinically indicated. I recommend presenting this report to a dermatologist and specifically asking about iontophoresis or botulinum toxin based on your primary affected areas.`;
     }
   } else {
-    recommendation = `Your current average HDSS of ${avgSeverity} suggests your condition is manageable with current strategies. Continue tracking — the data you're building is invaluable. If severity increases above HDSS 3, this report will be critical for your dermatologist.`;
+    recommendation = `Your current average HDSS of ${avgSeverity || 'N/A'} suggests your condition is manageable with current strategies. Continue tracking — the data you're building is invaluable. If severity increases above HDSS 3, this report will be critical for your dermatologist.`;
+  }
+
+  // Build detailed episode log for report
+  let episodeDetailSection = '';
+  const episodes = fullCtx?.episodes || [];
+  if (episodes.length > 0) {
+    const recentEps = episodes.slice(0, 20); // last 20 for the report
+    episodeDetailSection = `\nSECTION A: DETAILED EPISODE LOG (most recent ${recentEps.length})\n`;
+    recentEps.forEach((ep: any, i: number) => {
+      const date = ep.date || ep.createdAt || 'Unknown date';
+      const areas = (ep.bodyAreas || []).join(', ') || 'Not specified';
+      const triggers = (ep.triggers || []).map((t: any) => t.label || t).join(', ') || 'None recorded';
+      const notes = ep.notes || 'No notes';
+      episodeDetailSection += `  ${i + 1}. Date: ${date} | HDSS: ${ep.severity}/4 | Areas: ${areas} | Triggers: ${triggers}\n`;
+      if (ep.notes) episodeDetailSection += `     Patient notes: "${ep.notes}"\n`;
+    });
   }
 
   return `SWEATSMART WARRIOR REPORT
@@ -100,8 +114,8 @@ Patient: ${userName}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 SECTION 1: EPISODE SUMMARY
-Total episodes logged: ${totalEpisodes}
-Average HDSS severity: ${avgSeverity}/4
+Total episodes logged: ${totalEpisodes || episodes.length || 0}
+Average HDSS severity: ${avgSeverity || 'N/A'}/4
 Clinical interpretation: ${hdssInterpretation}
 4-week trend: ${trend}
 
@@ -113,7 +127,7 @@ ${topTriggerList}
 
 SECTION 4: WEEKLY TREND (LAST 8 WEEKS)
 ${weeklyTrends?.map((w: any) => `  Week of ${w.week}: ${w.count} episodes, avg HDSS ${w.avgSeverity}`).join('\n') || '  Insufficient data.'}
-
+${episodeDetailSection}
 ${edaData ? `SECTION 5: BIOMETRIC DATA
 Average resting EDA: ${edaData.avgResting} µS
 Peak EDA recorded: ${edaData.peak} µS
@@ -125,7 +139,7 @@ Average temperature on episode days: ${climateData.avgTemp}°C
 Average humidity on episode days: ${climateData.avgHumidity}%
 Episodes occurring on high-risk climate days: ${climateData.highRiskDays}%` : ''}
 
-SECTION ${edaData ? '7' : climateData ? '7' : '5'}: CLINICAL RECOMMENDATION
+SECTION 7: CLINICAL RECOMMENDATION
 ${recommendation}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -168,7 +182,7 @@ serve(async (req) => {
     }
     const userId = claimsData.claims.sub as string;
 
-    const { messages, dashboardAnalytics, edaReading, climateSnapshot, userName } = await req.json();
+    const { messages, dashboardAnalytics, edaReading, climateSnapshot, userName, fullUserContext } = await req.json();
 
     // Validate messages
     if (!Array.isArray(messages) || messages.length > MAX_MESSAGES) {
@@ -193,8 +207,8 @@ serve(async (req) => {
     const isReportRequest = ['generate my report', 'warrior report', 'dermatologist report',
       'create report', 'generate report', 'my report', 'download report'].some(k => lastMsg.includes(k));
 
-    if (isReportRequest && dashboardAnalytics) {
-      const reportText = generateWarriorReport(dashboardAnalytics, userName || 'Warrior');
+    if (isReportRequest && (dashboardAnalytics || fullUserContext?.episodes?.length)) {
+      const reportText = generateWarriorReport(dashboardAnalytics, userName || 'Warrior', fullUserContext);
       return new Response(
         JSON.stringify({
           report: true,
@@ -204,39 +218,51 @@ serve(async (req) => {
       );
     }
 
-    // ── Fetch user episode data ───────────────────────────────────────────────
+    // ── Build rich user context from fullUserContext + server-side data ──────
     let userContext = '';
-    const { data: episodes } = await supabase
+    
+    // Fetch ALL episodes from DB (not just 15) for complete picture
+    const { data: dbEpisodes } = await supabase
       .from('episodes')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
-      .limit(15);
+      .limit(100);
 
-    if (episodes?.length) {
+    const episodes = dbEpisodes || [];
+    
+    if (episodes.length) {
       const avgSeverity = episodes.reduce((s: number, e: any) => s + e.severity, 0) / episodes.length;
-      const triggerMap  = new Map<string, number>();
-      const areaMap     = new Map<string, number>();
-      episodes.forEach((ep: any) => {
-        (ep.body_areas || []).forEach((a: string) => areaMap.set(a, (areaMap.get(a) || 0) + 1));
-        (Array.isArray(ep.triggers) ? ep.triggers : []).forEach((t: any) => {
-          const label = t.label || t.value || t;
-          triggerMap.set(label, (triggerMap.get(label) || 0) + 1);
-        });
-      });
-      const topTriggers = [...triggerMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([t]) => t);
-      const topAreas    = [...areaMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([a]) => a);
-      const hdssAvg     = avgSeverity.toFixed(1);
-      const hdssLabel   = avgSeverity >= 3.5 ? 'severe (HDSS 4)' : avgSeverity >= 2.5 ? 'frequent (HDSS 3)' : avgSeverity >= 1.5 ? 'tolerable (HDSS 2)' : 'mild (HDSS 1)';
+      const hdssAvg = avgSeverity.toFixed(1);
+      const hdssLabel = avgSeverity >= 3.5 ? 'severe (HDSS 4)' : avgSeverity >= 2.5 ? 'frequent (HDSS 3)' : avgSeverity >= 1.5 ? 'tolerable (HDSS 2)' : 'mild (HDSS 1)';
 
       userContext = `
 
-WARRIOR'S PERSONAL DATA (last ${episodes.length} episodes — USE THIS to personalise every response):
+WARRIOR'S COMPLETE PATIENT FILE (${episodes.length} episodes — USE THIS to personalise every response):
 - Total episodes logged: ${episodes.length}
 - Average HDSS severity: ${hdssAvg}/4 — clinically ${hdssLabel}
-- Most common triggers: ${topTriggers.join(', ') || 'none yet'}
-- Most affected body areas: ${topAreas.join(', ') || 'none yet'}
-- Most recent episode: ${episodes[0]?.created_at ? new Date(episodes[0].created_at).toLocaleDateString() : 'unknown'}`;
+- Most recent episode: ${episodes[0]?.created_at ? new Date(episodes[0].created_at).toLocaleDateString() : 'unknown'}
+- First episode logged: ${episodes[episodes.length - 1]?.created_at ? new Date(episodes[episodes.length - 1].created_at).toLocaleDateString() : 'unknown'}
+
+DETAILED EPISODE HISTORY (most recent 30):`;
+
+      // Include detailed episode data — up to 30 most recent
+      episodes.slice(0, 30).forEach((ep: any, i: number) => {
+        const date = ep.date || (ep.created_at ? new Date(ep.created_at).toLocaleDateString() : 'unknown');
+        const areas = (ep.body_areas || []).join(', ') || 'not specified';
+        const triggers = (Array.isArray(ep.triggers) ? ep.triggers : [])
+          .map((t: any) => t.label || t.value || t.name || String(t)).join(', ') || 'none';
+        userContext += `\n  ${i + 1}. ${date} | HDSS ${ep.severity}/4 | Areas: ${areas} | Triggers: ${triggers}`;
+        if (ep.notes) {
+          userContext += `\n     Notes: "${ep.notes}"`;
+        }
+      });
+    }
+
+    // Include client-side fullUserContext if provided (may have additional data)
+    if (fullUserContext?.sensorSnapshot) {
+      const s = fullUserContext.sensorSnapshot;
+      userContext += `\n\nLIVE SENSOR SNAPSHOT: EDA ${s.eda?.toFixed(2)} µS | Phase: ${s.phase} | Fresh: ${s.fresh}`;
     }
 
     // ── Dashboard visual analytics ────────────────────────────────────────────
@@ -425,7 +451,7 @@ CRITICAL RULES
         ],
         stream: true,
         temperature: 0.7,
-        max_tokens: 1200,
+        max_tokens: 2000,
       }),
     });
 

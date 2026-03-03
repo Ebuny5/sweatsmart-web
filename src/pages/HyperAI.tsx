@@ -396,6 +396,42 @@ const HyperAI = () => {
 
   const userName = profile?.display_name || user?.email?.split('@')[0] || 'Warrior';
 
+  // Build full user context for Hyper AI
+  const fullUserContext = useMemo(() => {
+    const context: any = {};
+
+    // 1. EPISODES — full detail
+    if (rawEpisodes?.length) {
+      context.episodes = rawEpisodes.map(ep => ({
+        date: ep.date,
+        createdAt: ep.created_at || ep.createdAt,
+        severity: ep.severityLevel || ep.severity,
+        bodyAreas: Array.isArray(ep.bodyAreas) ? ep.bodyAreas : (ep.body_areas || []),
+        triggers: Array.isArray(ep.triggers) ? ep.triggers.map((t: any) => ({
+          label: t.label || t.value || t.name || String(t),
+          type: t.type || t.category || 'unknown',
+        })) : [],
+        notes: ep.notes || null,
+      }));
+    }
+
+    // 2. EDA / Sensor snapshot
+    if (edaReading) {
+      context.sensorSnapshot = {
+        eda: edaReading.value,
+        phase: edaReading.phase,
+        fresh: edaReading.fresh,
+      };
+    }
+
+    // 3. Climate
+    if (climateSnapshot) {
+      context.climate = climateSnapshot;
+    }
+
+    return context;
+  }, [rawEpisodes, edaReading, climateSnapshot]);
+
   // Save messages
   const saveMessages = useCallback(async (convId: string, msgs: Message[]) => {
     if (!user) return;
@@ -527,6 +563,7 @@ const HyperAI = () => {
           edaReading,
           climateSnapshot,
           userName,
+          fullUserContext,
         }),
       });
 
