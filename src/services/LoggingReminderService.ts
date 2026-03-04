@@ -219,7 +219,7 @@ class LoggingReminderService {
     try {
       await enhancedMobileNotificationService.showNotification(
         '⏰ Time to Log Your Episode',
-        'Please record your sweat level for the last 4 hours. Open Climate Alerts to log.',
+        'Please record your sweat level for the last 4 hours. Tap to log your episode.',
         'warning'
       );
     } catch (error) {
@@ -236,7 +236,7 @@ class LoggingReminderService {
           badge: '/icon-192.png',
           tag: 'log-reminder',
           requireInteraction: true,
-          data: { url: '/climate', type: 'log-reminder' },
+          data: { url: '/log-episode', type: 'log-reminder' },
         });
         console.log('📅 Service Worker notification shown');
       } catch (error) {
