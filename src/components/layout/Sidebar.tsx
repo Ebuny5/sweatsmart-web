@@ -100,7 +100,7 @@ const menuItems = [
   {
     path: "/contact",
     icon: MessageSquare,
-    label: "Feedback",
+    label: "Contact",
     activeGradient: "from-violet-400 to-purple-500",
     activeBg: "bg-violet-50",
     activeText: "text-violet-700",
