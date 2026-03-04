@@ -107,7 +107,7 @@ const Contact = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-professional-gray text-center">
-              Stay connected for tips, community stories and the latest updates.
+              Follow for more updates on the app and emerging technology
             </p>
             <div className="flex items-center justify-center gap-6 py-4">
 
