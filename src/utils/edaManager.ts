@@ -1,5 +1,6 @@
 interface EDAData {
   value: number;
+  hr?: number;
   timestamp: string;
   source: 'palm-scanner' | 'climate-alert';
 }
