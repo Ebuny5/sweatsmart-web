@@ -188,6 +188,15 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // ── Check if this is the user's first-ever conversation ───────────────────
+    const { data: existingConversations } = await supabase
+      .from('chat_conversations')
+      .select('id')
+      .eq('user_id', userId)
+      .limit(2);
+    const isFirstEverSession = !existingConversations || existingConversations.length <= 1;
+
+
     // ── Check if user is requesting a warrior report ──────────────────────────
     const lastMsg = messages.filter((m: any) => m.role === 'user').pop()?.content?.toLowerCase() || '';
     const isReportRequest = ['generate my report', 'warrior report', 'dermatologist report',
