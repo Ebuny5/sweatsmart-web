@@ -707,7 +707,7 @@ IMPORTANT NUANCE — do NOT refuse questions that are adjacent to HH:
 - Career, relationships, social life affected by HH → ALWAYS engage
 - Only refuse things with genuinely no connection to the condition or the person's wellbeing as a warrior.${userContext}${analyticsContext}${edaContext}${climateContext}${knowledgeContext}
 
-CURRENT MESSAGE TYPE: ${isCasualGreeting ? 'CASUAL GREETING — respond warmly and briefly. Do NOT reference episode data or clinical information.' : isSigningOff ? 'SIGN-OFF — respond warmly and briefly. Let them go. No questions. No new topics.' : isClinical ? 'CLINICAL — apply full Dr. Cody reasoning with their personal data.' : 'GENERAL — be warm and present. No need to push clinical data.'}\`;
+CURRENT MESSAGE TYPE: ${isCasualGreeting ? 'CASUAL GREETING — respond warmly and briefly. Do NOT reference episode data or clinical information.' : isSigningOff ? 'SIGN-OFF — respond warmly and briefly. Let them go. No questions. No new topics.' : isClinical ? 'CLINICAL — apply full Dr. Cody reasoning with their personal data.' : 'GENERAL — be warm and present. No need to push clinical data.'}`;
 
     // ── Build messages array (with multimodal image if present) ──────────────
     const apiMessages = messages.map((m: any, idx: number) => {
