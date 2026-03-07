@@ -707,7 +707,7 @@ IMPORTANT NUANCE — do NOT refuse questions that are adjacent to HH:
 - Career, relationships, social life affected by HH → ALWAYS engage
 - Only refuse things with genuinely no connection to the condition or the person's wellbeing as a warrior.${userContext}${analyticsContext}${edaContext}${climateContext}${knowledgeContext}
 
-CURRENT MESSAGE TYPE: ${isCasualGreeting ? 'CASUAL GREETING — respond warmly and briefly. Do NOT reference episode data or clinical information.' : isSigningOff ? 'SIGN-OFF — respond warmly and briefly. Let them go. No questions. No new topics.' : isClinical ? 'CLINICAL — apply full Dr. Cody reasoning with their personal data.' : 'GENERAL — be warm and present. No need to push clinical data.'}\`;
+CURRENT MESSAGE TYPE: ${isCasualGreeting ? 'CASUAL GREETING — respond warmly and briefly. Do NOT reference episode data or clinical information.' : isSigningOff ? 'SIGN-OFF — respond warmly and briefly. Let them go. No questions. No new topics.' : isClinical ? 'CLINICAL — apply full Dr. Cody reasoning with their personal data.' : 'GENERAL — be warm and present. No need to push clinical data.'}`;
 
     // ── Build messages array (with multimodal image if present) ──────────────
     const apiMessages = messages.map((m: any, idx: number) => {
@@ -715,10 +715,11 @@ CURRENT MESSAGE TYPE: ${isCasualGreeting ? 'CASUAL GREETING — respond warmly a
       if (imageBase64 && m.role === 'user' && idx === messages.length - 1) {
         const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
         const mType = imageBase64.startsWith('data:') ? imageBase64.split(';')[0].split(':')[1] : 'image/jpeg';
+        const imageUrl = 'data:' + mType + ';base64,' + base64Data;
         return {
           role: 'user',
           content: [
-            { type: 'image_url', image_url: { url: `data:${mType};base64,${base64Data}` } },
+            { type: 'image_url', image_url: { url: imageUrl } },
             { type: 'text', text: m.content || 'Please analyse this image.' },
           ],
         };
