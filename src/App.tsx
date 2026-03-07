@@ -20,7 +20,7 @@ import LogEpisode from "./pages/LogEpisode";
 import History from "./pages/History";
 import EpisodeDetail from "./pages/EpisodeDetail";
 import Profile from "./pages/Profile";
-import Insights from "./pages/Insights";
+import Insights from "./pages/insights";
 import Community from "./pages/Community";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
