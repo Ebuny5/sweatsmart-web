@@ -360,7 +360,7 @@ const Insights = () => {
               <StatTile emoji="📋" value={episodes.length} label="Total episodes" gradient="bg-violet-50" />
               <StatTile emoji="⚡" value={analytics.avgSeverity} label="Avg HDSS" gradient="bg-pink-50" />
               <StatTile emoji="🕐" value={analytics.peakTime} label="Peak time" gradient="bg-amber-50" />
-              <StatTile emoji="🗓️" value={analytics.last7} label="This week" gradient="bg-sky-50" />
+              <StatTile emoji="📊" value={analytics.last7} label="This week" gradient="bg-sky-50" />
             </div>
           )}
 
