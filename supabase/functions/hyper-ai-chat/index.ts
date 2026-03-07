@@ -715,10 +715,11 @@ CURRENT MESSAGE TYPE: ${isCasualGreeting ? 'CASUAL GREETING — respond warmly a
       if (imageBase64 && m.role === 'user' && idx === messages.length - 1) {
         const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
         const mType = imageBase64.startsWith('data:') ? imageBase64.split(';')[0].split(':')[1] : 'image/jpeg';
+        const imageUrl = 'data:' + mType + ';base64,' + base64Data;
         return {
           role: 'user',
           content: [
-            { type: 'image_url', image_url: { url: `data:${mType};base64,${base64Data}` } },
+            { type: 'image_url', image_url: { url: imageUrl } },
             { type: 'text', text: m.content || 'Please analyse this image.' },
           ],
         };
