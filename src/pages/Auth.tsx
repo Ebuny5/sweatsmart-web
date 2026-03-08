@@ -23,7 +23,7 @@ export default function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (isSignUp && !captchaVerified) {
+    if (!captchaVerified) {
       toast({
         title: "Verification required",
         description: "Please complete the captcha verification.",
@@ -254,13 +254,11 @@ export default function Auth() {
               </div>
             )}
 
-            {isSignUp && (
-              <Captcha onVerify={setCaptchaVerified} />
-            )}
+            <Captcha onVerify={setCaptchaVerified} />
 
             <button 
               type="submit"
-              disabled={isLoading || (isSignUp && !captchaVerified)}
+              disabled={isLoading || !captchaVerified}
               className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700 transition text-lg shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (isSignUp ? 'Signing up...' : 'Logging in...') : (isSignUp ? 'Sign Up' : 'Login')}
