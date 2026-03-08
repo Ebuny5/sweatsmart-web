@@ -7,7 +7,7 @@ interface CaptchaProps {
 
 // Cloudflare Turnstile test site key (always passes)
 // Replace with your real site key from https://dash.cloudflare.com/turnstile
-const TURNSTILE_SITE_KEY = "1x00000000000000000000AA";
+const TURNSTILE_SITE_KEY = "0x4AAAAAACn-rzCH49E4-OUgghyJKs2wkLA";
 
 declare global {
   interface Window {
