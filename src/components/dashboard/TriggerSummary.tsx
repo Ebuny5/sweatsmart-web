@@ -171,7 +171,7 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
                 />
                 <Bar 
                   dataKey="count" 
-                  fill="hsl(var(--primary))" 
+                  fill="url(#triggerBarGrad)" 
                   name="Episodes" 
                   radius={[0, 4, 4, 0]}
                   cursor="pointer"
