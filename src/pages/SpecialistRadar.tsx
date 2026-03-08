@@ -176,7 +176,6 @@ const DoctorCard = ({ doctor, isActive, onTap }: { doctor: Doctor; isActive: boo
       boxShadow: isActive ? '0 0 20px rgba(0,188,212,0.12)' : 'none',
     }}>
     <div className="flex items-start gap-3">
-      {/* Avatar */}
       <div className="w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center font-bold text-base"
         style={{
           background: doctor.isTelehealth ? 'linear-gradient(135deg,rgba(139,92,246,0.3),rgba(109,62,216,0.2))' : 'linear-gradient(135deg,rgba(0,188,212,0.25),rgba(0,150,170,0.15))',
@@ -248,7 +247,6 @@ const DoctorModal = ({ doctor, onClose, onShare }: { doctor: Doctor; onClose: ()
           <div className="w-10 h-1 rounded-full bg-white/20" />
         </div>
         <div className="p-5 pb-10">
-          {/* Header */}
           <div className="flex items-start justify-between mb-5">
             <div className="flex items-start gap-3">
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 font-bold text-2xl"
@@ -268,7 +266,6 @@ const DoctorModal = ({ doctor, onClose, onShare }: { doctor: Doctor; onClose: ()
             <button onClick={onClose} className="w-8 h-8 rounded-xl bg-white/10 text-white/50 hover:text-white flex items-center justify-center transition-colors"><X className="h-4 w-4" /></button>
           </div>
 
-          {/* Stats */}
           <div className="grid grid-cols-3 gap-2.5 mb-4">
             {[
               { label: 'Rating', value: doctor.rating ? `${doctor.rating.toFixed(1)} ⭐` : 'N/A' },
@@ -283,14 +280,12 @@ const DoctorModal = ({ doctor, onClose, onShare }: { doctor: Doctor; onClose: ()
             ))}
           </div>
 
-          {/* Address */}
           <div className="flex items-start gap-2.5 rounded-xl p-3 mb-4"
             style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
             {doctor.isTelehealth ? <Wifi className="h-4 w-4 text-violet-400 shrink-0 mt-0.5" /> : <MapPin className="h-4 w-4 text-teal-400 shrink-0 mt-0.5" />}
             <p className="text-sm text-white/65">{doctor.isTelehealth ? 'Virtual consultations — available to all African warriors via video call' : doctor.address}</p>
           </div>
 
-          {/* Treatments */}
           {doctor.treatments.length > 0 && (
             <div className="mb-4">
               <p className="text-[10px] font-bold text-white/35 uppercase tracking-widest mb-2">Treatment Specialisations</p>
@@ -303,7 +298,6 @@ const DoctorModal = ({ doctor, onClose, onShare }: { doctor: Doctor; onClose: ()
             </div>
           )}
 
-          {/* Hyper AI Note */}
           <div className="rounded-xl p-3.5 mb-5"
             style={{ background: 'rgba(0,188,212,0.06)', border: '1px solid rgba(0,188,212,0.18)' }}>
             <div className="flex items-center gap-2 mb-1.5">
@@ -312,14 +306,13 @@ const DoctorModal = ({ doctor, onClose, onShare }: { doctor: Doctor; onClose: ()
             </div>
             <p className="text-xs text-white/60 leading-relaxed">
               {doctor.isIhsVerified
-                ? 'This specialist is verified by the International Hyperhidrosis Society — the global authority on HH treatment. They understand your condition at a clinical level that most general dermatologists don\'t.'
+                ? "This specialist is verified by the International Hyperhidrosis Society — the global authority on HH treatment. They understand your condition at a clinical level that most general dermatologists don't."
                 : doctor.isTelehealth
                 ? 'A telehealth consultation lets you share your Warrior Report before the call so the doctor arrives prepared. This is especially powerful if no local specialist is available near you.'
                 : 'Share your Warrior Report before your visit so the doctor can review your HDSS history, episode patterns and EDA readings before the first minute of consultation.'}
             </p>
           </div>
 
-          {/* Actions */}
           <div className="space-y-3">
             <button onClick={doShare}
               className="w-full py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
@@ -357,6 +350,39 @@ const DoctorModal = ({ doctor, onClose, onShare }: { doctor: Doctor; onClose: ()
   );
 };
 
+// ── Continent map (fixed: no duplicate keys) ──────────────────────────────
+const CONTINENT_MAP: Record<string, string> = {
+  // Africa
+  NG:'Africa',GH:'Africa',ZA:'Africa',KE:'Africa',EG:'Africa',TZ:'Africa',
+  ET:'Africa',CM:'Africa',SN:'Africa',CI:'Africa',RW:'Africa',UG:'Africa',
+  MA:'Africa',TN:'Africa',DZ:'Africa',MZ:'Africa',AO:'Africa',CD:'Africa',
+  SD:'Africa',MG:'Africa',ZM:'Africa',ZW:'Africa',BJ:'Africa',BF:'Africa',
+  ML:'Africa',NE:'Africa',TD:'Africa',SO:'Africa',LY:'Africa',ER:'Africa',
+  TG:'Africa',SL:'Africa',GN:'Africa',MW:'Africa',LS:'Africa',
+  BW:'Africa',NA:'Africa',GM:'Africa',GA:'Africa',GQ:'Africa',CG:'Africa',
+  // Europe
+  GB:'Europe',DE:'Europe',FR:'Europe',IT:'Europe',ES:'Europe',PT:'Europe',
+  NL:'Europe',BE:'Europe',SE:'Europe',NO:'Europe',DK:'Europe',FI:'Europe',
+  CH:'Europe',AT:'Europe',PL:'Europe',CZ:'Europe',SK:'Europe',HU:'Europe',
+  RO:'Europe',BG:'Europe',GR:'Europe',TR:'Europe',UA:'Europe',RU:'Europe',
+  IE:'Europe',HR:'Europe',RS:'Europe',SI:'Europe',LT:'Europe',LV:'Europe',
+  EE:'Europe',LU:'Europe',MT:'Europe',CY:'Europe',IS:'Europe',AL:'Europe',
+  // Americas
+  US:'Americas',CA:'Americas',MX:'Americas',BR:'Americas',AR:'Americas',
+  CL:'Americas',CO:'Americas',PE:'Americas',VE:'Americas',EC:'Americas',
+  BO:'Americas',PY:'Americas',UY:'Americas',GY:'Americas',SR:'Americas',
+  GT:'Americas',HN:'Americas',SV:'Americas',NI:'Americas',CR:'Americas',
+  PA:'Americas',CU:'Americas',DO:'Americas',JM:'Americas',TT:'Americas',
+  // Asia
+  CN:'Asia',JP:'Asia',IN:'Asia',KR:'Asia',PK:'Asia',BD:'Asia',TH:'Asia',
+  VN:'Asia',ID:'Asia',PH:'Asia',MY:'Asia',SG:'Asia',MM:'Asia',KH:'Asia',
+  LK:'Asia',NP:'Asia',AE:'Asia',SA:'Asia',IL:'Asia',JO:'Asia',LB:'Asia',
+  IQ:'Asia',IR:'Asia',KW:'Asia',QA:'Asia',BH:'Asia',OM:'Asia',YE:'Asia',
+  KZ:'Asia',UZ:'Asia',GE:'Asia',AM:'Asia',AZ:'Asia',TW:'Asia',HK:'Asia',
+  // Oceania
+  AU:'Oceania',NZ:'Oceania',FJ:'Oceania',PG:'Oceania',
+};
+
 // ── Main ───────────────────────────────────────────────────────────────────
 const SpecialistRadar = () => {
   const { user }     = useAuth();
@@ -382,11 +408,10 @@ const SpecialistRadar = () => {
 
   const mapRef     = useRef<HTMLDivElement>(null);
   const mapInst    = useRef<any>(null);
-  const markers    = useRef<any[]>([]);
+  const markersRef = useRef<any[]>([]);
   const userPin    = useRef<any>(null);
   const hdss       = useMemo(() => computeHdss(episodes || []), [episodes]);
 
-  // ── Filtered doctors ────────────────────────────────────────────────────
   const physical   = useMemo(() => doctors.filter(d => !d.isTelehealth && (treatFilter === 'all' || d.treatments.includes(treatFilter))), [doctors, treatFilter]);
   const telehealth = useMemo(() => doctors.filter(d => d.isTelehealth), [doctors]);
 
@@ -415,55 +440,11 @@ const SpecialistRadar = () => {
           const res  = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`);
           const data = await res.json();
           const addr = data.address || {};
-
-          // City — try multiple Nominatim fields in priority order
-          const detectedCity = addr.city || addr.town || addr.municipality || addr.village || addr.suburb || addr.county || '';
-          setCity(detectedCity);
-
-          // State / region
-          const detectedState = addr.state || addr.region || addr.province || '';
-          setState(detectedState);
-
-          // Country
-          const detectedCountry = addr.country || '';
-          setCountry(detectedCountry);
-
-          // Country code (ISO 3166-1 alpha-2 uppercase)
+          setCity(addr.city || addr.town || addr.municipality || addr.village || addr.suburb || addr.county || '');
+          setState(addr.state || addr.region || addr.province || '');
+          setCountry(addr.country || '');
           const iso = (addr.country_code || '').toUpperCase();
           setCountryCode(iso);
-
-          // Continent — comprehensive mapping
-          const CONTINENT_MAP: Record<string, string> = {
-            // Africa
-            NG:'Africa',GH:'Africa',ZA:'Africa',KE:'Africa',EG:'Africa',TZ:'Africa',
-            ET:'Africa',CM:'Africa',SN:'Africa',CI:'Africa',RW:'Africa',UG:'Africa',
-            MA:'Africa',TN:'Africa',DZ:'Africa',MZ:'Africa',AO:'Africa',CD:'Africa',
-            SD:'Africa',MG:'Africa',ZM:'Africa',ZW:'Africa',BJ:'Africa',BF:'Africa',
-            ML:'Africa',NE:'Africa',TD:'Africa',SO:'Africa',LY:'Africa',ER:'Africa',
-            DZ:'Africa',TG:'Africa',SL:'Africa',GN:'Africa',MW:'Africa',LS:'Africa',
-            BW:'Africa',NA:'Africa',GM:'Africa',GA:'Africa',GQ:'Africa',CG:'Africa',
-            // Europe
-            GB:'Europe',DE:'Europe',FR:'Europe',IT:'Europe',ES:'Europe',PT:'Europe',
-            NL:'Europe',BE:'Europe',SE:'Europe',NO:'Europe',DK:'Europe',FI:'Europe',
-            CH:'Europe',AT:'Europe',PL:'Europe',CZ:'Europe',SK:'Europe',HU:'Europe',
-            RO:'Europe',BG:'Europe',GR:'Europe',TR:'Europe',UA:'Europe',RU:'Europe',
-            IE:'Europe',HR:'Europe',RS:'Europe',SI:'Europe',LT:'Europe',LV:'Europe',
-            EE:'Europe',LU:'Europe',MT:'Europe',CY:'Europe',IS:'Europe',AL:'Europe',
-            // Americas
-            US:'Americas',CA:'Americas',MX:'Americas',BR:'Americas',AR:'Americas',
-            CL:'Americas',CO:'Americas',PE:'Americas',VE:'Americas',EC:'Americas',
-            BO:'Americas',PY:'Americas',UY:'Americas',GY:'Americas',SR:'Americas',
-            GT:'Americas',HN:'Americas',SV:'Americas',NI:'Americas',CR:'Americas',
-            PA:'Americas',CU:'Americas',DO:'Americas',JM:'Americas',TT:'Americas',
-            // Asia
-            CN:'Asia',JP:'Asia',IN:'Asia',KR:'Asia',PK:'Asia',BD:'Asia',TH:'Asia',
-            VN:'Asia',ID:'Asia',PH:'Asia',MY:'Asia',SG:'Asia',MM:'Asia',KH:'Asia',
-            LK:'Asia',NP:'Asia',AE:'Asia',SA:'Asia',IL:'Asia',JO:'Asia',LB:'Asia',
-            IQ:'Asia',IR:'Asia',KW:'Asia',QA:'Asia',BH:'Asia',OM:'Asia',YE:'Asia',
-            KZ:'Asia',UZ:'Asia',GE:'Asia',AM:'Asia',AZ:'Asia',TW:'Asia',HK:'Asia',
-            // Oceania
-            AU:'Oceania',NZ:'Oceania',FJ:'Oceania',PG:'Oceania',
-          };
           setContinent(CONTINENT_MAP[iso] || 'Global');
         } catch {
           setCity('your area');
@@ -506,14 +487,14 @@ const SpecialistRadar = () => {
 
   useEffect(() => {
     if (location) fetchDoctors();
-  }, [location, scope]);  // re-fetch when scope changes
+  }, [location, scope]);
 
   // ── Map markers ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!mapInst.current) return;
     const L = (window as any).L;
-    markers.current.forEach(m => m.remove());
-    markers.current = [];
+    markersRef.current.forEach(m => m.remove());
+    markersRef.current = [];
 
     if (location) {
       if (userPin.current) userPin.current.remove();
@@ -533,7 +514,7 @@ const SpecialistRadar = () => {
           ${doc.rating ? `<div style="color:#facc15;margin-top:3px;">★ ${doc.rating.toFixed(1)}</div>` : ''}
         </div>`, { className: 'radar-popup' });
       m.on('click', () => { setActivePin(doc.id); setSelectedDoctor(doc); });
-      markers.current.push(m);
+      markersRef.current.push(m);
     });
   }, [physical, location, activePin, scope]);
 
@@ -563,7 +544,6 @@ const SpecialistRadar = () => {
 
       <div className="flex flex-col" style={{ minHeight: '100vh', background: 'linear-gradient(180deg,#070b1a 0%,#0a0e24 100%)' }}>
 
-        {/* Header */}
         <div className="px-4 pt-4 pb-3 shrink-0" style={{ background: 'rgba(7,11,26,0.92)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <div className="flex items-center justify-between mb-3">
             <div>
@@ -584,7 +564,6 @@ const SpecialistRadar = () => {
             </div>
           </div>
 
-          {/* Scope selector */}
           <div className="flex rounded-xl p-0.5 gap-0.5"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
             {(['city', 'country', 'continent'] as ScopeFilter[]).map(s => (
@@ -600,7 +579,6 @@ const SpecialistRadar = () => {
             ))}
           </div>
 
-          {/* Treatment filters */}
           {showFilters && (
             <div className="flex gap-2 overflow-x-auto pb-1 mt-3 no-scrollbar">
               <button onClick={() => setTreatFilter('all')}
@@ -618,7 +596,6 @@ const SpecialistRadar = () => {
           )}
         </div>
 
-        {/* Map */}
         <div className="relative shrink-0" style={{ height: '38vh' }}>
           <div ref={mapRef} className="w-full h-full" />
 
@@ -655,19 +632,16 @@ const SpecialistRadar = () => {
           )}
         </div>
 
-        {/* Doctor list */}
         <div className="flex-1 overflow-y-auto px-4 pt-4 pb-28">
 
           {showGreeting && !isLoading && meta && (
             <AIGreeting profile={profile} hdss={hdss} meta={meta} city={city} onDismiss={() => setShowGreeting(false)} />
           )}
 
-          {/* Care gap */}
           {!isLoading && meta?.careGap && physical.length === 0 && (
             <CareGapCard onWiden={() => setScope(scope === 'city' ? 'country' : 'continent')} />
           )}
 
-          {/* Loading */}
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-14">
               <div className="relative w-14 h-14 mb-4">
@@ -680,7 +654,6 @@ const SpecialistRadar = () => {
             </div>
           )}
 
-          {/* Physical specialists */}
           {physical.length > 0 && (
             <>
               <div className="flex items-center gap-2 mb-3">
@@ -700,7 +673,6 @@ const SpecialistRadar = () => {
             </>
           )}
 
-          {/* Telehealth section */}
           {telehealth.length > 0 && (
             <>
               <div className="flex items-center gap-2 mb-3">
@@ -725,7 +697,6 @@ const SpecialistRadar = () => {
             </>
           )}
 
-          {/* IHS link */}
           <a href="https://www.sweathelp.org/find-a-provider.html" target="_blank" rel="noreferrer"
             className="flex items-center justify-between w-full rounded-2xl p-4 mb-4 transition-all active:scale-[0.98]"
             style={{ background: 'rgba(250,204,21,0.06)', border: '1px solid rgba(250,204,21,0.2)' }}>

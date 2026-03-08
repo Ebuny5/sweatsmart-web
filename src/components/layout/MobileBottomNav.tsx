@@ -12,6 +12,7 @@ import {
   MessageSquare,
   Settings,
   Hand,
+  MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -57,6 +58,7 @@ const moreItems = [
   { path: "/history",      icon: History,       label: "History",   color: "text-violet-600",  bg: "bg-violet-50"  },
   { path: "/insights",     icon: TrendingUp,    label: "Insights",  color: "text-pink-600",    bg: "bg-pink-50"    },
   { path: "/palm-scanner", icon: Hand,          label: "Scanner",   color: "text-cyan-600",    bg: "bg-cyan-50"    },
+  { path: "/specialist-radar", icon: MapPin,    label: "Specialist", color: "text-teal-600",    bg: "bg-teal-50"    },
   { path: "/community",    icon: Users,         label: "Community", color: "text-emerald-600", bg: "bg-emerald-50" },
   { path: "/contact",      icon: MessageSquare, label: "Feedback",  color: "text-amber-600",   bg: "bg-amber-50"   },
   { path: "/settings",     icon: Settings,      label: "Settings",  color: "text-gray-600",    bg: "bg-gray-50"    },
