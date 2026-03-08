@@ -127,6 +127,12 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
                 layout="vertical"
                 margin={{ top: 20, right: 60, left: 100, bottom: 20 }}
               >
+                <defs>
+                  <linearGradient id="triggerBarGrad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.9} />
+                    <stop offset="100%" stopColor="#c4b5fd" stopOpacity={0.6} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} opacity={0.3} />
                 <XAxis 
                   type="number" 
@@ -165,7 +171,7 @@ const TriggerSummary: React.FC<TriggerSummaryProps> = ({ triggers, allEpisodes =
                 />
                 <Bar 
                   dataKey="count" 
-                  fill="hsl(var(--primary))" 
+                  fill="url(#triggerBarGrad)" 
                   name="Episodes" 
                   radius={[0, 4, 4, 0]}
                   cursor="pointer"
