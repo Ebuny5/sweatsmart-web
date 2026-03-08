@@ -53,6 +53,14 @@
     --community-tip: 217 91% 60%;
     --community-tip-bg: 214 100% 97%;
 
+    /* Liquid Glass palette */
+    --french-porcelain: 260 11% 96%;
+    --umbra: 0 0% 12%;
+    --calm-teal: 156 67% 69%;
+    --warning-amber: 45 100% 50%;
+    --clinical-blue: 217 64% 53%;
+    --surgical-steel: 0 0% 91%;
+
     --sidebar-background: 0 0% 99%;
     --sidebar-foreground: 215 25% 27%;
     --sidebar-primary: 217 91% 60%;
@@ -108,6 +116,14 @@
     --community-question-bg: 38 30% 20%;
     --community-tip: 217 91% 65%;
     --community-tip-bg: 217 30% 20%;
+
+    /* Liquid Glass palette - dark mode */
+    --french-porcelain: 215 28% 12%;
+    --umbra: 210 20% 98%;
+    --calm-teal: 156 67% 69%;
+    --warning-amber: 45 100% 50%;
+    --clinical-blue: 217 64% 60%;
+    --surgical-steel: 215 28% 18%;
 
     --sidebar-background: 215 28% 10%;
     --sidebar-foreground: 210 20% 98%;
