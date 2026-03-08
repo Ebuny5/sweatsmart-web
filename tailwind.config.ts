@@ -77,42 +77,17 @@ export default {
 				'community-question-bg': 'hsl(var(--community-question-bg))',
 				'community-tip': 'hsl(var(--community-tip))',
 				'community-tip-bg': 'hsl(var(--community-tip-bg))',
-				
-			// Liquid Glass palette
-			'french-porcelain': 'hsl(var(--french-porcelain))',
-			'umbra': 'hsl(var(--umbra))',
-			'calm-teal': 'hsl(var(--calm-teal))',
-			'warning-amber': 'hsl(var(--warning-amber))',
-			'clinical-blue': 'hsl(var(--clinical-blue))',
-			'surgical-steel': 'hsl(var(--surgical-steel))',
 
-			// Enhanced blue palette matching the app icon
-			blue: {
-				50: 'hsl(214, 100%, 97%)',
-				100: 'hsl(214, 95%, 93%)',
-				200: 'hsl(213, 97%, 87%)',
-				300: 'hsl(212, 96%, 78%)',
-				400: 'hsl(213, 94%, 68%)',
-				500: 'hsl(217, 91%, 60%)',
-				600: 'hsl(221, 83%, 53%)',
-				700: 'hsl(224, 76%, 48%)',
-				800: 'hsl(226, 71%, 40%)',
-				900: 'hsl(224, 64%, 33%)',
-			},
-			
-			// Professional grays for medical interface
-			gray: {
-				50: 'hsl(210, 20%, 98%)',
-				100: 'hsl(210, 17%, 95%)',
-				200: 'hsl(210, 16%, 92%)',
-				300: 'hsl(210, 14%, 83%)',
-				400: 'hsl(210, 14%, 71%)',
-				500: 'hsl(215, 16%, 47%)',
-				600: 'hsl(215, 19%, 35%)',
-				700: 'hsl(215, 25%, 27%)',
-				800: 'hsl(217, 33%, 17%)',
-				900: 'hsl(222, 47%, 11%)',
-			},
+				// Liquid Glass palette
+				'french-porcelain': 'hsl(var(--french-porcelain))',
+				'umbra': 'hsl(var(--umbra))',
+				'calm-teal': 'hsl(var(--calm-teal))',
+				'warning-amber': 'hsl(var(--warning-amber))',
+				'clinical-blue': 'hsl(var(--clinical-blue))',
+				'surgical-steel': 'hsl(var(--surgical-steel))',
+
+				// Enhanced blue palette
+				blue: {
 					50: 'hsl(214, 100%, 97%)',
 					100: 'hsl(214, 95%, 93%)',
 					200: 'hsl(213, 97%, 87%)',
@@ -125,7 +100,7 @@ export default {
 					900: 'hsl(224, 64%, 33%)',
 				},
 				
-				// Professional grays for medical interface
+				// Professional grays
 				gray: {
 					50: 'hsl(210, 20%, 98%)',
 					100: 'hsl(210, 17%, 95%)',
