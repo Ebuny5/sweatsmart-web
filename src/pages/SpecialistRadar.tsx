@@ -678,7 +678,8 @@ const SpecialistRadar = () => {
                 <Navigation className="h-10 w-10 text-teal-400 mx-auto mb-3 opacity-50" />
                 <p className="text-sm font-bold text-white mb-1">Location needed</p>
                 <p className="text-xs text-white/45 mb-4">{locationError}</p>
-                <button onClick={() => window.location.reload()}
+                <button
+                  onClick={requestLocation}
                   className="px-5 py-2.5 rounded-xl text-sm font-bold text-white"
                   style={{ background: 'linear-gradient(135deg,#00BCD4,#0097A7)' }}>
                   Enable Location
