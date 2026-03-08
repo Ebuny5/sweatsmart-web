@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 
 interface CaptchaProps {
   onVerify: (isVerified: boolean) => void;
@@ -21,6 +21,7 @@ declare global {
 const Captcha = ({ onVerify, className }: CaptchaProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
+  const [status, setStatus] = useState<"loading" | "ready" | "verified" | "error">("loading");
 
   const removeWidget = useCallback(() => {
     if (!widgetIdRef.current || !window.turnstile) return;
@@ -37,36 +38,61 @@ const Captcha = ({ onVerify, className }: CaptchaProps) => {
 
     if (!TURNSTILE_SITE_KEY) {
       console.error("Turnstile site key missing: set VITE_TURNSTILE_SITE_KEY");
+      setStatus("error");
       onVerify(false);
       return;
     }
 
     removeWidget();
 
-    widgetIdRef.current = window.turnstile.render(containerRef.current, {
-      sitekey: TURNSTILE_SITE_KEY,
-      theme: "light",
-      callback: () => onVerify(true),
-      "expired-callback": () => onVerify(false),
-      "error-callback": () => {
-        console.error("Turnstile render/verification failed for current domain or key.");
-        onVerify(false);
-      },
-    });
+    try {
+      widgetIdRef.current = window.turnstile.render(containerRef.current, {
+        sitekey: TURNSTILE_SITE_KEY,
+        theme: "light",
+        size: "normal",
+        appearance: "always",
+        callback: () => {
+          setStatus("verified");
+          onVerify(true);
+        },
+        "expired-callback": () => {
+          setStatus("ready");
+          onVerify(false);
+        },
+        "error-callback": (errorCode: string) => {
+          console.error("Turnstile error:", errorCode);
+          setStatus("error");
+          onVerify(false);
+        },
+      });
+      setStatus("ready");
+    } catch (err) {
+      console.error("Turnstile render failed:", err);
+      setStatus("error");
+      onVerify(false);
+    }
   }, [onVerify, removeWidget]);
 
   useEffect(() => {
+    if (!TURNSTILE_SITE_KEY) {
+      setStatus("error");
+      onVerify(false);
+      return;
+    }
+
     const onLoad = () => renderWidget();
 
-    if (!document.querySelector('script[src*="turnstile"]')) {
+    if (window.turnstile) {
+      // Turnstile already loaded, render immediately
+      onLoad();
+    } else if (!document.querySelector('script[src*="turnstile"]')) {
       const script = document.createElement("script");
       script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad&render=explicit";
       script.async = true;
       window.onTurnstileLoad = onLoad;
       document.head.appendChild(script);
-    } else if (window.turnstile) {
-      onLoad();
     } else {
+      // Script tag exists but turnstile not ready yet
       const prev = window.onTurnstileLoad;
       window.onTurnstileLoad = () => {
         prev?.();
@@ -75,14 +101,24 @@ const Captcha = ({ onVerify, className }: CaptchaProps) => {
     }
 
     return () => removeWidget();
-  }, [removeWidget, renderWidget]);
+  }, [removeWidget, renderWidget, onVerify]);
 
   return (
     <div className={className}>
-      <div ref={containerRef} />
+      <div ref={containerRef} style={{ minHeight: 65 }} />
+      {status === "loading" && (
+        <p className="text-sm text-muted-foreground mt-1">Loading verification...</p>
+      )}
+      {status === "error" && (
+        <p className="text-sm text-destructive mt-1">
+          Captcha failed to load. Please refresh the page and try again.
+        </p>
+      )}
+      {status === "verified" && (
+        <p className="text-sm text-green-600 mt-1">✓ Verified</p>
+      )}
     </div>
   );
 };
 
 export default Captcha;
-
