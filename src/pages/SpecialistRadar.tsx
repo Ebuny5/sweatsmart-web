@@ -64,6 +64,8 @@ const SCOPE_RADII: Record<ScopeFilter, number> = {
   continent: 5000000,
 };
 
+const LAST_LOCATION_KEY = 'ss_last_known_location';
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 const computeHdss = (episodes: any[]): number => {
   if (!episodes?.length) return 0;
@@ -430,42 +432,104 @@ const SpecialistRadar = () => {
   }, []);
 
   // ── Geolocation + reverse geocode ───────────────────────────────────────
-  useEffect(() => {
-    if (!navigator.geolocation) { setLocationError('Geolocation not supported'); return; }
+  const reverseGeocode = useCallback(async (lat: number, lng: number) => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`);
+      const data = await res.json();
+      const addr = data.address || {};
+      setCity(addr.city || addr.town || addr.municipality || addr.village || addr.suburb || addr.county || '');
+      setState(addr.state || addr.region || addr.province || '');
+      setCountry(addr.country || '');
+      const iso = (addr.country_code || '').toUpperCase();
+      setCountryCode(iso);
+      setContinent(CONTINENT_MAP[iso] || 'Global');
+    } catch {
+      setCity('your area');
+    }
+  }, []);
+
+  const requestLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation not supported');
+      return;
+    }
+
     navigator.geolocation.getCurrentPosition(
       async pos => {
         const { latitude: lat, longitude: lng } = pos.coords;
         setLocation({ lat, lng });
+        setLocationError('');
         try {
-          const res  = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`);
-          const data = await res.json();
-          const addr = data.address || {};
-          setCity(addr.city || addr.town || addr.municipality || addr.village || addr.suburb || addr.county || '');
-          setState(addr.state || addr.region || addr.province || '');
-          setCountry(addr.country || '');
-          const iso = (addr.country_code || '').toUpperCase();
-          setCountryCode(iso);
-          setContinent(CONTINENT_MAP[iso] || 'Global');
+          localStorage.setItem(LAST_LOCATION_KEY, JSON.stringify({ lat, lng }));
         } catch {
-          setCity('your area');
+          // Ignore storage errors
         }
+        await reverseGeocode(lat, lng);
       },
-      err => { setLocationError('Location access denied — please enable GPS'); console.error(err); },
-      { enableHighAccuracy: true, timeout: 12000 }
+      err => {
+        setLocationError('Location access denied — please enable GPS');
+        console.error(err);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
     );
-  }, []);
+  }, [reverseGeocode]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LAST_LOCATION_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (typeof saved?.lat === 'number' && typeof saved?.lng === 'number') {
+          setLocation({ lat: saved.lat, lng: saved.lng });
+          reverseGeocode(saved.lat, saved.lng);
+        }
+      }
+    } catch {
+      // Ignore storage errors
+    }
+
+    requestLocation();
+
+    if (!navigator.geolocation) return;
+    const watcherId = navigator.geolocation.watchPosition(
+      async pos => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setLocation({ lat, lng });
+        setLocationError('');
+        try {
+          localStorage.setItem(LAST_LOCATION_KEY, JSON.stringify({ lat, lng }));
+        } catch {
+          // Ignore storage errors
+        }
+        await reverseGeocode(lat, lng);
+      },
+      () => {
+        // Don't override current error; getCurrentPosition handles user-facing messaging
+      },
+      { enableHighAccuracy: true, maximumAge: 30000, timeout: 15000 }
+    );
+
+    return () => navigator.geolocation.clearWatch(watcherId);
+  }, [requestLocation, reverseGeocode]);
 
   // ── Fetch specialists ───────────────────────────────────────────────────
   const fetchDoctors = useCallback(async () => {
-    if (!location || !user) return;
+    if (!location) {
+      requestLocation();
+      return;
+    }
+
     setIsLoading(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) return;
+      const token = sessionData.session?.access_token;
       const RADAR_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/specialist-radar`;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers.Authorization = `Bearer ${token}`;
+
       const res = await fetch(RADAR_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionData.session.access_token}` },
+        headers,
         body: JSON.stringify({
           lat: location.lat, lng: location.lng,
           radius: SCOPE_RADII[scope],
@@ -483,11 +547,11 @@ const SpecialistRadar = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [location, user, scope, countryCode, continent]);
+  }, [location, scope, city, state, country, countryCode, continent, requestLocation]);
 
   useEffect(() => {
     if (location) fetchDoctors();
-  }, [location, scope]);
+  }, [location, scope, user?.id, fetchDoctors]);
 
   // ── Map markers ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -556,7 +620,15 @@ const SpecialistRadar = () => {
                 style={{ background: showFilters ? 'rgba(0,188,212,0.18)' : 'rgba(255,255,255,0.06)', border: `1px solid ${showFilters ? 'rgba(0,188,212,0.38)' : 'rgba(255,255,255,0.1)'}` }}>
                 <Filter className="h-4 w-4 text-teal-400" />
               </button>
-              <button onClick={fetchDoctors} disabled={isLoading}
+              <button
+                onClick={() => {
+                  if (!location) {
+                    requestLocation();
+                    return;
+                  }
+                  fetchDoctors();
+                }}
+                disabled={isLoading}
                 className="w-10 h-10 rounded-xl flex items-center justify-center transition-all"
                 style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
                 {isLoading ? <Loader2 className="h-4 w-4 text-teal-400 animate-spin" /> : <RefreshCw className="h-4 w-4 text-white/40" />}
@@ -606,7 +678,8 @@ const SpecialistRadar = () => {
                 <Navigation className="h-10 w-10 text-teal-400 mx-auto mb-3 opacity-50" />
                 <p className="text-sm font-bold text-white mb-1">Location needed</p>
                 <p className="text-xs text-white/45 mb-4">{locationError}</p>
-                <button onClick={() => window.location.reload()}
+                <button
+                  onClick={requestLocation}
                   className="px-5 py-2.5 rounded-xl text-sm font-bold text-white"
                   style={{ background: 'linear-gradient(135deg,#00BCD4,#0097A7)' }}>
                   Enable Location
