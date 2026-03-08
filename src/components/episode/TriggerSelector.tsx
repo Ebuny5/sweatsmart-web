@@ -97,9 +97,14 @@ const triggerGroups: {
     selectedBorder: "border-purple-400",
     triggers: [
       {
-        label: "Stress / Anxiety",
+        label: "Stress",
+        emoji: "😫",
+        tip: "Chronic or acute stress directly activates the sympathetic nervous system, triggering palmar and axillary sweating",
+      },
+      {
+        label: "Anxiety",
         emoji: "😰",
-        tip: "The most reported trigger — directly activates palmar and axillary eccrine glands",
+        tip: "Anxiety creates a hyperarousal state that activates eccrine glands — especially in palms, soles, and underarms",
       },
       {
         label: "Anticipatory Sweating",
