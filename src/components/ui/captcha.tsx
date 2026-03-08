@@ -5,12 +5,7 @@ interface CaptchaProps {
   className?: string;
 }
 
-// Use project key if provided, otherwise fallback to configured key
-const TURNSTILE_SITE_KEY =
-  import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAACn-rzCH49E4-OUgghyJKs2wkLA";
-
-// Official Cloudflare Turnstile test key (always passes)
-const TURNSTILE_TEST_SITE_KEY = "1x00000000000000000000AA";
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY;
 
 declare global {
   interface Window {
@@ -26,7 +21,6 @@ declare global {
 const Captcha = ({ onVerify, className }: CaptchaProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
-  const didFallbackToTestKeyRef = useRef(false);
 
   const removeWidget = useCallback(() => {
     if (!widgetIdRef.current || !window.turnstile) return;
@@ -38,32 +32,31 @@ const Captcha = ({ onVerify, className }: CaptchaProps) => {
     widgetIdRef.current = null;
   }, []);
 
-  const renderWidget = useCallback(
-    (siteKey: string) => {
-      if (!containerRef.current || !window.turnstile) return;
+  const renderWidget = useCallback(() => {
+    if (!containerRef.current || !window.turnstile) return;
 
-      removeWidget();
+    if (!TURNSTILE_SITE_KEY) {
+      console.error("Turnstile site key missing: set VITE_TURNSTILE_SITE_KEY");
+      onVerify(false);
+      return;
+    }
 
-      widgetIdRef.current = window.turnstile.render(containerRef.current, {
-        sitekey: siteKey,
-        theme: "light",
-        callback: () => onVerify(true),
-        "expired-callback": () => onVerify(false),
-        "error-callback": () => {
-          onVerify(false);
+    removeWidget();
 
-          if (!didFallbackToTestKeyRef.current && siteKey !== TURNSTILE_TEST_SITE_KEY) {
-            didFallbackToTestKeyRef.current = true;
-            renderWidget(TURNSTILE_TEST_SITE_KEY);
-          }
-        },
-      });
-    },
-    [onVerify, removeWidget]
-  );
+    widgetIdRef.current = window.turnstile.render(containerRef.current, {
+      sitekey: TURNSTILE_SITE_KEY,
+      theme: "light",
+      callback: () => onVerify(true),
+      "expired-callback": () => onVerify(false),
+      "error-callback": () => {
+        console.error("Turnstile render/verification failed for current domain or key.");
+        onVerify(false);
+      },
+    });
+  }, [onVerify, removeWidget]);
 
   useEffect(() => {
-    const onLoad = () => renderWidget(TURNSTILE_SITE_KEY);
+    const onLoad = () => renderWidget();
 
     if (!document.querySelector('script[src*="turnstile"]')) {
       const script = document.createElement("script");
@@ -92,3 +85,4 @@ const Captcha = ({ onVerify, className }: CaptchaProps) => {
 };
 
 export default Captcha;
+
