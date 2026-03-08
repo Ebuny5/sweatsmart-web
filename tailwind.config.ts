@@ -77,8 +77,16 @@ export default {
 				'community-question-bg': 'hsl(var(--community-question-bg))',
 				'community-tip': 'hsl(var(--community-tip))',
 				'community-tip-bg': 'hsl(var(--community-tip-bg))',
-				
-				// Enhanced blue palette matching the app icon
+
+				// Liquid Glass palette
+				'french-porcelain': 'hsl(var(--french-porcelain))',
+				'umbra': 'hsl(var(--umbra))',
+				'calm-teal': 'hsl(var(--calm-teal))',
+				'warning-amber': 'hsl(var(--warning-amber))',
+				'clinical-blue': 'hsl(var(--clinical-blue))',
+				'surgical-steel': 'hsl(var(--surgical-steel))',
+
+				// Enhanced blue palette
 				blue: {
 					50: 'hsl(214, 100%, 97%)',
 					100: 'hsl(214, 95%, 93%)',
@@ -92,7 +100,7 @@ export default {
 					900: 'hsl(224, 64%, 33%)',
 				},
 				
-				// Professional grays for medical interface
+				// Professional grays
 				gray: {
 					50: 'hsl(210, 20%, 98%)',
 					100: 'hsl(210, 17%, 95%)',
@@ -113,25 +121,32 @@ export default {
 			},
 			keyframes: {
 				'accordion-down': {
-					from: {
-						height: '0'
-					},
-					to: {
-						height: 'var(--radix-accordion-content-height)'
-					}
+					from: { height: '0' },
+					to: { height: 'var(--radix-accordion-content-height)' }
 				},
 				'accordion-up': {
-					from: {
-						height: 'var(--radix-accordion-content-height)'
-					},
-					to: {
-						height: '0'
-					}
-				}
+					from: { height: 'var(--radix-accordion-content-height)' },
+					to: { height: '0' }
+				},
+				'neural-pulse': {
+					'0%, 100%': { opacity: '0.6', transform: 'scale(1)' },
+					'50%': { opacity: '1', transform: 'scale(1.05)' },
+				},
+				'pulse-glow': {
+					'0%, 100%': { boxShadow: '0 0 20px 4px rgba(127, 227, 198, 0.1)' },
+					'50%': { boxShadow: '0 0 40px 12px rgba(127, 227, 198, 0.25)' },
+				},
+				'scan-line': {
+					'0%': { transform: 'translateY(-100%)' },
+					'100%': { transform: 'translateY(100%)' },
+				},
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'neural-pulse': 'neural-pulse 2s ease-in-out infinite',
+				'pulse-glow': 'pulse-glow 3s ease-in-out infinite',
+				'scan-line': 'scan-line 2s linear infinite',
 			}
 		}
 	},

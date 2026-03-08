@@ -10,44 +10,8 @@ import { edaManager } from '@/utils/edaManager';
 import type { WeatherData, PhysiologicalData, Thresholds, LogEntry, HDSSLevel } from "@/types";
 import { soundManager } from '@/utils/soundManager';
 import { calculateSweatRisk, getRiskSeverity, type SweatRiskLevel } from '@/utils/sweatRiskCalculator';
-
-// Icons
-const ThermometerIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-);
-const DropletIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-  </svg>
-);
-const SunIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h1M3 12H2m15.364 6.364l-.707.707M6.343 6.343l-.707-.707m12.728 0l-.707-.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-  </svg>
-);
-const ZapIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-  </svg>
-);
-const BellIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-  </svg>
-);
-const MapPinIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-  </svg>
-);
-const RefreshIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356-2A8.001 8.001 0 004 12c0 2.127.766 4.047 2.031 5.488M16 20v-5h.582m-15.356 2A8.001 8.001 0 0020 12c0-2.127-.766-4.047-2.031-5.488" />
-  </svg>
-);
+import { LiquidGlassCard } from '@/components/LiquidGlassCard';
+import { RefreshCw, MapPin, Bell, Zap, Settings } from 'lucide-react';
 
 const TESTING_MODE = false;
 const LOG_CHECK_INTERVAL = 30000;
@@ -55,7 +19,7 @@ const WEATHER_REFRESH_INTERVAL = 15 * 60 * 1000;
 
 type PermissionStatus = 'prompt' | 'granted' | 'denied';
 
-// Permissions Wizard
+// Permissions Wizard with Liquid Glass styling
 const PermissionsWizard: React.FC<{
   locationStatus: PermissionStatus;
   notificationStatus: PermissionStatus;
@@ -65,80 +29,146 @@ const PermissionsWizard: React.FC<{
 }> = ({ locationStatus, notificationStatus, onRequestLocation, onRequestNotification, onCheckPermissions }) => {
   const isBlocked = locationStatus === 'denied' || notificationStatus === 'denied';
   return (
-    <div className="bg-gray-800 border border-cyan-700/50 text-white p-6 rounded-xl space-y-4">
-      <h3 className="text-2xl font-bold text-cyan-300">Setup Required</h3>
-      <p className="text-gray-400">SweatSmart needs location and notification permissions for real-time alerts.</p>
+    <LiquidGlassCard glowColor="blue" className="p-6 space-y-4">
+      <h3 className="text-2xl font-bold text-umbra">Setup Required</h3>
+      <p className="text-umbra/60">SweatSmart needs location and notification permissions for real-time alerts.</p>
       <div className="space-y-3 pt-4">
-        <div className="flex items-center justify-between bg-gray-900/70 p-4 rounded-lg">
+        <div className="flex items-center justify-between bg-white/10 p-4 rounded-xl">
           <div className="flex items-center space-x-3">
-            <MapPinIcon className={`w-6 h-6 ${locationStatus === 'granted' ? 'text-green-400' : 'text-blue-400'}`} />
-            <span className="font-semibold">Local Weather</span>
+            <MapPin className={`w-6 h-6 ${locationStatus === 'granted' ? 'text-calm-teal' : 'text-clinical-blue'}`} />
+            <span className="font-semibold text-umbra">Local Weather</span>
           </div>
-          {locationStatus === 'granted' && <span className="text-sm font-bold text-green-400">Enabled</span>}
+          {locationStatus === 'granted' && <span className="text-sm font-bold text-calm-teal">Enabled</span>}
           {locationStatus === 'prompt' && (
-            <button onClick={onRequestLocation} className="bg-blue-500 text-white text-sm font-bold px-4 py-2 rounded-md hover:bg-blue-400 transition">
+            <button onClick={onRequestLocation} className="bg-clinical-blue text-white text-sm font-bold px-4 py-2 rounded-xl hover:bg-clinical-blue/90 transition min-h-[44px]">
               Enable Location
             </button>
           )}
-          {locationStatus === 'denied' && <span className="text-sm font-bold text-red-400">Blocked</span>}
+          {locationStatus === 'denied' && <span className="text-sm font-bold text-destructive">Blocked</span>}
         </div>
-        <div className="flex items-center justify-between bg-gray-900/70 p-4 rounded-lg">
+        <div className="flex items-center justify-between bg-white/10 p-4 rounded-xl">
           <div className="flex items-center space-x-3">
-            <BellIcon className={`w-6 h-6 ${notificationStatus === 'granted' ? 'text-green-400' : 'text-yellow-400'}`} />
-            <span className="font-semibold">Climate Alerts</span>
+            <Bell className={`w-6 h-6 ${notificationStatus === 'granted' ? 'text-calm-teal' : 'text-warning-amber'}`} />
+            <span className="font-semibold text-umbra">Climate Alerts</span>
           </div>
-          {notificationStatus === 'granted' && <span className="text-sm font-bold text-green-400">Enabled</span>}
+          {notificationStatus === 'granted' && <span className="text-sm font-bold text-calm-teal">Enabled</span>}
           {notificationStatus === 'prompt' && (
             <button
               onClick={onRequestNotification}
-              className="bg-yellow-500 text-black text-sm font-bold px-4 py-2 rounded-md hover:bg-yellow-400 transition disabled:bg-gray-600"
+              className="bg-warning-amber text-umbra text-sm font-bold px-4 py-2 rounded-xl hover:bg-warning-amber/90 transition disabled:opacity-40 min-h-[44px]"
               disabled={locationStatus !== 'granted'}
             >
               Enable Notifications
             </button>
           )}
-          {notificationStatus === 'denied' && <span className="text-sm font-bold text-red-400">Blocked</span>}
+          {notificationStatus === 'denied' && <span className="text-sm font-bold text-destructive">Blocked</span>}
         </div>
       </div>
       {isBlocked && (
-        <div className="bg-red-900/50 border border-red-700 p-4 rounded-lg">
-          <p className="text-sm text-red-200 mb-3">Permissions blocked. Update them in your browser site settings.</p>
-          <button onClick={onCheckPermissions} className="flex items-center gap-2 bg-gray-200 text-black font-bold px-4 py-2 rounded-md hover:bg-white transition text-sm">
-            <RefreshIcon className="w-4 h-4" /> Check Permissions
+        <div className="bg-destructive/10 border border-destructive/30 p-4 rounded-xl">
+          <p className="text-sm text-umbra/80 mb-3">Permissions blocked. Update them in your browser site settings.</p>
+          <button onClick={onCheckPermissions} className="flex items-center gap-2 bg-surgical-steel text-umbra font-bold px-4 py-2 rounded-xl hover:bg-surgical-steel/80 transition text-sm min-h-[44px]">
+            <RefreshCw className="w-4 h-4" /> Check Permissions
           </button>
         </div>
       )}
-    </div>
+    </LiquidGlassCard>
   );
 };
 
-// Weather error card shown when real data can't be fetched
+// Weather error card
 const WeatherErrorCard: React.FC<{ error: string; onRetry: () => void; isFetching: boolean }> = ({ error, onRetry, isFetching }) => (
-  <div className="bg-gray-800/50 border border-red-700/50 rounded-xl p-6 text-center space-y-3">
-    <p className="text-red-400 font-semibold">⚠️ Could not fetch real weather data</p>
-    <p className="text-gray-400 text-sm">{error}</p>
-    <p className="text-gray-500 text-xs">No alerts will fire until real data is available.</p>
-    <Button onClick={onRetry} disabled={isFetching} className="bg-cyan-600 hover:bg-cyan-500 text-white">
-      <RefreshIcon className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+  <LiquidGlassCard glowColor="red" className="p-6 text-center space-y-3">
+    <p className="text-destructive font-semibold">⚠️ Could not fetch real weather data</p>
+    <p className="text-umbra/60 text-sm">{error}</p>
+    <p className="text-umbra/40 text-xs">No alerts will fire until real data is available.</p>
+    <button onClick={onRetry} disabled={isFetching} className="bg-clinical-blue hover:bg-clinical-blue/90 text-white font-bold px-6 py-3 rounded-xl transition min-h-[56px] inline-flex items-center gap-2">
+      <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
       {isFetching ? 'Retrying...' : 'Retry'}
-    </Button>
-  </div>
+    </button>
+  </LiquidGlassCard>
 );
 
-// Current Status Card — only shown when real data is available
+// Risk calculation helper
+const getRiskInfo = (weather: WeatherData, alertStatus: string) => {
+  if (alertStatus.includes("Extreme")) return { level: 'EXTREME' as const, color: 'red' as const, pulse: true };
+  if (alertStatus.includes("High")) return { level: 'HIGH' as const, color: 'red' as const, pulse: true };
+  if (alertStatus.includes("Moderate")) return { level: 'MODERATE' as const, color: 'amber' as const, pulse: false };
+  if (alertStatus.includes("Low")) return { level: 'LOW' as const, color: 'teal' as const, pulse: false };
+  return { level: 'SAFE' as const, color: 'teal' as const, pulse: false };
+};
+
+const getRiskBarWidth = (level: string) => {
+  switch (level) {
+    case 'SAFE': return 'w-1/5';
+    case 'LOW': return 'w-1/4';
+    case 'MODERATE': return 'w-1/2';
+    case 'HIGH': return 'w-3/4';
+    case 'EXTREME': return 'w-full';
+    default: return 'w-0';
+  }
+};
+
+const getRiskBarColor = (level: string) => {
+  switch (level) {
+    case 'SAFE':
+    case 'LOW': return 'bg-calm-teal';
+    case 'MODERATE': return 'bg-warning-amber';
+    case 'HIGH':
+    case 'EXTREME': return 'bg-destructive';
+    default: return 'bg-muted';
+  }
+};
+
+const getRiskBadgeClasses = (level: string) => {
+  switch (level) {
+    case 'SAFE':
+    case 'LOW': return 'bg-calm-teal/20 text-calm-teal';
+    case 'MODERATE': return 'bg-warning-amber/20 text-warning-amber';
+    case 'HIGH':
+    case 'EXTREME': return 'bg-destructive/20 text-destructive';
+    default: return 'bg-muted text-muted-foreground';
+  }
+};
+
+const getRecommendations = (level: string) => {
+  switch (level) {
+    case 'SAFE':
+    case 'LOW':
+      return [{ emoji: '✓', text: 'Comfortable conditions — continue with normal activities' }];
+    case 'MODERATE':
+      return [
+        { emoji: '💧', text: 'Stay hydrated throughout the day' },
+        { emoji: '❄️', text: 'Use cooling devices or AC when possible' },
+        { emoji: '🧴', text: 'Apply antiperspirant before going out' },
+      ];
+    case 'HIGH':
+      return [
+        { emoji: '💧', text: 'Stay hydrated — increase water intake' },
+        { emoji: '❄️', text: 'Use cooling devices, stay in air conditioning' },
+        { emoji: '🧴', text: 'Apply clinical-strength antiperspirant' },
+        { emoji: '📋', text: 'Consider iontophoresis session if available' },
+      ];
+    case 'EXTREME':
+      return [
+        { emoji: '⚠️', text: 'Avoid outdoor activities — extreme conditions' },
+        { emoji: '❄️', text: 'Stay indoors with air conditioning' },
+        { emoji: '📞', text: 'Contact your dermatologist if symptoms worsen' },
+      ];
+    default:
+      return [];
+  }
+};
+
+// Current Status Card with Liquid Glass
 const CurrentStatusCard: React.FC<{
   weather: WeatherData;
   physiological: PhysiologicalData;
   alertStatus: string;
   isFetching: boolean;
 }> = ({ weather, physiological, alertStatus, isFetching }) => {
-  const statusColor = useMemo(() => {
-    if (alertStatus.includes("Extreme Risk")) return "text-red-500";
-    if (alertStatus.includes("High Risk")) return "text-red-400";
-    if (alertStatus.includes("Moderate Risk")) return "text-yellow-400";
-    if (alertStatus.includes("Low Risk")) return "text-yellow-300";
-    return "text-green-400";
-  }, [alertStatus]);
+  const risk = getRiskInfo(weather, alertStatus);
+  const displayUV = Math.min(11, weather.uvIndex);
 
   const getLastUpdatedText = () => {
     if (!weather.lastUpdated) return null;
@@ -148,57 +178,96 @@ const CurrentStatusCard: React.FC<{
     return `${Math.floor(diff / 3600)}h ago`;
   };
 
-  const displayUV = Math.min(11, weather.uvIndex);
+  // Extract a clinical AI message from alertStatus
+  const getAIMessage = () => {
+    const cleanStatus = alertStatus.replace(/^[^:]+:\s*/, '');
+    return cleanStatus || alertStatus;
+  };
 
   return (
-    <div className="relative bg-gray-800/50 border border-gray-700 rounded-xl p-6 space-y-4">
-      {isFetching && (
-        <div className="absolute inset-0 bg-gray-800/90 flex flex-col items-center justify-center rounded-xl z-10">
-          <p className="text-white font-semibold animate-pulse">Fetching real weather data...</p>
+    <>
+      <LiquidGlassCard glowColor={risk.color} pulse={risk.pulse} className="p-6">
+        {isFetching && (
+          <div className="absolute inset-0 bg-french-porcelain/90 flex flex-col items-center justify-center rounded-2xl z-10">
+            <p className="text-umbra font-semibold animate-pulse">Fetching real weather data...</p>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-umbra/60 text-sm">Current Status</span>
+            {weather.location && <span className="text-xs text-clinical-blue">📍 {weather.location}</span>}
+          </div>
+          <div className="flex items-center gap-2">
+            {weather.lastUpdated && (
+              <span className="text-xs text-umbra/40">🔄 {getLastUpdatedText()}</span>
+            )}
+            <div className={`px-3 py-1.5 rounded-full font-bold text-xs ${getRiskBadgeClasses(risk.level)}`}>
+              {risk.level}
+            </div>
+          </div>
         </div>
-      )}
-      <div className="flex items-center justify-between">
-        <h3 className="text-xl font-bold text-amber-400">Current Status</h3>
-        <div className="flex items-center gap-2">
-          {weather.location && <span className="text-xs text-cyan-300">{weather.location}</span>}
-          {weather.lastUpdated && (
-            <span className="text-xs text-gray-400 bg-gray-700/50 px-2 py-1 rounded">
-              🔄 {getLastUpdatedText()}
-            </span>
-          )}
-          {/* Real data badge — always shown when this card is visible */}
-          <span className="text-xs text-green-400 bg-green-900/30 px-2 py-1 rounded">✅ Real</span>
+
+        {/* Environmental Metrics */}
+        <div className="grid grid-cols-4 gap-3 mb-6">
+          <div className="text-center">
+            <div className="text-3xl mb-2">🌡️</div>
+            <div className="text-xl font-bold text-umbra">{weather.temperature.toFixed(1)}°C</div>
+            <div className="text-xs text-umbra/50">Temperature</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl mb-2">💧</div>
+            <div className="text-xl font-bold text-umbra">{weather.humidity.toFixed(0)}%</div>
+            <div className="text-xs text-umbra/50">Humidity</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl mb-2">☀️</div>
+            <div className="text-xl font-bold text-umbra">{displayUV.toFixed(1)}</div>
+            <div className="text-xs text-umbra/50">UV Index</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl mb-2">⚡</div>
+            <div className="text-xl font-bold text-umbra">{physiological.eda.toFixed(1)} µS</div>
+            <div className="text-xs text-umbra/50">EDA</div>
+          </div>
         </div>
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-gray-900 p-4 rounded-lg text-center">
-          <ThermometerIcon className="w-8 h-8 mx-auto text-red-400 mb-2" />
-          <p className="text-2xl font-bold text-amber-200">{weather.temperature.toFixed(1)}°C</p>
-          <p className="text-xs text-gray-400">Temperature</p>
+
+        {weather.description && (
+          <p className="text-center text-sm text-umbra/60 capitalize mb-4">{weather.description}</p>
+        )}
+
+        {/* Risk Visualization Bar */}
+        <div className="relative h-3 bg-white/20 rounded-full overflow-hidden mb-4">
+          <div className={`absolute top-0 left-0 h-full transition-all duration-500 rounded-full ${getRiskBarWidth(risk.level)} ${getRiskBarColor(risk.level)}`} />
         </div>
-        <div className="bg-gray-900 p-4 rounded-lg text-center">
-          <DropletIcon className="w-8 h-8 mx-auto text-blue-400 mb-2" />
-          <p className="text-2xl font-bold text-amber-200">{weather.humidity.toFixed(0)}%</p>
-          <p className="text-xs text-gray-400">Humidity</p>
+
+        {/* AI Companion Message */}
+        <div className="bg-white/10 rounded-xl p-4 border border-white/10">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-clinical-blue/20 flex items-center justify-center flex-shrink-0">
+              <span className="text-clinical-blue font-bold text-sm">AI</span>
+            </div>
+            <div>
+              <div className="text-xs text-umbra/50 mb-1">Hyper Climate Analysis</div>
+              <p className="text-umbra/90 text-sm leading-relaxed">{getAIMessage()}</p>
+            </div>
+          </div>
         </div>
-        <div className="bg-gray-900 p-4 rounded-lg text-center">
-          <SunIcon className="w-8 h-8 mx-auto text-yellow-400 mb-2" />
-          <p className="text-2xl font-bold text-amber-200">{displayUV.toFixed(1)}</p>
-          <p className="text-xs text-gray-400">UV Index</p>
+      </LiquidGlassCard>
+
+      {/* Recommendations */}
+      <LiquidGlassCard className="p-6">
+        <h3 className="text-lg font-bold text-umbra mb-4">Recommended Actions</h3>
+        <div className="space-y-3">
+          {getRecommendations(risk.level).map((rec, i) => (
+            <div key={i} className="flex items-start gap-3">
+              <span className="text-2xl">{rec.emoji}</span>
+              <p className="text-umbra/80 text-sm pt-1">{rec.text}</p>
+            </div>
+          ))}
         </div>
-        <div className="bg-gray-900 p-4 rounded-lg text-center">
-          <ZapIcon className="w-8 h-8 mx-auto text-purple-400 mb-2" />
-          <p className="text-2xl font-bold text-amber-200">{physiological.eda.toFixed(1)} µS</p>
-          <p className="text-xs text-gray-400">EDA</p>
-        </div>
-      </div>
-      {weather.description && (
-        <p className="text-center text-sm text-cyan-200 capitalize">{weather.description}</p>
-      )}
-      <div className={`bg-gray-900 p-4 rounded-lg text-center ${statusColor}`}>
-        <p className="text-lg font-semibold">{alertStatus}</p>
-      </div>
-    </div>
+      </LiquidGlassCard>
+    </>
   );
 };
 
@@ -211,7 +280,6 @@ const ClimateMonitor = () => {
   const [isFetchingWeather, setIsFetchingWeather] = useState(false);
   const [weatherError, setWeatherError] = useState<string | null>(null);
 
-  // weatherData is null until REAL data arrives — no fake defaults
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [physiologicalData, setPhysiologicalData] = useState<PhysiologicalData>({ eda: 2.5 });
 
@@ -229,6 +297,7 @@ const ClimateMonitor = () => {
   const [nextLogTime, setNextLogTime] = useState<number | null>(null);
   const [alertStatus, setAlertStatus] = useState("Waiting for real weather data...");
   const [lastAlertType, setLastAlertType] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
 
   const arePermissionsGranted = locationPermission === 'granted' && notificationPermission === 'granted';
   const hasRealWeather = weatherData !== null && !weatherError;
@@ -280,7 +349,6 @@ const ClimateMonitor = () => {
     localStorage.setItem('sweatSmartLogs', JSON.stringify(logs));
   }, [logs]);
 
-  // Fetch REAL weather — no fallback to fake data
   const fetchWeatherData = useCallback(async (coords: GeolocationCoordinates) => {
     setIsFetchingWeather(true);
     setWeatherError(null);
@@ -289,13 +357,9 @@ const ClimateMonitor = () => {
         body: { latitude: coords.latitude, longitude: coords.longitude }
       });
       if (error) throw new Error(error.message);
-
-      // If the edge function itself returned simulated data, treat it as an error
       if (data.simulated) {
         throw new Error(data.error || 'Weather API unavailable — no real data received.');
       }
-
-      // Store only real data, cap UV at 11
       setWeatherData({
         ...data,
         uvIndex: Math.min(11, data.uvIndex ?? data.uvi ?? 0),
@@ -305,13 +369,11 @@ const ClimateMonitor = () => {
     } catch (err: any) {
       console.error('🌤️ Weather fetch failed:', err);
       setWeatherError(err.message || 'Could not fetch weather data. Check your connection.');
-      // Do NOT set fake weatherData — leave existing real data or null
     } finally {
       setIsFetchingWeather(false);
     }
   }, []);
 
-  // Fetch on location change, refresh every 15 minutes
   useEffect(() => {
     if (location) {
       fetchWeatherData(location);
@@ -320,7 +382,6 @@ const ClimateMonitor = () => {
     }
   }, [location, fetchWeatherData]);
 
-  // EDA physiological simulation (EDA is device sensor data, not weather — this is fine)
   useEffect(() => {
     const interval = setInterval(() => {
       setPhysiologicalData(prev => ({
@@ -358,18 +419,11 @@ const ClimateMonitor = () => {
     [notificationPermission, playAlertSound]
   );
 
-  // ============================================================
-  // ALERT LOGIC — REAL DATA ONLY
-  // Never fires on missing, simulated, or fallback data.
-  // UV always capped at 11. Risk based on real temperature.
-  // ============================================================
   useEffect(() => {
     if (!arePermissionsGranted) {
       setAlertStatus("Complete setup to begin.");
       return;
     }
-
-    // No real weather yet — wait silently
     if (!hasRealWeather || !weatherData) {
       setAlertStatus("Waiting for real weather data...");
       return;
@@ -377,7 +431,6 @@ const ClimateMonitor = () => {
 
     const settings = localStorage.getItem('climateAppSettings');
     const soundEnabled = settings ? JSON.parse(settings).soundAlerts !== false : true;
-
     const safeUV = Math.min(11, weatherData.uvIndex);
 
     const risk = calculateSweatRisk(
@@ -407,7 +460,6 @@ const ClimateMonitor = () => {
     }
 
     if (soundEnabled && currentAlertType !== lastAlertType && currentAlertType !== 'optimal') {
-      console.log('🚨 Real weather alert:', risk.level, weatherData.temperature + '°C');
       const severity = getRiskSeverity(risk.level);
       sendNotification(
         `SweatSmart Alert — ${risk.message}`,
@@ -516,24 +568,12 @@ const ClimateMonitor = () => {
 
   return (
     <AppLayout>
-      <div className="min-h-full bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-400 p-6 rounded-xl space-y-6">
+      <div className="min-h-full bg-french-porcelain p-6 rounded-xl space-y-6 pb-32">
 
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-white drop-shadow-lg">SweatSmart Climate Alerts</h1>
-            <p className="text-white/80 mt-1">Real-time weather monitoring and personalized alerts</p>
-          </div>
-          {location && (
-            <Button
-              className="bg-cyan-600 text-white hover:bg-cyan-500"
-              onClick={() => fetchWeatherData(location)}
-              disabled={isFetchingWeather}
-            >
-              <RefreshIcon className={`h-4 w-4 mr-2 ${isFetchingWeather ? 'animate-spin' : ''}`} />
-              {isFetchingWeather ? 'Refreshing...' : 'Refresh'}
-            </Button>
-          )}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-umbra mb-2">Climate Intelligence</h1>
+          <p className="text-umbra/60">Real-time environmental monitoring for hyperhidrosis management</p>
         </div>
 
         {/* Permissions Wizard */}
@@ -550,7 +590,6 @@ const ClimateMonitor = () => {
         {/* Main Content */}
         <div className={`space-y-6 transition-opacity duration-500 ${arePermissionsGranted ? 'opacity-100' : 'opacity-40 blur-sm pointer-events-none'}`}>
 
-          {/* Show weather error card if real data failed */}
           {weatherError && (
             <WeatherErrorCard
               error={weatherError}
@@ -559,7 +598,6 @@ const ClimateMonitor = () => {
             />
           )}
 
-          {/* Show real weather card only when real data is available */}
           {hasRealWeather && weatherData && (
             <CurrentStatusCard
               weather={weatherData}
@@ -569,52 +607,43 @@ const ClimateMonitor = () => {
             />
           )}
 
-          {/* Loading state while fetching first real data */}
           {!weatherError && !hasRealWeather && arePermissionsGranted && (
-            <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6 text-center">
-              <p className="text-white font-semibold animate-pulse">Fetching real weather data for your location...</p>
-            </div>
+            <LiquidGlassCard glowColor="blue" className="p-6 text-center">
+              <p className="text-umbra font-semibold animate-pulse">Fetching real weather data for your location...</p>
+            </LiquidGlassCard>
           )}
 
-          {/* EDA */}
-          <div className="space-y-4">
-            <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-400">Electrodermal Activity (EDA)</p>
-                  <p className="text-2xl font-bold text-purple-400">{physiologicalData.eda.toFixed(1)} µS</p>
-                </div>
-                {(() => {
-                  const storedEDA = edaManager.getEDA();
-                  const isFresh = edaManager.isFresh();
-                  if (storedEDA && isFresh) return (
-                    <span className="text-xs bg-green-500/20 text-green-400 px-3 py-1 rounded-full border border-green-500/50">Fresh • {storedEDA.source}</span>
-                  );
-                  if (storedEDA && !isFresh) return (
-                    <span className="text-xs bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full border border-yellow-500/50">Stale • Generate new</span>
-                  );
-                  return (
-                    <span className="text-xs bg-gray-500/20 text-gray-400 px-3 py-1 rounded-full border border-gray-500/50">No data</span>
-                  );
-                })()}
+          {/* EDA Section */}
+          <LiquidGlassCard className="p-6">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-sm text-umbra/60">Electrodermal Activity (EDA)</p>
+                <p className="text-2xl font-bold text-clinical-blue">{physiologicalData.eda.toFixed(1)} µS</p>
               </div>
+              {(() => {
+                const storedEDA = edaManager.getEDA();
+                const isFresh = edaManager.isFresh();
+                if (storedEDA && isFresh) return (
+                  <span className="text-xs bg-calm-teal/20 text-calm-teal px-3 py-1 rounded-full border border-calm-teal/30">Fresh • {storedEDA.source}</span>
+                );
+                if (storedEDA && !isFresh) return (
+                  <span className="text-xs bg-warning-amber/20 text-warning-amber px-3 py-1 rounded-full border border-warning-amber/30">Stale • Generate new</span>
+                );
+                return (
+                  <span className="text-xs bg-muted text-muted-foreground px-3 py-1 rounded-full">No data</span>
+                );
+              })()}
             </div>
+          </LiquidGlassCard>
 
-            <button
-              onClick={() => {
-                const eda = physiologicalData.eda;
-                const mode = eda > 10 ? 'Trigger' : eda > 5 ? 'Active' : 'Resting';
-                navigate(`/palm-scanner?returnTo=/climate&mode=${mode}`);
-              }}
-              className="w-full py-3 bg-purple-600 hover:bg-purple-500 rounded-lg transition-colors font-semibold flex items-center justify-center gap-2"
-            >
-              <ZapIcon className="w-5 h-5" />
-              Go to Palm Scanner
-            </button>
-          </div>
+          {/* Settings (collapsible) */}
+          {showSettings && (
+            <>
+              <SettingsPanel thresholds={thresholds} onThresholdChange={handleThresholdChange} />
+              <WebPushSettings thresholds={thresholds} />
+            </>
+          )}
 
-          <SettingsPanel thresholds={thresholds} onThresholdChange={handleThresholdChange} />
-          <WebPushSettings thresholds={thresholds} />
           <LoggingSystem
             logs={logs}
             isModalOpen={isLoggingModalOpen}
@@ -623,43 +652,39 @@ const ClimateMonitor = () => {
             onLogNow={() => navigate('/log-episode')}
             nextLogTime={nextLogTime}
           />
+        </div>
 
-          {/* Test & Debug */}
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 space-y-4">
-            <p className="text-sm font-semibold text-cyan-300">Testing & Debug</p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                onClick={async () => {
-                  playAlertSound('WARNING');
-                  const { enhancedMobileNotificationService } = await import('@/services/EnhancedMobileNotificationService');
-                  await enhancedMobileNotificationService.showNotification('✅ Test Alert', 'Your alerts are working correctly! 🎉', 'success');
-                  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                    navigator.serviceWorker.controller.postMessage({ type: 'TEST_NOTIFICATION' });
-                  }
-                }}
-                className="bg-cyan-600 hover:bg-cyan-500 text-white"
+        {/* Fixed Bottom Action Buttons - Thumb Zone */}
+        <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-french-porcelain via-french-porcelain to-transparent z-20">
+          <div className="max-w-2xl mx-auto flex gap-4">
+            {location && (
+              <button
+                onClick={() => fetchWeatherData(location)}
+                disabled={isFetchingWeather}
+                className="flex-1 h-14 rounded-xl font-bold bg-clinical-blue text-white hover:bg-clinical-blue/90 active:scale-95 transition-all duration-200 min-h-[56px] inline-flex items-center justify-center gap-2"
               >
-                Test Alert
-              </Button>
-              <Button
-                onClick={() => {
-                  const testTime = Date.now() + 10000;
-                  localStorage.setItem('climateNextLogTime', testTime.toString());
-                  localStorage.removeItem('lastLogAlertTime');
-                  setNextLogTime(testTime);
-                  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                    navigator.serviceWorker.controller.postMessage({ type: 'SYNC_LOG_REMINDER', nextLogTime: testTime });
-                  }
-                  alert('Timer reset! Log reminder will trigger in ~10 seconds.');
-                }}
-                className="bg-yellow-600 hover:bg-yellow-500 text-white"
-              >
-                🧪 Trigger in 10s
-              </Button>
-            </div>
-            <p className="text-xs text-gray-400">Test Alert verifies sound/notifications. "Trigger in 10s" tests the log reminder system.</p>
+                <RefreshCw className={`h-5 w-5 ${isFetchingWeather ? 'animate-spin' : ''}`} />
+                {isFetchingWeather ? 'Refreshing...' : 'Refresh Data'}
+              </button>
+            )}
+            <button
+              onClick={() => {
+                const eda = physiologicalData.eda;
+                const mode = eda > 10 ? 'Trigger' : eda > 5 ? 'Active' : 'Resting';
+                navigate(`/palm-scanner?returnTo=/climate&mode=${mode}`);
+              }}
+              className="flex-1 h-14 rounded-xl font-bold bg-calm-teal/20 text-umbra hover:bg-calm-teal/30 active:scale-95 transition-all duration-200 min-h-[56px] inline-flex items-center justify-center gap-2"
+            >
+              <Zap className="h-5 w-5" />
+              Palm Scanner
+            </button>
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className="h-14 w-14 rounded-xl bg-white/20 backdrop-blur-sm hover:bg-white/30 active:scale-95 transition-all duration-200 flex items-center justify-center min-w-[56px] min-h-[56px]"
+            >
+              <Settings className="h-6 w-6 text-umbra" />
+            </button>
           </div>
-
         </div>
       </div>
     </AppLayout>
