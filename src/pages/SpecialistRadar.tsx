@@ -620,7 +620,15 @@ const SpecialistRadar = () => {
                 style={{ background: showFilters ? 'rgba(0,188,212,0.18)' : 'rgba(255,255,255,0.06)', border: `1px solid ${showFilters ? 'rgba(0,188,212,0.38)' : 'rgba(255,255,255,0.1)'}` }}>
                 <Filter className="h-4 w-4 text-teal-400" />
               </button>
-              <button onClick={fetchDoctors} disabled={isLoading}
+              <button
+                onClick={() => {
+                  if (!location) {
+                    requestLocation();
+                    return;
+                  }
+                  fetchDoctors();
+                }}
+                disabled={isLoading}
                 className="w-10 h-10 rounded-xl flex items-center justify-center transition-all"
                 style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
                 {isLoading ? <Loader2 className="h-4 w-4 text-teal-400 animate-spin" /> : <RefreshCw className="h-4 w-4 text-white/40" />}
