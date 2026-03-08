@@ -64,6 +64,8 @@ const SCOPE_RADII: Record<ScopeFilter, number> = {
   continent: 5000000,
 };
 
+const LAST_LOCATION_KEY = 'ss_last_known_location';
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 const computeHdss = (episodes: any[]): number => {
   if (!episodes?.length) return 0;
