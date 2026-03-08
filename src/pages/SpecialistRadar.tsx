@@ -432,30 +432,85 @@ const SpecialistRadar = () => {
   }, []);
 
   // ── Geolocation + reverse geocode ───────────────────────────────────────
-  useEffect(() => {
-    if (!navigator.geolocation) { setLocationError('Geolocation not supported'); return; }
+  const reverseGeocode = useCallback(async (lat: number, lng: number) => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`);
+      const data = await res.json();
+      const addr = data.address || {};
+      setCity(addr.city || addr.town || addr.municipality || addr.village || addr.suburb || addr.county || '');
+      setState(addr.state || addr.region || addr.province || '');
+      setCountry(addr.country || '');
+      const iso = (addr.country_code || '').toUpperCase();
+      setCountryCode(iso);
+      setContinent(CONTINENT_MAP[iso] || 'Global');
+    } catch {
+      setCity('your area');
+    }
+  }, []);
+
+  const requestLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation not supported');
+      return;
+    }
+
     navigator.geolocation.getCurrentPosition(
       async pos => {
         const { latitude: lat, longitude: lng } = pos.coords;
         setLocation({ lat, lng });
+        setLocationError('');
         try {
-          const res  = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`);
-          const data = await res.json();
-          const addr = data.address || {};
-          setCity(addr.city || addr.town || addr.municipality || addr.village || addr.suburb || addr.county || '');
-          setState(addr.state || addr.region || addr.province || '');
-          setCountry(addr.country || '');
-          const iso = (addr.country_code || '').toUpperCase();
-          setCountryCode(iso);
-          setContinent(CONTINENT_MAP[iso] || 'Global');
+          localStorage.setItem(LAST_LOCATION_KEY, JSON.stringify({ lat, lng }));
         } catch {
-          setCity('your area');
+          // Ignore storage errors
         }
+        await reverseGeocode(lat, lng);
       },
-      err => { setLocationError('Location access denied — please enable GPS'); console.error(err); },
-      { enableHighAccuracy: true, timeout: 12000 }
+      err => {
+        setLocationError('Location access denied — please enable GPS');
+        console.error(err);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
     );
-  }, []);
+  }, [reverseGeocode]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LAST_LOCATION_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (typeof saved?.lat === 'number' && typeof saved?.lng === 'number') {
+          setLocation({ lat: saved.lat, lng: saved.lng });
+          reverseGeocode(saved.lat, saved.lng);
+        }
+      }
+    } catch {
+      // Ignore storage errors
+    }
+
+    requestLocation();
+
+    if (!navigator.geolocation) return;
+    const watcherId = navigator.geolocation.watchPosition(
+      async pos => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setLocation({ lat, lng });
+        setLocationError('');
+        try {
+          localStorage.setItem(LAST_LOCATION_KEY, JSON.stringify({ lat, lng }));
+        } catch {
+          // Ignore storage errors
+        }
+        await reverseGeocode(lat, lng);
+      },
+      () => {
+        // Don't override current error; getCurrentPosition handles user-facing messaging
+      },
+      { enableHighAccuracy: true, maximumAge: 30000, timeout: 15000 }
+    );
+
+    return () => navigator.geolocation.clearWatch(watcherId);
+  }, [requestLocation, reverseGeocode]);
 
   // ── Fetch specialists ───────────────────────────────────────────────────
   const fetchDoctors = useCallback(async () => {
