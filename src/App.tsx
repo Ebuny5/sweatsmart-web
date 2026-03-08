@@ -37,6 +37,7 @@ import ClimateMonitor from "./pages/ClimateMonitor";
 import ClimateHistory from "./pages/ClimateHistory";
 import HyperAI from "./pages/HyperAI";
 import KnowledgeBaseAdmin from "./pages/KnowledgeBaseAdmin";
+import SpecialistRadar from "./pages/SpecialistRadar";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -188,6 +189,11 @@ const AppRoutes = () => (
     <Route path="/knowledge-admin" element={
       <ProtectedRoute>
         <KnowledgeBaseAdmin />
+      </ProtectedRoute>
+    } />
+    <Route path="/specialist-radar" element={
+      <ProtectedRoute>
+        <SpecialistRadar />
       </ProtectedRoute>
     } />
     <Route path="/contact" element={<Contact />} />

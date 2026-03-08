@@ -12,6 +12,7 @@ import {
   MessageSquare,
   Settings,
   Sparkles,
+  MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -78,6 +79,15 @@ const menuItems = [
     activeBg: "bg-yellow-50",
     activeText: "text-yellow-700",
     iconBg: "bg-yellow-100",
+  },
+  {
+    path: "/specialist-radar",
+    icon: MapPin,
+    label: "Specialist Radar",
+    activeGradient: "from-teal-400 to-cyan-500",
+    activeBg: "bg-teal-50",
+    activeText: "text-teal-700",
+    iconBg: "bg-teal-100",
   },
   {
     path: "/climate",
