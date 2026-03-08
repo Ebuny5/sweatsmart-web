@@ -514,15 +514,22 @@ const SpecialistRadar = () => {
 
   // ── Fetch specialists ───────────────────────────────────────────────────
   const fetchDoctors = useCallback(async () => {
-    if (!location || !user) return;
+    if (!location) {
+      requestLocation();
+      return;
+    }
+
     setIsLoading(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) return;
+      const token = sessionData.session?.access_token;
       const RADAR_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/specialist-radar`;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers.Authorization = `Bearer ${token}`;
+
       const res = await fetch(RADAR_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionData.session.access_token}` },
+        headers,
         body: JSON.stringify({
           lat: location.lat, lng: location.lng,
           radius: SCOPE_RADII[scope],
@@ -540,11 +547,11 @@ const SpecialistRadar = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [location, user, scope, countryCode, continent]);
+  }, [location, scope, city, state, country, countryCode, continent, requestLocation]);
 
   useEffect(() => {
     if (location) fetchDoctors();
-  }, [location, scope]);
+  }, [location, scope, user?.id, fetchDoctors]);
 
   // ── Map markers ─────────────────────────────────────────────────────────
   useEffect(() => {
