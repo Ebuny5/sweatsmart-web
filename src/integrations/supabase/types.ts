@@ -360,6 +360,137 @@ export type Database = {
         }
         Relationships: []
       }
+      specialist_reviews: {
+        Row: {
+          comment: string | null
+          compassion: number | null
+          created_at: string | null
+          hh_knowledge: number | null
+          id: string
+          rating: number | null
+          specialist_id: string | null
+          user_id: string | null
+          verified_visit: boolean | null
+        }
+        Insert: {
+          comment?: string | null
+          compassion?: number | null
+          created_at?: string | null
+          hh_knowledge?: number | null
+          id?: string
+          rating?: number | null
+          specialist_id?: string | null
+          user_id?: string | null
+          verified_visit?: boolean | null
+        }
+        Update: {
+          comment?: string | null
+          compassion?: number | null
+          created_at?: string | null
+          hh_knowledge?: number | null
+          id?: string
+          rating?: number | null
+          specialist_id?: string | null
+          user_id?: string | null
+          verified_visit?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "specialist_reviews_specialist_id_fkey"
+            columns: ["specialist_id"]
+            isOneToOne: false
+            referencedRelation: "specialists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      specialists: {
+        Row: {
+          accepts_warrior_report: boolean | null
+          address: string
+          city: string
+          clinic_name: string | null
+          continent: string
+          country: string
+          country_code: string
+          created_at: string | null
+          email: string | null
+          id: string
+          is_ihs_verified: boolean | null
+          is_nds_member: boolean | null
+          is_telehealth: boolean | null
+          languages: string[] | null
+          lat: number
+          lng: number
+          name: string
+          phone: string | null
+          source: string | null
+          specialty: string
+          state: string | null
+          tier: string | null
+          treatments: string[] | null
+          updated_at: string | null
+          verified_at: string | null
+          website: string | null
+        }
+        Insert: {
+          accepts_warrior_report?: boolean | null
+          address: string
+          city: string
+          clinic_name?: string | null
+          continent: string
+          country: string
+          country_code: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_ihs_verified?: boolean | null
+          is_nds_member?: boolean | null
+          is_telehealth?: boolean | null
+          languages?: string[] | null
+          lat: number
+          lng: number
+          name: string
+          phone?: string | null
+          source?: string | null
+          specialty?: string
+          state?: string | null
+          tier?: string | null
+          treatments?: string[] | null
+          updated_at?: string | null
+          verified_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          accepts_warrior_report?: boolean | null
+          address?: string
+          city?: string
+          clinic_name?: string | null
+          continent?: string
+          country?: string
+          country_code?: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_ihs_verified?: boolean | null
+          is_nds_member?: boolean | null
+          is_telehealth?: boolean | null
+          languages?: string[] | null
+          lat?: number
+          lng?: number
+          name?: string
+          phone?: string | null
+          source?: string | null
+          specialty?: string
+          state?: string | null
+          tier?: string | null
+          treatments?: string[] | null
+          updated_at?: string | null
+          verified_at?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
           created_at: string
