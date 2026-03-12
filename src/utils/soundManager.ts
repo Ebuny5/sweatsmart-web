@@ -1,13 +1,14 @@
 
 export class SoundManager {
   private static instance: SoundManager;
-  private audioContext: AudioContext | null = null;
   private soundEnabled = true;
+  private femaleVoice: SpeechSynthesisVoice | null = null;
+  private voicesLoaded = false;
 
   private constructor() {
-    // Load saved preference
     const saved = localStorage.getItem('sweatsmart_sound_enabled');
     if (saved !== null) this.soundEnabled = JSON.parse(saved);
+    this.loadVoices();
   }
 
   static getInstance(): SoundManager {
@@ -17,19 +18,57 @@ export class SoundManager {
     return SoundManager.instance;
   }
 
-  private async ensureAudioContext(): Promise<AudioContext | null> {
-    try {
-      if (!this.audioContext || this.audioContext.state === 'closed') {
-        this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  private loadVoices(): void {
+    if (!('speechSynthesis' in window)) return;
+
+    const pickFemaleVoice = () => {
+      const voices = speechSynthesis.getVoices();
+      if (!voices.length) return;
+      this.voicesLoaded = true;
+
+      // Prefer English female voices
+      const femaleKeywords = ['female', 'woman', 'samantha', 'victoria', 'karen', 'fiona', 'moira', 'tessa', 'susan', 'zira', 'hazel', 'linda', 'jenny', 'aria', 'sara'];
+      const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+
+      // Try to find a female voice by name
+      this.femaleVoice = englishVoices.find(v =>
+        femaleKeywords.some(k => v.name.toLowerCase().includes(k))
+      ) || null;
+
+      // Fallback: pick the first English voice (many defaults are female)
+      if (!this.femaleVoice && englishVoices.length) {
+        this.femaleVoice = englishVoices[0];
       }
-      if (this.audioContext.state === 'suspended') {
-        await this.audioContext.resume();
+
+      // Last resort: any voice
+      if (!this.femaleVoice && voices.length) {
+        this.femaleVoice = voices[0];
       }
-      return this.audioContext;
-    } catch (error) {
-      console.warn('🔊 Audio context failed:', error);
-      return null;
+
+      console.log('🗣️ Selected voice:', this.femaleVoice?.name);
+    };
+
+    pickFemaleVoice();
+    if (!this.voicesLoaded) {
+      speechSynthesis.addEventListener('voiceschanged', pickFemaleVoice);
     }
+  }
+
+  private speak(text: string, rate: number = 1.0, pitch: number = 1.0): void {
+    if (!this.soundEnabled || !('speechSynthesis' in window)) return;
+
+    // Cancel any ongoing speech
+    speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    if (this.femaleVoice) utterance.voice = this.femaleVoice;
+    utterance.rate = rate;
+    utterance.pitch = pitch;
+    utterance.volume = 1.0;
+    utterance.lang = 'en-US';
+
+    speechSynthesis.speak(utterance);
+    console.log(`🗣️ Voice alert: "${text}"`);
   }
 
   async playNotificationSound(severity: 'CRITICAL' | 'WARNING' | 'REMINDER' = 'WARNING'): Promise<void> {
@@ -42,54 +81,37 @@ export class SoundManager {
       navigator.vibrate(pattern);
     }
 
-    // Always use Web Audio API - no external URLs that can fail
-    const ctx = await this.ensureAudioContext();
-    if (!ctx) return;
-
-    try {
-      const sampleRate = ctx.sampleRate;
-      const duration = severity === 'CRITICAL' ? 2.5 : severity === 'WARNING' ? 1.8 : 1.2;
-      const buffer = ctx.createBuffer(1, sampleRate * duration, sampleRate);
-      const data = buffer.getChannelData(0);
-
-      for (let i = 0; i < buffer.length; i++) {
-        const t = i / sampleRate;
-        switch (severity) {
-          case 'CRITICAL': {
-            const freq = 200 + Math.sin(t * 2) * 50;
-            const harmonic = Math.sin(2 * Math.PI * freq * 2 * t) * 0.3;
-            data[i] = (Math.sin(2 * Math.PI * freq * t) + harmonic) * Math.exp(-t * 0.5) * 0.8;
-            break;
-          }
-          case 'WARNING': {
-            const freq = t < duration / 2 ? 880 : 660;
-            data[i] = Math.sin(2 * Math.PI * freq * t) * Math.exp(-t * 0.4) * 0.7;
-            break;
-          }
-          case 'REMINDER': {
-            const freq = 440 + t * 120;
-            data[i] = Math.sin(2 * Math.PI * freq * t) * Math.exp(-t * 0.5) * 0.6;
-            break;
-          }
-        }
-      }
-
-      const source = ctx.createBufferSource();
-      const gainNode = ctx.createGain();
-      source.buffer = buffer;
-      source.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      gainNode.gain.value = 0.9;
-      source.start();
-      console.log(`🔊 Alert sound played: ${severity}`);
-    } catch (error) {
-      console.warn('🔊 Sound playback failed:', error);
+    switch (severity) {
+      case 'CRITICAL':
+        this.speak('Critical alert! Your sweat risk is extremely high. Please take immediate action.', 1.0, 1.1);
+        break;
+      case 'WARNING':
+        this.speak('Warning. Elevated sweat risk detected. Please check your climate alerts.', 1.0, 1.0);
+        break;
+      case 'REMINDER':
+        this.speak('Reminder. It is time to log your sweat episode. Please open SweatSmart.', 0.95, 1.0);
+        break;
     }
+  }
+
+  /** Speak a custom message (used by climate alerts with specific details) */
+  async speakCustom(message: string, severity: 'CRITICAL' | 'WARNING' | 'REMINDER' = 'WARNING'): Promise<void> {
+    if (!this.soundEnabled) return;
+
+    if (navigator.vibrate) {
+      const pattern = severity === 'CRITICAL' ? [800, 200, 800, 200, 800] :
+                      severity === 'WARNING' ? [600, 150, 600] : [400, 100, 400];
+      navigator.vibrate(pattern);
+    }
+
+    const rate = severity === 'CRITICAL' ? 1.05 : 0.95;
+    this.speak(message, rate, 1.0);
   }
 
   setSoundEnabled(enabled: boolean): void {
     this.soundEnabled = enabled;
     localStorage.setItem('sweatsmart_sound_enabled', JSON.stringify(enabled));
+    if (!enabled) speechSynthesis?.cancel();
   }
 
   isSoundEnabled(): boolean {

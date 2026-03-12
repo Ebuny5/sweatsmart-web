@@ -9,19 +9,23 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', (event) => {
     if (event.data?.type === 'PLAY_NOTIFICATION_SOUND') {
       try {
-        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, ctx.currentTime);
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.5);
+        // Use browser TTS with a lady's voice instead of beep tones
+        if ('speechSynthesis' in window) {
+          speechSynthesis.cancel();
+          const msg = new SpeechSynthesisUtterance('Attention. You have a new SweatSmart alert. Please check your notifications.');
+          msg.lang = 'en-US';
+          msg.rate = 1.0;
+          msg.pitch = 1.0;
+          msg.volume = 1.0;
+          // Try to pick a female voice
+          const voices = speechSynthesis.getVoices();
+          const femaleKeywords = ['female', 'samantha', 'victoria', 'karen', 'fiona', 'zira', 'hazel', 'jenny', 'aria', 'sara'];
+          const femaleVoice = voices.filter(v => v.lang.startsWith('en')).find(v => femaleKeywords.some(k => v.name.toLowerCase().includes(k))) || voices.find(v => v.lang.startsWith('en')) || voices[0];
+          if (femaleVoice) msg.voice = femaleVoice;
+          speechSynthesis.speak(msg);
+        }
       } catch (e) {
-        console.warn('Could not play notification sound:', e);
+        console.warn('Could not play notification voice:', e);
       }
     }
   });
