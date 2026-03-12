@@ -205,7 +205,7 @@ class LoggingReminderService {
 
     // Never let sound/badge failures block the notification.
     try {
-      await soundManager.triggerMedicalAlert('REMINDER');
+      await soundManager.speakCustom('Time to log your episode. Please record your sweat level for the last 4 hours.', 'REMINDER');
     } catch (error) {
       console.warn('📅 Reminder sound failed:', error);
     }
