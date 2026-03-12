@@ -103,8 +103,8 @@ class EnhancedMobileNotificationService {
     const soundSeverity = type === 'destructive' ? 'CRITICAL' : 
                          type === 'warning' ? 'WARNING' : 'REMINDER';
     
-    // Play professional medical alarm sound
-    await soundManager.triggerMedicalAlert(soundSeverity);
+    // Speak the actual notification content with female voice
+    await soundManager.speakCustom(`${title}. ${body}`, soundSeverity);
     
     // Show persistent system notification (works even when app is closed)
     await this.showPersistentNotification(title, body, type);
