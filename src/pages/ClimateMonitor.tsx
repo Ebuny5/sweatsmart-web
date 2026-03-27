@@ -414,7 +414,7 @@ const ClimateMonitor = () => {
   }, [weatherData, physiologicalData, sendNotification, arePermissionsGranted, lastAlertType, hasRealWeather, edaIsWearableAndFresh]);
 
   // updateNextLogTime — always anchored to lastLogTime
-  const const updateNextLogTime = useCallback((anchor?: number) => {
+  const updateNextLogTime = useCallback((anchor?: number) => {
   const base = anchor ?? (parseInt(localStorage.getItem('climateLastLogTime') || '0', 10) || Date.now());
   // ✅ CORRECT (only one declaration)
 const updateNextLogTime = useCallback((anchor?: number) => {
