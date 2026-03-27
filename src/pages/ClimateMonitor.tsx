@@ -416,14 +416,15 @@ const ClimateMonitor = () => {
   // updateNextLogTime — always anchored to lastLogTime
   const const updateNextLogTime = useCallback((anchor?: number) => {
   const base = anchor ?? (parseInt(localStorage.getItem('climateLastLogTime') || '0', 10) || Date.now());
+  // ✅ CORRECT (only one declaration)
+const updateNextLogTime = useCallback((anchor?: number) => {
+  const base = anchor ?? (parseInt(localStorage.getItem('climateLastLogTime') || '0', 10) || Date.now());
   const nextTime = base + 4 * 60 * 60 * 1000;
   setNextLogTime(nextTime);
   localStorage.setItem('climateNextLogTime', nextTime.toString());
 }, []);
-    const nextTime = base + 4 * 60 * 60 * 1000;
-    setNextLogTime(nextTime);
-    localStorage.setItem('climateNextLogTime', nextTime.toString());
-  }, []);
+
+// Then continue with the useEffect calls below
 
   useEffect(() => {
     const stored = localStorage.getItem('climateNextLogTime');
