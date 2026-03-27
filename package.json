@@ -1,1 +1,1 @@
-{\n  \"dependencies\": {\n    \"react-router-dom\": \"^6.0.0\",\n    \"react-toastify\": \"^9.1.0\",\n    \"recharts\": \"^2.0.0\"\n  }\n}
+{\n  \"dependencies\": {\n    \"react-router-dom\": \"^6.0.0\",\n     \"recharts\": \"^2.0.0\"\n  }\n}
