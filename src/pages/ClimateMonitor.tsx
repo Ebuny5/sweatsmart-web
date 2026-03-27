@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { edaManager } from '@/utils/edaManager';
 import type { WeatherData, PhysiologicalData, Thresholds, LogEntry, HDSSLevel } from "@/types";
 import { soundManager } from '@/utils/soundManager';
-import { calculateSweatRisk, getRiskSeverity, type SweatRiskLevel } from '@/utils/sweatRiskCalculator';
+import { calculateSweatRisk, shouldTriggerAlert, getRiskSeverity, type SweatRiskLevel } from '@/utils/sweatRiskCalculator';
 
 // Icons
 const ThermometerIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
@@ -384,7 +384,14 @@ const ClimateMonitor = () => {
     else if (risk.level === 'low') setAlertStatus("Low Risk: Mild conditions — stay hydrated and monitor.");
     else setAlertStatus(`${risk.message}: ${risk.description}`);
 
-    if (soundEnabled && currentAlertType !== lastAlertType && currentAlertType !== 'optimal') {
+    const lastAlertTimestamp = parseInt(localStorage.getItem('climateLastAlertTimestamp') || '0', 10);
+    const oneHourMs = 60 * 60 * 1000;
+    const alertExpired = Date.now() - lastAlertTimestamp > oneHourMs;
+    const isNewAlertType = currentAlertType !== lastAlertType;
+
+    const { shouldAlert } = shouldTriggerAlert(weatherData.temperature, weatherData.humidity, safeUV, thresholds);
+
+    if (soundEnabled && shouldAlert && currentAlertType !== 'optimal' && (isNewAlertType || alertExpired)) {
       sendNotification(
         `SweatSmart Alert — ${risk.message}`,
         `Temp: ${weatherData.temperature.toFixed(1)}°C | Humidity: ${weatherData.humidity.toFixed(0)}% | UV: ${safeUV.toFixed(1)}`,
@@ -395,7 +402,7 @@ const ClimateMonitor = () => {
     localStorage.setItem('climateLastAlertType', currentAlertType);
     localStorage.setItem('climateLastAlertTimestamp', Date.now().toString());
     setLastAlertType(currentAlertType);
-  }, [weatherData, physiologicalData, sendNotification, arePermissionsGranted, lastAlertType, hasRealWeather, edaIsWearableAndFresh]);
+  }, [weatherData, physiologicalData, sendNotification, arePermissionsGranted, lastAlertType, hasRealWeather, edaIsWearableAndFresh, thresholds]);
 
   // ✅ Single clean declaration — no duplicates
   const updateNextLogTime = useCallback((anchor?: number) => {
@@ -403,6 +410,10 @@ const ClimateMonitor = () => {
     const nextTime = base + 4 * 60 * 60 * 1000;
     setNextLogTime(nextTime);
     localStorage.setItem('climateNextLogTime', nextTime.toString());
+    // Sync to SW cache so background reminder fires even when app is closed
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'SYNC_LOG_REMINDER', nextLogTime: nextTime });
+    }
   }, []);
 
   useEffect(() => {
