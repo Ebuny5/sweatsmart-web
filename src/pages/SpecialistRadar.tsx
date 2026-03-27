@@ -1,7 +1,7 @@
 /* --- begin SpecialistRadar.tsx (edited) --- */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import de from 'date-fns/locale/de';
-import { toast } from 'react-toastify';
++ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { reverseGeocode } from '../utils/geocode';
