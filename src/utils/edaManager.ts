@@ -2,11 +2,11 @@ interface EDAData {
   value: number;
   hr?: number;
   timestamp: string;
-  source: 'palm-scanner' | 'climate-alert';
+  source: 'wearable' | 'simulator';
 }
 
 export const edaManager = {
-  saveEDA: (value: number, source: 'palm-scanner' | 'climate-alert') => {
+  saveEDA: (value: number, source: 'wearable' | 'simulator') => {
     const data: EDAData = {
       value,
       timestamp: new Date().toISOString(),
@@ -34,6 +34,15 @@ export const edaManager = {
     const age = Date.now() - new Date(data.timestamp).getTime();
     const FIVE_MINUTES = 5 * 60 * 1000;
     return age < FIVE_MINUTES;
+  },
+
+  /** Returns true only if source is 'wearable' AND reading is < 5 min old */
+  isWearableAndFresh: (): boolean => {
+    const data = edaManager.getEDA();
+    if (!data) return false;
+    if (data.source !== 'wearable') return false;
+    const age = Date.now() - new Date(data.timestamp).getTime();
+    return age < 5 * 60 * 1000;
   },
   
   clearEDA: () => {
