@@ -1003,7 +1003,7 @@ const HyperAI = () => {
                   <div className="w-1 rounded-full bg-red-400 wave-bar-4" />
                   <div className="w-1 rounded-full bg-red-400 wave-bar-5" />
                 </div>
-                <span className="text-xs text-red-300 flex-1">Listening... tap stop when done</span>
+                <span className="text-xs text-red-300 flex-1">Listening... speak now, I'll stop automatically</span>
                 <button
                   onClick={stopVoiceChat}
                   className="px-3 py-1.5 rounded-lg text-[11px] font-bold text-red-300 border border-red-500/40 hover:bg-red-500/20 transition-colors"
