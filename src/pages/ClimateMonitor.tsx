@@ -336,8 +336,12 @@ const ClimateMonitor = () => {
   }, []);
 
   const playAlertSound = useCallback(
-    (severity: 'CRITICAL' | 'WARNING' | 'REMINDER' = 'WARNING') => {
-      soundManager.triggerMedicalAlert(severity);
+    (severity: 'CRITICAL' | 'WARNING' | 'REMINDER' = 'WARNING', message?: string) => {
+      if (message) {
+        soundManager.speakCustom(message, severity);
+      } else {
+        soundManager.triggerMedicalAlert(severity);
+      }
     }, []
   );
 
@@ -382,6 +386,8 @@ const ClimateMonitor = () => {
 
     if (soundEnabled && currentAlertType !== lastAlertType && currentAlertType !== 'optimal') {
       const severity = getRiskSeverity(risk.level);
+      const alertBody = `${risk.message}. Temperature is ${weatherData.temperature.toFixed(1)} degrees, humidity at ${weatherData.humidity.toFixed(0)} percent, UV index ${safeUV.toFixed(1)}.`;
+      playAlertSound(severity, alertBody);
       sendNotification(
         `SweatSmart Alert — ${risk.message}`,
         `Temp: ${weatherData.temperature.toFixed(1)}°C | Humidity: ${weatherData.humidity.toFixed(0)}% | UV: ${safeUV.toFixed(1)}`,
@@ -418,7 +424,7 @@ const ClimateMonitor = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       if (nextLogTime && Date.now() >= nextLogTime && arePermissionsGranted) {
-        playAlertSound('REMINDER');
+        playAlertSound('REMINDER', 'It is time to record your sweat level for the past four hours.');
         if ('serviceWorker' in navigator && notificationPermission === 'granted') {
           navigator.serviceWorker.ready.then(reg => {
             reg.showNotification('⏰ Time to Log', {

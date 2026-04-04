@@ -182,10 +182,10 @@ export function calculateSweatRisk(
     }
 
     return {
-      level: isHighEDA ? 'moderate' : 'low',
-      message: isHighEDA ? 'Moderate Risk' : 'Low Risk',
-      description: 'Warm conditions — monitor symptoms and stay cool.',
-      color: isHighEDA ? 'text-yellow-400' : 'text-yellow-300',
+      level: 'moderate',
+      message: 'Moderate Risk',
+      description: 'Warm conditions — prepare cooling aids and monitor symptoms.',
+      color: 'text-yellow-400',
       triggers,
     };
   }
