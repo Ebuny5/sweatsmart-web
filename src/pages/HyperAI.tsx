@@ -544,110 +544,102 @@ const HyperAI = () => {
   // ── Voice settings persistence ─────────────────────────────────────────────
   // Voice settings removed — browser TTS only
 
-  // ── Deepgram STT → Chat → ElevenLabs TTS (full voice chat) ────────────────
+  // ── Voice chat using browser SpeechRecognition (auto-listens, auto-stops) ──
   const startVoiceChat = async () => {
     if (getVoiceUsageToday() >= DAILY_VOICE_LIMIT) {
       toast.error('Daily voice limit reached 💙 Upgrade to Warrior Plan for unlimited voice chat');
       return;
     }
+
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      toast.error('Speech recognition not supported on this browser');
+      return;
+    }
+
+    // Play a short greeting first
+    if ('speechSynthesis' in window) {
+      speechSynthesis.cancel();
+      const greeting = new SpeechSynthesisUtterance("I'm listening.");
+      const voices = speechSynthesis.getVoices();
+      const maleKeywords = ['male', 'man', 'david', 'james', 'daniel', 'mark', 'google uk english male', 'alex'];
+      const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+      const maleVoice = englishVoices.find(v => maleKeywords.some(k => v.name.toLowerCase().includes(k))) || englishVoices[1] || englishVoices[0];
+      if (maleVoice) greeting.voice = maleVoice;
+      greeting.rate = 1.0;
+      greeting.pitch = 0.95;
+      greeting.lang = 'en-US';
+      speechSynthesis.speak(greeting);
+
+      // Wait for greeting to finish before starting recognition
+      await new Promise<void>(resolve => {
+        greeting.onend = () => resolve();
+        greeting.onerror = () => resolve();
+        // Fallback timeout
+        setTimeout(resolve, 2000);
+      });
+    }
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Request mic permission
+      await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      // Play greeting FIRST, then start recording
-      await playVoiceGreeting();
+      const recognition = new SR();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+      recognition.maxAlternatives = 1;
 
-      // Detect best supported MIME type for Android
-      const mimeType =
-        MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' :
-        MediaRecorder.isTypeSupported('audio/webm')             ? 'audio/webm' :
-        MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')  ? 'audio/ogg;codecs=opus' :
-        MediaRecorder.isTypeSupported('audio/mp4')              ? 'audio/mp4' :
-        '';
+      recognition.onstart = () => {
+        setIsRecording(true);
+      };
 
-      const recorderOptions = mimeType ? { mimeType } : {};
-      const recorder = new MediaRecorder(stream, recorderOptions);
-      audioChunksRef.current = [];
-
-      // Use 100ms timeslice — critical for Android to avoid empty blobs
-      recorder.ondataavailable = e => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
-      recorder.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop());
+      recognition.onresult = async (e: any) => {
+        const transcript = e.results[0][0].transcript?.trim();
         setIsRecording(false);
+
+        if (!transcript) {
+          toast.error("Couldn't catch that — please speak clearly and try again");
+          return;
+        }
+
         setIsProcessingVoice(true);
+        incrementVoiceUsage();
 
         try {
-          const audioBlob = new Blob(audioChunksRef.current, { type: mimeType || 'audio/webm' });
-
-          // Guard: reject if too small (empty recording)
-          if (audioBlob.size < 500) {
-            setIsProcessingVoice(false);
-            toast.error("Recording too short — please try again and speak clearly");
-            return;
-          }
-
-          const reader = new FileReader();
-          reader.onload = async () => {
-            try {
-              const base64 = (reader.result as string).split(',')[1];
-              const { data: sessionData } = await supabase.auth.getSession();
-              if (!sessionData.session) { setIsProcessingVoice(false); return; }
-
-              const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hyper-ai-chat`;
-
-              // Step 1 — STT: audio → transcript via Deepgram
-              const sttRes = await fetch(CHAT_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionData.session.access_token}` },
-                body: JSON.stringify({ type: 'stt', audioBase64: base64, mimeType: mimeType || 'audio/webm', audioSize: audioBlob.size }),
-              });
-
-              if (!sttRes.ok) {
-                const errText = await sttRes.text();
-                console.error('STT error:', errText);
-                throw new Error('STT failed');
-              }
-              const sttData = await sttRes.json();
-              const transcript = sttData.transcript?.trim();
-
-              if (!transcript) {
-                setIsProcessingVoice(false);
-                toast.error("Couldn't catch that — please speak clearly and try again");
-                return;
-              }
-
-              setIsProcessingVoice(false);
-              incrementVoiceUsage();
-
-              // Step 2 — Send transcript to Gemini + auto-speak response
-              await handleSend(transcript, true);
-            } catch (e) {
-              console.error('Voice chat error:', e);
-              setIsProcessingVoice(false);
-              toast.error('Voice processing failed — please try again');
-            }
-          };
-          reader.onerror = () => { setIsProcessingVoice(false); toast.error('Audio read failed'); };
-          reader.readAsDataURL(audioBlob);
-        } catch (e) {
+          await handleSend(transcript, true);
+        } finally {
           setIsProcessingVoice(false);
-          toast.error('Could not process audio');
         }
       };
 
-      mediaRecorderRef.current = recorder;
-      recorder.start(100); // 100ms timeslice — essential for Android
-      setIsRecording(true);
+      recognition.onerror = (e: any) => {
+        setIsRecording(false);
+        if (e.error === 'no-speech') {
+          toast.error("No speech detected — please try again");
+        } else if (e.error !== 'aborted') {
+          toast.error('Voice recognition error — please try again');
+        }
+      };
+
+      recognition.onend = () => {
+        setIsRecording(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
     } catch (err: any) {
       if (err?.name === 'NotAllowedError') {
         toast.error('Microphone access denied — allow microphone in browser settings');
       } else {
-        toast.error('Could not start recording — please try again');
+        toast.error('Could not start voice chat — please try again');
       }
     }
   };
 
   const stopVoiceChat = () => {
-    mediaRecorderRef.current?.stop();
+    recognitionRef.current?.stop();
+    setIsRecording(false);
   };
 
   // ── Browser mic for typing ─────────────────────────────────────────────────
