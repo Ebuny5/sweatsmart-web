@@ -318,11 +318,7 @@ const HyperAI = () => {
   const [speakingIndex, setSpeakingIndex]     = useState<number | null>(null);
   const [isRecording, setIsRecording]         = useState(false);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
-  const [voiceSettingsOpen, setVoiceSettingsOpen] = useState(false);
-  const [selectedVoiceId, setSelectedVoiceId] = useState(
-    () => localStorage.getItem('hyper_voice_id') || '21m00Tcm4TlvDq8ikWAM'
-  );
-  const [voiceSpeed, setVoiceSpeed] = useState(
+  const [voiceSpeed] = useState(
     () => parseFloat(localStorage.getItem('hyper_voice_speed') || '1')
   );
 
