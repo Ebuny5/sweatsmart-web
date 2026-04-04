@@ -1,74 +1,15 @@
-import React, { useState } from 'react';
-import type { LogEntry, HDSSLevel } from '../../types';
-
-const HDSS_DESCRIPTIONS: Record<HDSSLevel, { title: string; desc: string }> = {
-  1: { title: 'Never Noticeable', desc: 'My sweating is never noticeable and never interferes with my daily activities.' },
-  2: { title: 'Tolerable', desc: 'My sweating is tolerable but sometimes interferes with my daily activities.' },
-  3: { title: 'Barely Tolerable', desc: 'My sweating is barely tolerable and frequently interferes with my daily activities.' },
-  4: { title: 'Intolerable', desc: 'My sweating is intolerable and always interferes with my daily activities.' },
-};
+import React from 'react';
+import type { LogEntry } from '../../types';
 
 interface LoggingSystemProps {
   logs: LogEntry[];
   isModalOpen: boolean;
   onCloseModal: () => void;
-  onSubmitLog: (level: HDSSLevel) => void;
+  onSubmitLog: (level: any) => void;
   onLogNow: () => void;
   nextLogTime: number | null;
   lastLogTime?: number | null;
 }
-
-const LoggingModal: React.FC<{
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (level: HDSSLevel) => void;
-}> = ({ isOpen, onClose, onSubmit }) => {
-  const [selectedLevel, setSelectedLevel] = useState<HDSSLevel | null>(null);
-
-  const handleSubmit = () => {
-    if (selectedLevel) {
-      onSubmit(selectedLevel);
-      setSelectedLevel(null);
-    }
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-md text-white border border-gray-700">
-        <h2 className="text-2xl font-bold mb-1 text-cyan-300">Log Your Sweat Level</h2>
-        <p className="text-gray-400 mb-6">Based on the Hyperhidrosis Disease Severity Scale (HDSS).</p>
-        <div className="space-y-3">
-          {Object.entries(HDSS_DESCRIPTIONS).map(([level, content]) => {
-            const levelNum = Number(level) as HDSSLevel;
-            return (
-              <div
-                key={levelNum}
-                onClick={() => setSelectedLevel(levelNum)}
-                className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
-                  selectedLevel === levelNum ? 'border-cyan-400 bg-gray-700' : 'border-gray-600 hover:border-cyan-500 hover:bg-gray-700/50'
-                }`}
-              >
-                <label className="flex items-center space-x-4 cursor-pointer">
-                  <div className="flex-shrink-0 text-2xl font-bold text-cyan-400">{levelNum}</div>
-                  <div>
-                    <p className="font-semibold text-white">{content.title}</p>
-                    <p className="text-sm text-gray-400">{content.desc}</p>
-                  </div>
-                </label>
-              </div>
-            );
-          })}
-        </div>
-        <div className="mt-6 flex justify-end space-x-3">
-          <button onClick={onClose} className="px-4 py-2 rounded-md bg-gray-600 hover:bg-gray-500 text-white font-semibold transition-colors">Cancel</button>
-          <button onClick={handleSubmit} disabled={!selectedLevel} className="px-6 py-2 rounded-md bg-cyan-500 hover:bg-cyan-400 text-black font-bold transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed">Submit</button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 export const LoggingSystem: React.FC<LoggingSystemProps> = ({
   logs, isModalOpen, onCloseModal, onSubmitLog, onLogNow, nextLogTime, lastLogTime
@@ -89,34 +30,39 @@ export const LoggingSystem: React.FC<LoggingSystemProps> = ({
     return `in ${hrs}h ${mins}m`;
   };
 
-  return (
-    <>
-      <LoggingModal isOpen={isModalOpen} onClose={onCloseModal} onSubmit={onSubmitLog} />
-      <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-4 space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-bold text-cyan-300">Compulsory Logging</h3>
-          <button
-            onClick={onLogNow}
-            className="px-4 py-2 text-sm font-bold text-black bg-cyan-400 rounded-md hover:bg-cyan-300 transition"
-          >Log Now</button>
-        </div>
+  // When the modal would open, redirect to the log episode page instead
+  React.useEffect(() => {
+    if (isModalOpen) {
+      onCloseModal();
+      onLogNow();
+    }
+  }, [isModalOpen, onCloseModal, onLogNow]);
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="text-center bg-gray-900 p-3 rounded-lg">
-            <p className="text-sm text-gray-400">Last logged</p>
-            <p className="text-lg font-bold text-white">
-              {lastLogTime ? formatTime(lastLogTime) : '—'}
-            </p>
-            {lastLogTime && (
-              <p className="text-xs text-gray-500">{formatDate(lastLogTime)}</p>
-            )}
-          </div>
-          <div className="text-center bg-gray-900 p-3 rounded-lg">
-            <p className="text-sm text-gray-400">Next reminder</p>
-            <p className="text-2xl font-bold text-white">{formatNextLogTime(nextLogTime)}</p>
-          </div>
+  return (
+    <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-4 space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-bold text-cyan-300">Compulsory Logging</h3>
+        <button
+          onClick={onLogNow}
+          className="px-4 py-2 text-sm font-bold text-black bg-cyan-400 rounded-md hover:bg-cyan-300 transition"
+        >Log Now</button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="text-center bg-gray-900 p-3 rounded-lg">
+          <p className="text-sm text-gray-400">Last logged</p>
+          <p className="text-lg font-bold text-white">
+            {lastLogTime ? formatTime(lastLogTime) : '—'}
+          </p>
+          {lastLogTime && (
+            <p className="text-xs text-gray-500">{formatDate(lastLogTime)}</p>
+          )}
+        </div>
+        <div className="text-center bg-gray-900 p-3 rounded-lg">
+          <p className="text-sm text-gray-400">Next reminder</p>
+          <p className="text-2xl font-bold text-white">{formatNextLogTime(nextLogTime)}</p>
         </div>
       </div>
-    </>
+    </div>
   );
 };
