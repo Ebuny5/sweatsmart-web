@@ -551,6 +551,7 @@ const ClimateMonitor = () => {
             onCloseModal={() => setIsLoggingModalOpen(false)}
             onSubmitLog={handleLogSubmit}
             onLogNow={() => navigate('/log-episode')}
+            onOpenLogPage={() => navigate('/log-episode')}
             nextLogTime={nextLogTime}
             lastLogTime={lastLogTime}
           />
