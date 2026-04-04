@@ -336,8 +336,12 @@ const ClimateMonitor = () => {
   }, []);
 
   const playAlertSound = useCallback(
-    (severity: 'CRITICAL' | 'WARNING' | 'REMINDER' = 'WARNING') => {
-      soundManager.triggerMedicalAlert(severity);
+    (severity: 'CRITICAL' | 'WARNING' | 'REMINDER' = 'WARNING', message?: string) => {
+      if (message) {
+        soundManager.speakCustom(message, severity);
+      } else {
+        soundManager.triggerMedicalAlert(severity);
+      }
     }, []
   );
 
