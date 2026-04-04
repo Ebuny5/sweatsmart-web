@@ -2,6 +2,7 @@ export class SoundManager {
   private static instance: SoundManager;
   private soundEnabled = true;
   private femaleVoice: SpeechSynthesisVoice | null = null;
+  private maleVoice: SpeechSynthesisVoice | null = null;
   private voicesLoaded = false;
 
   private constructor() {
@@ -20,7 +21,7 @@ export class SoundManager {
   private loadVoices(): void {
     if (!('speechSynthesis' in window)) return;
 
-    const pickFemaleVoice = () => {
+    const pickVoices = () => {
       const voices = speechSynthesis.getVoices();
       if (!voices.length) return;
       this.voicesLoaded = true;
@@ -28,7 +29,11 @@ export class SoundManager {
       const femaleKeywords = [
         'female', 'woman', 'samantha', 'victoria', 'karen', 'fiona',
         'moira', 'tessa', 'susan', 'zira', 'hazel', 'linda', 'jenny',
-        'aria', 'sara',
+        'aria', 'sara', 'google us english', 'google uk english female'
+      ];
+      const maleKeywords = [
+        'male', 'man', 'guy', 'david', 'mark', 'antoni', 'josh', 'adam',
+        'google uk english male', 'google us english male'
       ];
       const englishVoices = voices.filter(v => v.lang.startsWith('en'));
 
@@ -37,33 +42,44 @@ export class SoundManager {
           femaleKeywords.some(k => v.name.toLowerCase().includes(k))
         ) || null;
 
+      this.maleVoice =
+        englishVoices.find(v =>
+          maleKeywords.some(k => v.name.toLowerCase().includes(k))
+        ) || null;
+
       if (!this.femaleVoice && englishVoices.length) {
         this.femaleVoice = englishVoices[0];
       }
-      if (!this.femaleVoice && voices.length) {
-        this.femaleVoice = voices[0];
+      if (!this.maleVoice && englishVoices.length) {
+        this.maleVoice = englishVoices.find(v => !this.femaleVoice || v.name !== this.femaleVoice.name) || englishVoices[0];
       }
 
-      console.log('🗣️ Selected voice:', this.femaleVoice?.name);
+      console.log('🗣️ Selected voices:', {
+        female: this.femaleVoice?.name,
+        male: this.maleVoice?.name
+      });
     };
 
-    pickFemaleVoice();
+    pickVoices();
     if (!this.voicesLoaded) {
-      speechSynthesis.addEventListener('voiceschanged', pickFemaleVoice);
+      speechSynthesis.addEventListener('voiceschanged', pickVoices);
     }
   }
 
-  private speak(text: string, rate = 1.0, pitch = 1.0): void {
+  private speak(text: string, rate = 1.0, pitch = 1.0, gender: 'male' | 'female' = 'female'): void {
     if (!this.soundEnabled || !('speechSynthesis' in window)) return;
     speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    if (this.femaleVoice) utterance.voice = this.femaleVoice;
+
+    const selectedVoice = gender === 'male' ? this.maleVoice : this.femaleVoice;
+    if (selectedVoice) utterance.voice = selectedVoice;
+
     utterance.rate = rate;
     utterance.pitch = pitch;
     utterance.volume = 1.0;
     utterance.lang = 'en-US';
     speechSynthesis.speak(utterance);
-    console.log(`🗣️ Voice alert: "${text}"`);
+    console.log(`🗣️ Voice alert (${gender}): "${text}"`);
   }
 
   async playNotificationSound(
@@ -146,7 +162,44 @@ export class SoundManager {
     }
 
     const rate = severity === 'CRITICAL' ? 1.02 : 0.95;
-    this.speak(message, rate, 1.0);
+    this.speak(message, rate, 1.0, 'female');
+  }
+
+  /** Speak a custom message with explicit gender and settings control */
+  async speakCustomWithGender(
+    message: string,
+    gender: 'male' | 'female' = 'female',
+    rate = 1.0,
+    pitch = 1.0,
+    onEnd?: () => void
+  ): Promise<void> {
+    if (!this.soundEnabled || !('speechSynthesis' in window)) {
+      onEnd?.();
+      return;
+    }
+
+    speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(message);
+
+    const selectedVoice = gender === 'male' ? this.maleVoice : this.femaleVoice;
+    if (selectedVoice) utterance.voice = selectedVoice;
+
+    utterance.rate = rate;
+    utterance.pitch = pitch;
+    utterance.volume = 1.0;
+    utterance.lang = 'en-US';
+
+    utterance.onstart = () => console.log(`🗣️ Starting browser TTS (${gender})`);
+    utterance.onend = () => {
+      console.log(`🗣️ Finished browser TTS (${gender})`);
+      onEnd?.();
+    };
+    utterance.onerror = (e) => {
+      console.error(`🗣️ Browser TTS error (${gender}):`, e);
+      onEnd?.();
+    };
+
+    speechSynthesis.speak(utterance);
   }
 
   setSoundEnabled(enabled: boolean): void {
