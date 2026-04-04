@@ -1179,15 +1179,6 @@ const HyperAI = () => {
           onClose={() => setHistoryOpen(false)}
         />
 
-        {/* Voice settings modal */}
-        <VoiceSettingsModal
-          open={voiceSettingsOpen}
-          selectedVoiceId={selectedVoiceId}
-          voiceSpeed={voiceSpeed}
-          onVoiceSelect={handleVoiceSelect}
-          onSpeedChange={handleSpeedChange}
-          onClose={() => setVoiceSettingsOpen(false)}
-        />
       </div>
     </AppLayout>
   );
