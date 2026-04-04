@@ -226,7 +226,3 @@ const App = () => {
 };
 
 export default App;
-import SpecialistRadar from '@/pages/SpecialistRadar';
-
-// inside your routes:
-<Route path="/specialist-radar" element={<SpecialistRadar />} />
