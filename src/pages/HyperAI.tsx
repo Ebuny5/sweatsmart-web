@@ -3,7 +3,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Send, Sparkles, Loader2, Copy, Check, Mic, MicOff,
   Trash2, Volume2, VolumeX, FileText, ChevronRight,
   Zap, AlertTriangle, PenSquare, History, ImagePlus, X,
-  Square, Phone, Settings2 } from 'lucide-react';
+  Square, Phone } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
