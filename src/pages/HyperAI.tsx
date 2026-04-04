@@ -644,28 +644,24 @@ const HyperAI = () => {
     localStorage.setItem('hyper_voice_speed', String(s));
   };
 
-  // ── Helper: play TTS greeting before recording ────────────────────────────
-  const playVoiceGreeting = useCallback(async (): Promise<void> => {
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) return;
-      const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hyper-ai-chat`;
-      const res = await fetch(CHAT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionData.session.access_token}` },
-        body: JSON.stringify({ type: 'tts', text: "Hi Warrior, I'm listening. Speak now.", voiceId: selectedVoiceId, speed: voiceSpeed }),
-      });
-      if (!res.ok) return;
-      const blob = await res.blob();
-      const url  = URL.createObjectURL(blob);
-      return new Promise(resolve => {
-        const audio = new Audio(url);
-        audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
-        audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
-        audio.play().catch(() => resolve());
-      });
-    } catch { /* greeting failing silently is fine */ }
-  }, [selectedVoiceId, voiceSpeed]);
+  // ── Browser TTS greeting before recording ──────────────────────────────
+  const playVoiceGreeting = useCallback((): Promise<void> => {
+    return new Promise(resolve => {
+      if (!('speechSynthesis' in window)) { resolve(); return; }
+      const utterance = new SpeechSynthesisUtterance("Hi Warrior, I'm listening. Speak now.");
+      const voices = speechSynthesis.getVoices();
+      const maleKeywords = ['male', 'man', 'david', 'james', 'daniel', 'mark', 'google uk english male', 'alex'];
+      const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+      const maleVoice = englishVoices.find(v => maleKeywords.some(k => v.name.toLowerCase().includes(k))) || englishVoices[1] || englishVoices[0];
+      if (maleVoice) utterance.voice = maleVoice;
+      utterance.rate = voiceSpeed;
+      utterance.pitch = 0.95;
+      utterance.lang = 'en-US';
+      utterance.onend = () => resolve();
+      utterance.onerror = () => resolve();
+      speechSynthesis.speak(utterance);
+    });
+  }, [voiceSpeed]);
 
   // ── Deepgram STT → Chat → ElevenLabs TTS (full voice chat) ────────────────
   const startVoiceChat = async () => {
