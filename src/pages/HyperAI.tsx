@@ -31,15 +31,7 @@ interface Conversation {
 const MAX_MESSAGES_PER_CONV = 40;
 const DAILY_VOICE_LIMIT     = 4;
 
-// ── ElevenLabs voices ────────────────────────────────────────────────────────
-const VOICES = [
-  { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', desc: 'Warm & calm' },
-  { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam',   desc: 'Deep & clear' },
-  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Bella',  desc: 'Soft & gentle' },
-  { id: 'ErXwobaYiN019PkySvjV', name: 'Antoni', desc: 'Smooth & warm' },
-  { id: 'TxGEqnHWrfWFTfGW9XjX', name: 'Josh',   desc: 'Natural & friendly' },
-  { id: 'AZnzlk1XvdvUeBnXmlld', name: 'Domi',   desc: 'Strong & direct' },
-];
+// ElevenLabs voices removed — using free browser TTS
 
 // ── Neural Glow animation (CSS injected once) ─────────────────────────────────
 const NEURAL_GLOW_STYLE = `
