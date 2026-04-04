@@ -928,15 +928,7 @@ const HyperAI = () => {
                 </span>
               </div>
             )}
-            {/* Voice settings */}
-            <button
-              onClick={() => setVoiceSettingsOpen(true)}
-              title="Voice settings"
-              className="p-2 rounded-xl hover:bg-white/10 text-white/40 hover:text-white/80 transition-all"
-              style={{ border: '1px solid rgba(255,255,255,0.08)' }}
-            >
-              <Settings2 className="h-3.5 w-3.5" />
-            </button>
+
             <button
               onClick={handleNewChat}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-white/10 text-white/50 hover:text-white/90 transition-all border border-white/10"
