@@ -1,45 +1,59 @@
-/* --- begin SpecialistRadar.tsx (edited) --- */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import de from 'date-fns/locale/de';
-import { toast } from 'react-toastify';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
-import { reverseGeocode } from '../utils/geocode';
-import Map from '../components/Map';
-import DoctorCard from '../components/DoctorCard';
-import { SCOPE_RADII } from '../constants';
-/* ... other imports remain unchanged ... */
+import { supabase } from '@/integrations/supabase/client';
+import AppLayout from '@/components/layout/AppLayout';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
-export default function SpecialistRadar(props) {
-  // existing hooks/state/refs remain as they were
+interface Doctor {
+  id: string;
+  name: string;
+  clinicName?: string | null;
+  specialty: string;
+  address: string;
+  city: string;
+  country: string;
+  distance?: string | null;
+  distanceMeters?: number | null;
+  isTelehealth: boolean;
+  treatments?: string[];
+  phone?: string | null;
+  email?: string | null;
+  website?: string | null;
+  source: string;
+  tier?: string | null;
+  rating?: number | null;
+  reviewCount?: number | null;
+}
+
+type Scope = 'city' | 'country' | 'global';
+
+const SCOPE_RADII: Record<Scope, number> = { city: 50000, country: 500000, global: 0 };
+
+const MapPinIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+const RefreshIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356-2A8.001 8.001 0 004 12c0 2.127.766 4.047 2.031 5.488M16 20v-5h.582m-15.356 2A8.001 8.001 0 0020 12c0-2.127-.766-4.047-2.031-5.488" />
+  </svg>
+);
+
+const LAST_LOCATION_KEY = 'last_location';
+
+export default function SpecialistRadar() {
+  const navigate = useNavigate();
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState('');
-  const [doctors, setDoctors] = useState<any[]>([]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [scope, setScope] = useState<'city'|'country'|'global'>('city');
-  const mapInst = useRef<any>(null);
-  const userPin = useRef<any>(null);
-  const LAST_LOCATION_KEY = 'last_location';
-
-  // --- Added: movement/debounce/in-flight helpers to reduce GPS jitter and repeated fetches ---
-  const lastLocRef = useRef<{ lat: number; lng: number } | null>(null);
+  const [scope, setScope] = useState<Scope>('city');
+  const [meta, setMeta] = useState<any>(null);
   const isFetchingRef = useRef(false);
-  const fetchDebounceRef = useRef<number | null>(null);
 
-  // Haversine distance (meters)
-  const haversineMeters = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371000;
-    const toRad = (deg: number) => deg * Math.PI / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  };
-  // --- end added ---
-
-  // existing helpers and effects (unchanged)...
   const requestLocation = useCallback(() => {
     if (!navigator?.geolocation) {
       setLocationError('Geolocation not supported in this browser');
@@ -49,65 +63,29 @@ export default function SpecialistRadar(props) {
       pos => {
         const { latitude: lat, longitude: lng } = pos.coords;
         setLocation({ lat, lng });
+        setLocationError('');
         try { localStorage.setItem(LAST_LOCATION_KEY, JSON.stringify({ lat, lng })); } catch {}
-        reverseGeocode(lat, lng).then(() => {}).catch(() => {});
       },
-      err => {
-        setLocationError('Unable to access location');
-      },
+      () => { setLocationError('Unable to access location. Please enable location permissions.'); },
       { enableHighAccuracy: true, maximumAge: 30000, timeout: 15000 }
     );
   }, []);
 
+  // Seed from localStorage on mount, then request fresh location
   useEffect(() => {
-    // register a watcher to update location; edits here gate tiny moves and debounce fetches
-    if (!navigator?.geolocation) return;
-    const watcherId = navigator.geolocation.watchPosition(
-      async pos => {
-        const { latitude: lat, longitude: lng } = pos.coords;
+    try {
+      const stored = localStorage.getItem(LAST_LOCATION_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.lat && parsed.lng) setLocation(parsed);
+      }
+    } catch {}
+    requestLocation();
+  }, [requestLocation]);
 
-        // ignore tiny GPS jitter — require 250m movement before triggering fetches and recenter
-        const last = lastLocRef.current;
-        const moved = last ? haversineMeters(last.lat, last.lng, lat, lng) : Infinity;
-        if (moved < 250) {
-          // update stored last-known but don't trigger fetch/map recenter
-          try { localStorage.setItem(LAST_LOCATION_KEY, JSON.stringify({ lat, lng })); } catch {}
-          return;
-        }
-
-        lastLocRef.current = { lat, lng };
-        setLocation({ lat, lng });
-        setLocationError('');
-        try { localStorage.setItem(LAST_LOCATION_KEY, JSON.stringify({ lat, lng })); } catch {}
-        // reverse geocode but don't block UI
-        reverseGeocode(lat, lng).catch(() => {});
-
-        // debounce fetchDoctors to coalesce rapid updates
-        if (fetchDebounceRef.current) window.clearTimeout(fetchDebounceRef.current);
-        fetchDebounceRef.current = window.setTimeout(() => {
-          if (!isFetchingRef.current) {
-            fetchDoctors().catch(() => {});
-          }
-        }, 800);
-      },
-      (err) => {
-        console.warn('watchPosition error', err);
-        setLocationError('Unable to access location');
-      },
-      { enableHighAccuracy: true, maximumAge: 30000, timeout: 15000 }
-    );
-
-    return () => {
-      if (watcherId) navigator.geolocation.clearWatch(watcherId);
-      if (fetchDebounceRef.current) window.clearTimeout(fetchDebounceRef.current);
-    };
-  }, [fetchDoctors, reverseGeocode]);
-
-  // --- fetchDoctors: updated to use in-flight lock and stable telehealth sort ---
   const fetchDoctors = useCallback(async () => {
     if (!location) { requestLocation(); return; }
-
-    if (isFetchingRef.current) return; // bail if already running
+    if (isFetchingRef.current) return;
     isFetchingRef.current = true;
     setIsLoading(true);
 
@@ -121,26 +99,13 @@ export default function SpecialistRadar(props) {
       const res = await fetch(RADAR_URL, {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          lat: location.lat, lng: location.lng,
-          radius: SCOPE_RADII[scope],
-          // preserve other expected params if present
-        }),
+        body: JSON.stringify({ lat: location.lat, lng: location.lng, radius: SCOPE_RADII[scope] }),
       });
       if (!res.ok) throw new Error('Search failed');
       const payload = await res.json();
-      const results = payload.doctors || [];
-      const resMeta = payload.meta || null;
-
-      // stable sort telehealth entries by name to avoid visible shuffling between calls
-      const stable = results.slice();
-      stable.sort((a: any, b: any) => {
-        if (a.isTelehealth && b.isTelehealth) return (a.name || '').localeCompare(b.name || '');
-        return 0;
-      });
-
-      setDoctors(stable);
-      setMeta(resMeta);
+      const results: Doctor[] = payload.doctors || [];
+      setDoctors(results);
+      setMeta(payload.meta || null);
     } catch (e) {
       console.error('Specialist search error:', e);
       toast.error('Could not find specialists — check your connection');
@@ -150,34 +115,110 @@ export default function SpecialistRadar(props) {
     }
   }, [location, scope, requestLocation]);
 
-  // Example map recenter usage elsewhere in file: replaced to avoid jittery recentering
+  // Fetch on location or scope change
   useEffect(() => {
-    if (!mapInst.current) return;
-    if (location) {
-      if (userPin.current) userPin.current.remove();
-      // create a new pin (existing behavior kept)
-      // ... existing pin creation code ...
-      const last = lastLocRef.current;
-      const moveDistance = last ? haversineMeters(last.lat, last.lng, location.lat, location.lng) : Infinity;
-      // Only recenter if moved more than 200m (reduces jitter)
-      if (moveDistance > 200) {
-        mapInst.current.setView([location.lat, location.lng], scope === 'city' ? 13 : scope === 'country' ? 7 : 4);
-      }
-    }
-  }, [location, scope]);
+    if (location) fetchDoctors();
+  }, [location, scope, fetchDoctors]);
 
-  // rest of the file remains unchanged (render, handlers, UI)
+  const scopes: { key: Scope; label: string }[] = [
+    { key: 'city', label: 'My City' },
+    { key: 'country', label: 'My Country' },
+    { key: 'global', label: 'Global' },
+  ];
+
   return (
-    <div className="specialist-radar-root">
-      <Map ref={mapInst} />
-      <div className="radar-ui">
-        {/* existing UI code unchanged */}
-        {isLoading ? <div className="scanning">Scanning…</div> : null}
-        <div className="doctors-list">
-          {doctors.map(doctor => <DoctorCard key={doctor.id} doctor={doctor} />)}
+    <AppLayout>
+      <div className="min-h-full bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-400 p-4 md:p-6 rounded-xl space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-white drop-shadow-lg">Specialist Radar</h1>
+            <p className="text-white/80 text-sm mt-1">Find hyperhidrosis specialists near you</p>
+          </div>
+          <Button onClick={() => { requestLocation(); }} disabled={isLoading} className="bg-cyan-600 text-white hover:bg-cyan-500">
+            <RefreshIcon className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? 'Scanning...' : 'Refresh'}
+          </Button>
+        </div>
+
+        {locationError && (
+          <div className="bg-red-900/50 border border-red-700 p-4 rounded-lg text-center">
+            <p className="text-red-200 text-sm">{locationError}</p>
+            <Button onClick={requestLocation} className="mt-2 bg-gray-200 text-black hover:bg-white text-sm">
+              <RefreshIcon className="w-4 h-4 mr-2" /> Try Again
+            </Button>
+          </div>
+        )}
+
+        {/* Scope tabs */}
+        <div className="flex gap-2">
+          {scopes.map(s => (
+            <button key={s.key} onClick={() => setScope(s.key)}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition ${scope === s.key ? 'bg-white text-blue-600' : 'bg-white/20 text-white hover:bg-white/30'}`}>
+              {s.label}
+            </button>
+          ))}
+        </div>
+
+        {meta && (
+          <div className="text-white/70 text-xs">
+            {meta.total ?? doctors.length} specialists found
+            {meta.curatedCount ? ` (${meta.curatedCount} verified)` : ''}
+          </div>
+        )}
+
+        {isLoading && (
+          <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-8 text-center">
+            <p className="text-white font-semibold animate-pulse">Scanning for specialists...</p>
+          </div>
+        )}
+
+        {!isLoading && doctors.length === 0 && location && (
+          <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-8 text-center">
+            <p className="text-gray-300">No specialists found in this area. Try expanding your search scope.</p>
+          </div>
+        )}
+
+        <div className="space-y-3">
+          {doctors.map(doc => (
+            <div key={doc.id} className="bg-gray-800/80 border border-gray-700 rounded-xl p-4 space-y-2">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="font-bold text-white text-base">{doc.name}</h3>
+                  {doc.clinicName && <p className="text-cyan-300 text-sm">{doc.clinicName}</p>}
+                  <p className="text-gray-400 text-xs">{doc.specialty}</p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  {doc.isTelehealth ? (
+                    <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full border border-green-500/50">📹 Telehealth</span>
+                  ) : doc.distance ? (
+                    <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full border border-blue-500/50">📍 {doc.distance}</span>
+                  ) : null}
+                </div>
+              </div>
+              <p className="text-gray-400 text-xs flex items-center gap-1">
+                <MapPinIcon className="w-3 h-3" /> {doc.address}, {doc.city}, {doc.country}
+              </p>
+              {doc.treatments && doc.treatments.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {doc.treatments.map(t => (
+                    <span key={t} className="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full">{t}</span>
+                  ))}
+                </div>
+              )}
+              {doc.tier && (
+                <span className={`text-xs px-2 py-0.5 rounded-full ${doc.tier === 'gold' ? 'bg-yellow-500/20 text-yellow-400' : doc.tier === 'silver' ? 'bg-gray-400/20 text-gray-300' : 'bg-orange-500/20 text-orange-400'}`}>
+                  {doc.tier === 'gold' ? '⭐ Verified Expert' : doc.tier === 'silver' ? '✅ Verified' : `Source: ${doc.source}`}
+                </span>
+              )}
+              <div className="flex gap-2 pt-1">
+                {doc.phone && <a href={`tel:${doc.phone}`} className="text-xs text-cyan-400 hover:underline">📞 Call</a>}
+                {doc.email && <a href={`mailto:${doc.email}`} className="text-xs text-cyan-400 hover:underline">✉️ Email</a>}
+                {doc.website && <a href={doc.website} target="_blank" rel="noopener noreferrer" className="text-xs text-cyan-400 hover:underline">🌐 Website</a>}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }
-/* --- end SpecialistRadar.tsx (edited) --- */
