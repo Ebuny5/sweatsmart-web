@@ -542,34 +542,7 @@ const HyperAI = () => {
   }, [speakingIndex, voiceSpeed]);
 
   // ── Voice settings persistence ─────────────────────────────────────────────
-  const handleVoiceSelect = (id: string) => {
-    setSelectedVoiceId(id);
-    localStorage.setItem('hyper_voice_id', id);
-  };
-
-  const handleSpeedChange = (s: number) => {
-    setVoiceSpeed(s);
-    localStorage.setItem('hyper_voice_speed', String(s));
-  };
-
-  // ── Browser TTS greeting before recording ──────────────────────────────
-  const playVoiceGreeting = useCallback((): Promise<void> => {
-    return new Promise(resolve => {
-      if (!('speechSynthesis' in window)) { resolve(); return; }
-      const utterance = new SpeechSynthesisUtterance("Hi Warrior, I'm listening. Speak now.");
-      const voices = speechSynthesis.getVoices();
-      const maleKeywords = ['male', 'man', 'david', 'james', 'daniel', 'mark', 'google uk english male', 'alex'];
-      const englishVoices = voices.filter(v => v.lang.startsWith('en'));
-      const maleVoice = englishVoices.find(v => maleKeywords.some(k => v.name.toLowerCase().includes(k))) || englishVoices[1] || englishVoices[0];
-      if (maleVoice) utterance.voice = maleVoice;
-      utterance.rate = voiceSpeed;
-      utterance.pitch = 0.95;
-      utterance.lang = 'en-US';
-      utterance.onend = () => resolve();
-      utterance.onerror = () => resolve();
-      speechSynthesis.speak(utterance);
-    });
-  }, [voiceSpeed]);
+  // Voice settings removed — browser TTS only
 
   // ── Deepgram STT → Chat → ElevenLabs TTS (full voice chat) ────────────────
   const startVoiceChat = async () => {
