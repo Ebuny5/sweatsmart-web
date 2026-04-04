@@ -386,6 +386,8 @@ const ClimateMonitor = () => {
 
     if (soundEnabled && currentAlertType !== lastAlertType && currentAlertType !== 'optimal') {
       const severity = getRiskSeverity(risk.level);
+      const alertBody = `${risk.message}. Temperature is ${weatherData.temperature.toFixed(1)} degrees, humidity at ${weatherData.humidity.toFixed(0)} percent, UV index ${safeUV.toFixed(1)}.`;
+      playAlertSound(severity, alertBody);
       sendNotification(
         `SweatSmart Alert — ${risk.message}`,
         `Temp: ${weatherData.temperature.toFixed(1)}°C | Humidity: ${weatherData.humidity.toFixed(0)}% | UV: ${safeUV.toFixed(1)}`,
