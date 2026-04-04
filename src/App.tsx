@@ -1,3 +1,6 @@
+import SpecialistRadar from '@/pages/SpecialistRadar';
+// inside your routes:
+<Route path="/specialist-radar" element={<SpecialistRadar />} />
 import React, { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
