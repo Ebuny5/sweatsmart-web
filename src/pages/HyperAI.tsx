@@ -592,58 +592,46 @@ const HyperAI = () => {
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
-  // ── ElevenLabs TTS via edge function ─────────────────────────────────────
-  const speakMessage = useCallback(async (text: string, msgIndex: number) => {
+  // ── Browser TTS (free, male voice) ──────────────────────────────────────
+  const speakMessage = useCallback((text: string, msgIndex: number) => {
+    if (!('speechSynthesis' in window)) {
+      toast.error('Speech synthesis not supported on this browser');
+      return;
+    }
+
     // Toggle off if already speaking this message
     if (speakingIndex === msgIndex) {
-      currentAudioRef.current?.pause();
-      currentAudioRef.current = null;
+      speechSynthesis.cancel();
       setSpeakingIndex(null);
       return;
     }
-    // Stop any current audio
-    currentAudioRef.current?.pause();
-    currentAudioRef.current = null;
+
+    speechSynthesis.cancel();
     setSpeakingIndex(null);
 
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) return;
+    const cleanText = text.replace(/[*_#`]/g, '').slice(0, 3000);
+    const utterance = new SpeechSynthesisUtterance(cleanText);
 
-      setSpeakingIndex(msgIndex);
+    // Pick a male English voice
+    const voices = speechSynthesis.getVoices();
+    const maleKeywords = ['male', 'man', 'david', 'james', 'daniel', 'mark', 'google uk english male', 'alex', 'fred', 'tom', 'guy', 'richard', 'george'];
+    const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+    const maleVoice = englishVoices.find(v =>
+      maleKeywords.some(k => v.name.toLowerCase().includes(k))
+    ) || englishVoices[1] || englishVoices[0] || voices[0];
 
-      const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hyper-ai-chat`;
-      const response = await fetch(CHAT_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionData.session.access_token}`,
-        },
-        body: JSON.stringify({
-          type: 'tts',
-          text: text.replace(/[*_#]/g, '').slice(0, 3000),
-          voiceId: selectedVoiceId,
-          speed: voiceSpeed,
-        }),
-      });
+    if (maleVoice) utterance.voice = maleVoice;
+    utterance.rate = voiceSpeed;
+    utterance.pitch = 0.95;
+    utterance.volume = 1.0;
+    utterance.lang = 'en-US';
 
-      if (!response.ok) throw new Error('TTS failed');
+    setSpeakingIndex(msgIndex);
+    utterance.onend = () => setSpeakingIndex(null);
+    utterance.onerror = () => setSpeakingIndex(null);
 
-      const audioBlob = await response.blob();
-      const audioUrl  = URL.createObjectURL(audioBlob);
-      const audio     = new Audio(audioUrl);
-      currentAudioRef.current = audio;
-
-      audio.onended = () => { setSpeakingIndex(null); URL.revokeObjectURL(audioUrl); };
-      audio.onerror = () => { setSpeakingIndex(null); URL.revokeObjectURL(audioUrl); };
-
-      await audio.play();
-    } catch (err) {
-      console.error('TTS error:', err);
-      setSpeakingIndex(null);
-      toast.error('Voice playback failed — check ElevenLabs credits');
-    }
-  }, [speakingIndex, selectedVoiceId, voiceSpeed]);
+    speechSynthesis.speak(utterance);
+  }, [speakingIndex, voiceSpeed]);
 
   // ── Voice settings persistence ─────────────────────────────────────────────
   const handleVoiceSelect = (id: string) => {
