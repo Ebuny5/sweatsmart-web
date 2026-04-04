@@ -424,7 +424,7 @@ const ClimateMonitor = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       if (nextLogTime && Date.now() >= nextLogTime && arePermissionsGranted) {
-        playAlertSound('REMINDER');
+        playAlertSound('REMINDER', 'It is time to record your sweat level for the past four hours.');
         if ('serviceWorker' in navigator && notificationPermission === 'granted') {
           navigator.serviceWorker.ready.then(reg => {
             reg.showNotification('⏰ Time to Log', {
