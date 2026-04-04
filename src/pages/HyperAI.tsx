@@ -3,7 +3,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Send, Sparkles, Loader2, Copy, Check, Mic, MicOff,
   Trash2, Volume2, VolumeX, FileText, ChevronRight,
   Zap, AlertTriangle, PenSquare, History, ImagePlus, X,
-  Square, Phone, Settings2 } from 'lucide-react';
+  Square, Phone } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,15 +31,7 @@ interface Conversation {
 const MAX_MESSAGES_PER_CONV = 40;
 const DAILY_VOICE_LIMIT     = 4;
 
-// ── ElevenLabs voices ────────────────────────────────────────────────────────
-const VOICES = [
-  { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', desc: 'Warm & calm' },
-  { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam',   desc: 'Deep & clear' },
-  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Bella',  desc: 'Soft & gentle' },
-  { id: 'ErXwobaYiN019PkySvjV', name: 'Antoni', desc: 'Smooth & warm' },
-  { id: 'TxGEqnHWrfWFTfGW9XjX', name: 'Josh',   desc: 'Natural & friendly' },
-  { id: 'AZnzlk1XvdvUeBnXmlld', name: 'Domi',   desc: 'Strong & direct' },
-];
+// ElevenLabs voices removed — using free browser TTS
 
 // ── Neural Glow animation (CSS injected once) ─────────────────────────────────
 const NEURAL_GLOW_STYLE = `
@@ -102,87 +94,7 @@ const EdaPill = ({ value, phase }: { value: number; phase: string }) => {
   );
 };
 
-// ── Voice settings modal ──────────────────────────────────────────────────────
-const VoiceSettingsModal = ({
-  open, selectedVoiceId, voiceSpeed,
-  onVoiceSelect, onSpeedChange, onClose,
-}: {
-  open: boolean; selectedVoiceId: string; voiceSpeed: number;
-  onVoiceSelect: (id: string) => void; onSpeedChange: (s: number) => void; onClose: () => void;
-}) => {
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-      <div
-        className="relative w-full max-w-sm mx-auto rounded-t-3xl p-6 pb-10"
-        style={{ background: 'rgba(15,15,35,0.98)', border: '1px solid rgba(255,255,255,0.1)' }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Handle */}
-        <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-5" />
-
-        <p className="text-center text-[11px] font-bold tracking-widest text-white/40 uppercase mb-4">
-          Voice Settings
-        </p>
-
-        {/* Voice grid */}
-        <div className="grid grid-cols-2 gap-2 mb-6">
-          {VOICES.map(v => (
-            <button
-              key={v.id}
-              onClick={() => onVoiceSelect(v.id)}
-              className="py-4 rounded-2xl transition-all text-center"
-              style={{
-                background: selectedVoiceId === v.id
-                  ? 'rgba(0,188,212,0.15)'
-                  : 'rgba(255,255,255,0.04)',
-                border: selectedVoiceId === v.id
-                  ? '1px solid rgba(0,188,212,0.5)'
-                  : '1px solid rgba(255,255,255,0.08)',
-              }}
-            >
-              <p className={`text-sm font-bold ${selectedVoiceId === v.id ? 'text-teal-300' : 'text-white/70'}`}>
-                {v.name}
-              </p>
-              <p className="text-[10px] text-white/30 mt-0.5">{v.desc}</p>
-            </button>
-          ))}
-        </div>
-
-        {/* Divider */}
-        <div className="border-t border-white/08 mb-4" />
-
-        {/* Speed control */}
-        <p className="text-center text-[11px] font-bold tracking-widest text-white/40 uppercase mb-4">
-          Voice Speed
-        </p>
-        <div className="flex items-center justify-center gap-8">
-          <button
-            onClick={() => onSpeedChange(Math.max(0.75, voiceSpeed - 0.25))}
-            className="w-10 h-10 rounded-full text-white/60 hover:text-white text-xl font-light flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
-          >−</button>
-          <span className="text-white font-bold text-base w-10 text-center">{voiceSpeed}x</span>
-          <button
-            onClick={() => onSpeedChange(Math.min(1.25, voiceSpeed + 0.25))}
-            className="w-10 h-10 rounded-full text-white/60 hover:text-white text-xl font-light flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
-          >+</button>
-        </div>
-
-        {/* Close */}
-        <button
-          onClick={onClose}
-          className="mt-6 w-full py-3 rounded-2xl text-sm font-semibold text-white/60 hover:text-white transition-colors"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
-        >
-          Done
-        </button>
-      </div>
-    </div>
-  );
-};
+// Voice settings modal removed — using browser TTS
 
 // ── Message bubble ────────────────────────────────────────────────────────────
 const MessageBubble = ({
@@ -406,11 +318,7 @@ const HyperAI = () => {
   const [speakingIndex, setSpeakingIndex]     = useState<number | null>(null);
   const [isRecording, setIsRecording]         = useState(false);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
-  const [voiceSettingsOpen, setVoiceSettingsOpen] = useState(false);
-  const [selectedVoiceId, setSelectedVoiceId] = useState(
-    () => localStorage.getItem('hyper_voice_id') || '21m00Tcm4TlvDq8ikWAM'
-  );
-  const [voiceSpeed, setVoiceSpeed] = useState(
+  const [voiceSpeed] = useState(
     () => parseFloat(localStorage.getItem('hyper_voice_speed') || '1')
   );
 
@@ -634,139 +542,104 @@ const HyperAI = () => {
   }, [speakingIndex, voiceSpeed]);
 
   // ── Voice settings persistence ─────────────────────────────────────────────
-  const handleVoiceSelect = (id: string) => {
-    setSelectedVoiceId(id);
-    localStorage.setItem('hyper_voice_id', id);
-  };
+  // Voice settings removed — browser TTS only
 
-  const handleSpeedChange = (s: number) => {
-    setVoiceSpeed(s);
-    localStorage.setItem('hyper_voice_speed', String(s));
-  };
-
-  // ── Browser TTS greeting before recording ──────────────────────────────
-  const playVoiceGreeting = useCallback((): Promise<void> => {
-    return new Promise(resolve => {
-      if (!('speechSynthesis' in window)) { resolve(); return; }
-      const utterance = new SpeechSynthesisUtterance("Hi Warrior, I'm listening. Speak now.");
-      const voices = speechSynthesis.getVoices();
-      const maleKeywords = ['male', 'man', 'david', 'james', 'daniel', 'mark', 'google uk english male', 'alex'];
-      const englishVoices = voices.filter(v => v.lang.startsWith('en'));
-      const maleVoice = englishVoices.find(v => maleKeywords.some(k => v.name.toLowerCase().includes(k))) || englishVoices[1] || englishVoices[0];
-      if (maleVoice) utterance.voice = maleVoice;
-      utterance.rate = voiceSpeed;
-      utterance.pitch = 0.95;
-      utterance.lang = 'en-US';
-      utterance.onend = () => resolve();
-      utterance.onerror = () => resolve();
-      speechSynthesis.speak(utterance);
-    });
-  }, [voiceSpeed]);
-
-  // ── Deepgram STT → Chat → ElevenLabs TTS (full voice chat) ────────────────
+  // ── Voice chat using browser SpeechRecognition (auto-listens, auto-stops) ──
   const startVoiceChat = async () => {
     if (getVoiceUsageToday() >= DAILY_VOICE_LIMIT) {
       toast.error('Daily voice limit reached 💙 Upgrade to Warrior Plan for unlimited voice chat');
       return;
     }
+
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      toast.error('Speech recognition not supported on this browser');
+      return;
+    }
+
+    // Play a short greeting first
+    if ('speechSynthesis' in window) {
+      speechSynthesis.cancel();
+      const greeting = new SpeechSynthesisUtterance("I'm listening.");
+      const voices = speechSynthesis.getVoices();
+      const maleKeywords = ['male', 'man', 'david', 'james', 'daniel', 'mark', 'google uk english male', 'alex'];
+      const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+      const maleVoice = englishVoices.find(v => maleKeywords.some(k => v.name.toLowerCase().includes(k))) || englishVoices[1] || englishVoices[0];
+      if (maleVoice) greeting.voice = maleVoice;
+      greeting.rate = 1.0;
+      greeting.pitch = 0.95;
+      greeting.lang = 'en-US';
+      speechSynthesis.speak(greeting);
+
+      // Wait for greeting to finish before starting recognition
+      await new Promise<void>(resolve => {
+        greeting.onend = () => resolve();
+        greeting.onerror = () => resolve();
+        // Fallback timeout
+        setTimeout(resolve, 2000);
+      });
+    }
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Request mic permission
+      await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      // Play greeting FIRST, then start recording
-      await playVoiceGreeting();
+      const recognition = new SR();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+      recognition.maxAlternatives = 1;
 
-      // Detect best supported MIME type for Android
-      const mimeType =
-        MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' :
-        MediaRecorder.isTypeSupported('audio/webm')             ? 'audio/webm' :
-        MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')  ? 'audio/ogg;codecs=opus' :
-        MediaRecorder.isTypeSupported('audio/mp4')              ? 'audio/mp4' :
-        '';
+      recognition.onstart = () => {
+        setIsRecording(true);
+      };
 
-      const recorderOptions = mimeType ? { mimeType } : {};
-      const recorder = new MediaRecorder(stream, recorderOptions);
-      audioChunksRef.current = [];
-
-      // Use 100ms timeslice — critical for Android to avoid empty blobs
-      recorder.ondataavailable = e => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
-      recorder.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop());
+      recognition.onresult = async (e: any) => {
+        const transcript = e.results[0][0].transcript?.trim();
         setIsRecording(false);
+
+        if (!transcript) {
+          toast.error("Couldn't catch that — please speak clearly and try again");
+          return;
+        }
+
         setIsProcessingVoice(true);
+        incrementVoiceUsage();
 
         try {
-          const audioBlob = new Blob(audioChunksRef.current, { type: mimeType || 'audio/webm' });
-
-          // Guard: reject if too small (empty recording)
-          if (audioBlob.size < 500) {
-            setIsProcessingVoice(false);
-            toast.error("Recording too short — please try again and speak clearly");
-            return;
-          }
-
-          const reader = new FileReader();
-          reader.onload = async () => {
-            try {
-              const base64 = (reader.result as string).split(',')[1];
-              const { data: sessionData } = await supabase.auth.getSession();
-              if (!sessionData.session) { setIsProcessingVoice(false); return; }
-
-              const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hyper-ai-chat`;
-
-              // Step 1 — STT: audio → transcript via Deepgram
-              const sttRes = await fetch(CHAT_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionData.session.access_token}` },
-                body: JSON.stringify({ type: 'stt', audioBase64: base64, mimeType: mimeType || 'audio/webm', audioSize: audioBlob.size }),
-              });
-
-              if (!sttRes.ok) {
-                const errText = await sttRes.text();
-                console.error('STT error:', errText);
-                throw new Error('STT failed');
-              }
-              const sttData = await sttRes.json();
-              const transcript = sttData.transcript?.trim();
-
-              if (!transcript) {
-                setIsProcessingVoice(false);
-                toast.error("Couldn't catch that — please speak clearly and try again");
-                return;
-              }
-
-              setIsProcessingVoice(false);
-              incrementVoiceUsage();
-
-              // Step 2 — Send transcript to Gemini + auto-speak response
-              await handleSend(transcript, true);
-            } catch (e) {
-              console.error('Voice chat error:', e);
-              setIsProcessingVoice(false);
-              toast.error('Voice processing failed — please try again');
-            }
-          };
-          reader.onerror = () => { setIsProcessingVoice(false); toast.error('Audio read failed'); };
-          reader.readAsDataURL(audioBlob);
-        } catch (e) {
+          await handleSend(transcript, true);
+        } finally {
           setIsProcessingVoice(false);
-          toast.error('Could not process audio');
         }
       };
 
-      mediaRecorderRef.current = recorder;
-      recorder.start(100); // 100ms timeslice — essential for Android
-      setIsRecording(true);
+      recognition.onerror = (e: any) => {
+        setIsRecording(false);
+        if (e.error === 'no-speech') {
+          toast.error("No speech detected — please try again");
+        } else if (e.error !== 'aborted') {
+          toast.error('Voice recognition error — please try again');
+        }
+      };
+
+      recognition.onend = () => {
+        setIsRecording(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
     } catch (err: any) {
       if (err?.name === 'NotAllowedError') {
         toast.error('Microphone access denied — allow microphone in browser settings');
       } else {
-        toast.error('Could not start recording — please try again');
+        toast.error('Could not start voice chat — please try again');
       }
     }
   };
 
   const stopVoiceChat = () => {
-    mediaRecorderRef.current?.stop();
+    recognitionRef.current?.stop();
+    setIsRecording(false);
   };
 
   // ── Browser mic for typing ─────────────────────────────────────────────────
@@ -1055,15 +928,7 @@ const HyperAI = () => {
                 </span>
               </div>
             )}
-            {/* Voice settings */}
-            <button
-              onClick={() => setVoiceSettingsOpen(true)}
-              title="Voice settings"
-              className="p-2 rounded-xl hover:bg-white/10 text-white/40 hover:text-white/80 transition-all"
-              style={{ border: '1px solid rgba(255,255,255,0.08)' }}
-            >
-              <Settings2 className="h-3.5 w-3.5" />
-            </button>
+
             <button
               onClick={handleNewChat}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-white/10 text-white/50 hover:text-white/90 transition-all border border-white/10"
@@ -1138,7 +1003,7 @@ const HyperAI = () => {
                   <div className="w-1 rounded-full bg-red-400 wave-bar-4" />
                   <div className="w-1 rounded-full bg-red-400 wave-bar-5" />
                 </div>
-                <span className="text-xs text-red-300 flex-1">Listening... tap stop when done</span>
+                <span className="text-xs text-red-300 flex-1">Listening... speak now, I'll stop automatically</span>
                 <button
                   onClick={stopVoiceChat}
                   className="px-3 py-1.5 rounded-lg text-[11px] font-bold text-red-300 border border-red-500/40 hover:bg-red-500/20 transition-colors"
@@ -1314,15 +1179,6 @@ const HyperAI = () => {
           onClose={() => setHistoryOpen(false)}
         />
 
-        {/* Voice settings modal */}
-        <VoiceSettingsModal
-          open={voiceSettingsOpen}
-          selectedVoiceId={selectedVoiceId}
-          voiceSpeed={voiceSpeed}
-          onVoiceSelect={handleVoiceSelect}
-          onSpeedChange={handleSpeedChange}
-          onClose={() => setVoiceSettingsOpen(false)}
-        />
       </div>
     </AppLayout>
   );
