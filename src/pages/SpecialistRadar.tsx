@@ -372,6 +372,7 @@ const SpecialistRadar = () => {
   const [country, setCountry]         = useState('');
   const [countryCode, setCountryCode] = useState('');
   const [continent, setContinent]     = useState('Africa');
+  const [geoReady, setGeoReady]       = useState(false); // true once reverse geocode completes
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [activePin, setActivePin]     = useState<string | null>(null);
   const [treatFilter, setTreatFilter] = useState<TreatmentFilter>('all');
@@ -379,6 +380,7 @@ const SpecialistRadar = () => {
   const [showGreeting, setShowGreeting] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [locationError, setLocationError] = useState('');
+  const hasFetched = useRef(false); // prevent duplicate initial fetches
 
   const mapRef     = useRef<HTMLDivElement>(null);
   const mapInst    = useRef<any>(null);
