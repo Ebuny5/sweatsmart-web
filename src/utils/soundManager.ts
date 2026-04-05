@@ -6,8 +6,21 @@ export class SoundManager {
   private voicesLoaded = false;
 
   private constructor() {
-    const saved = localStorage.getItem('sweatsmart_sound_enabled');
-    if (saved !== null) this.soundEnabled = JSON.parse(saved);
+    // Sync with Climate Alert Settings from Settings.tsx
+    const climateSettings = localStorage.getItem('climateAppSettings');
+    if (climateSettings) {
+      try {
+        const parsed = JSON.parse(climateSettings);
+        if (parsed.soundAlerts !== undefined) {
+          this.soundEnabled = parsed.soundAlerts;
+        }
+      } catch (e) {
+        console.error('Failed to parse climateAppSettings in SoundManager:', e);
+      }
+    } else {
+      const saved = localStorage.getItem('sweatsmart_sound_enabled');
+      if (saved !== null) this.soundEnabled = JSON.parse(saved);
+    }
     this.loadVoices();
   }
 
@@ -33,7 +46,7 @@ export class SoundManager {
       ];
       const maleKeywords = [
         'male', 'man', 'guy', 'david', 'mark', 'antoni', 'josh', 'adam',
-        'google uk english male', 'google us english male'
+        'google uk english male', 'google us english male', 'microsoft david', 'microsoft mark'
       ];
       const englishVoices = voices.filter(v => v.lang.startsWith('en'));
 
@@ -205,6 +218,19 @@ export class SoundManager {
   setSoundEnabled(enabled: boolean): void {
     this.soundEnabled = enabled;
     localStorage.setItem('sweatsmart_sound_enabled', JSON.stringify(enabled));
+
+    // Also sync back to climateAppSettings if it exists
+    const climateSettings = localStorage.getItem('climateAppSettings');
+    if (climateSettings) {
+      try {
+        const parsed = JSON.parse(climateSettings);
+        parsed.soundAlerts = enabled;
+        localStorage.setItem('climateAppSettings', JSON.stringify(parsed));
+      } catch (e) {
+        console.error('Failed to update climateAppSettings in SoundManager:', e);
+      }
+    }
+
     if (!enabled) speechSynthesis?.cancel();
   }
 

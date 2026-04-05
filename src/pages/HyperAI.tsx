@@ -1026,15 +1026,10 @@ const HyperAI = () => {
       }
 
       // Auto-speak the response if this came from voice chat
-      if (autoSpeak && assistantContent) {
-        // Small delay to let messages state settle
-        setTimeout(() => {
-          setMessages(prev => {
-            const idx = prev.length - 1;
-            speakMessage(assistantContent, idx);
-            return prev;
-          });
-        }, 200);
+      if (autoSpeak && assistantContent && assistantMsgIndex !== -1) {
+        // Only trigger speakMessage AFTER assistantContent and messages are final
+        // We use assistantMsgIndex which was set during the streaming started block
+        speakMessage(assistantContent, assistantMsgIndex);
       }
 
     } catch (error: any) {
