@@ -282,9 +282,12 @@ serve(async (req) => {
       );
       if (!elRes.ok) {
         const err = await elRes.text();
-        console.error('ElevenLabs error:', err);
-        throw new Error('ElevenLabs TTS failed');
+        console.error(`ElevenLabs error [${elRes.status}]:`, err);
+        if (elRes.status === 401) throw new Error('ElevenLabs API key is invalid or missing');
+        if (elRes.status === 429) throw new Error('ElevenLabs rate limit exceeded');
+        throw new Error(`ElevenLabs TTS failed with status ${elRes.status}`);
       }
+      console.log('ElevenLabs TTS stream started successfully');
       return new Response(elRes.body, {
         headers: { ...corsHeaders, 'Content-Type': 'audio/mpeg' },
       });

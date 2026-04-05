@@ -184,9 +184,10 @@ export class SoundManager {
     gender: 'male' | 'female' = 'female',
     rate = 1.0,
     pitch = 1.0,
-    onEnd?: () => void
+    onEnd?: () => void,
+    force = false
   ): Promise<void> {
-    if (!this.soundEnabled || !('speechSynthesis' in window)) {
+    if ((!this.soundEnabled && !force) || !('speechSynthesis' in window)) {
       onEnd?.();
       return;
     }

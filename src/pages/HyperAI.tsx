@@ -3,7 +3,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Send, Sparkles, Loader2, Copy, Check, Mic, MicOff,
   Trash2, Volume2, VolumeX, FileText, ChevronRight,
   Zap, AlertTriangle, PenSquare, History, ImagePlus, X,
-  Square, Phone, Settings2 } from 'lucide-react';
+  Square, Phone, Settings2, MessageSquareText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -627,7 +627,8 @@ const HyperAI = () => {
         gender,
         voiceSpeed,
         1.0,
-        () => setSpeakingIndex(null)
+        () => setSpeakingIndex(null),
+        true // force speak for Hyper AI
       );
       return;
     }
@@ -691,7 +692,7 @@ const HyperAI = () => {
     if (selectedVoiceId.startsWith('browser-')) {
       const gender = selectedVoiceId === 'browser-male' ? 'male' : 'female';
       return new Promise(resolve => {
-        soundManager.speakCustomWithGender(text, gender, voiceSpeed, 1.0, () => resolve());
+        soundManager.speakCustomWithGender(text, gender, voiceSpeed, 1.0, () => resolve(), true);
       });
     }
 
@@ -1256,7 +1257,7 @@ const HyperAI = () => {
                   : '1px solid rgba(0,188,212,0.3)',
               }}
             >
-              <Phone className={`h-4 w-4 ${isRecording ? 'text-red-400' : 'text-teal-400'}`} />
+              <Mic className={`h-4 w-4 ${isRecording ? 'text-red-400' : 'text-teal-400'}`} />
             </button>
 
             {/* Typing mic button */}
@@ -1269,7 +1270,7 @@ const HyperAI = () => {
               }`}
               style={{ border: isListening ? undefined : '1px solid rgba(255,255,255,0.08)' }}
             >
-              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              {isListening ? <MicOff className="h-4 w-4" /> : <MessageSquareText className="h-4 w-4" />}
             </button>
 
             {/* Image attach button */}
