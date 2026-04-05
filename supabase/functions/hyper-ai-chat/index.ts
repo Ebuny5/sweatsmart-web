@@ -264,30 +264,43 @@ serve(async (req) => {
       const safeVoice = voiceId || '21m00Tcm4TlvDq8ikWAM'; // Rachel default
       const stability = speed === 0.75 ? 0.65 : speed === 1.25 ? 0.40 : 0.50;
 
-      const elRes = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${safeVoice}/stream`,
-        {
-          method: 'POST',
-          headers: {
-            'xi-api-key': ELEVENLABS_API_KEY,
-            'Content-Type': 'application/json',
-            'Accept': 'audio/mpeg',
-          },
-          body: JSON.stringify({
-            text: safeText,
-            model_id: 'eleven_turbo_v2_5',
-            voice_settings: { stability, similarity_boost: 0.75, style: 0.3, use_speaker_boost: true },
-          }),
+      try {
+        const elRes = await fetch(
+          `https://api.elevenlabs.io/v1/text-to-speech/${safeVoice}/stream`,
+          {
+            method: 'POST',
+            headers: {
+              'xi-api-key': ELEVENLABS_API_KEY,
+              'Content-Type': 'application/json',
+              'Accept': 'audio/mpeg',
+            },
+            body: JSON.stringify({
+              text: safeText,
+              model_id: 'eleven_turbo_v2_5',
+              voice_settings: { stability, similarity_boost: 0.75, style: 0.3, use_speaker_boost: true },
+            }),
+          }
+        );
+
+        if (!elRes.ok) {
+          const err = await elRes.text();
+          console.error('ElevenLabs error status:', elRes.status, 'body:', err);
+          return new Response(JSON.stringify({ error: `ElevenLabs TTS failed: ${elRes.status}` }), {
+            status: elRes.status,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         }
-      );
-      if (!elRes.ok) {
-        const err = await elRes.text();
-        console.error('ElevenLabs error:', err);
-        throw new Error('ElevenLabs TTS failed');
+
+        return new Response(elRes.body, {
+          headers: { ...corsHeaders, 'Content-Type': 'audio/mpeg' },
+        });
+      } catch (err) {
+        console.error('ElevenLabs fetch error:', err);
+        return new Response(JSON.stringify({ error: 'Failed to contact ElevenLabs' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
-      return new Response(elRes.body, {
-        headers: { ...corsHeaders, 'Content-Type': 'audio/mpeg' },
-      });
     }
 
     // ── CHAT: main conversation flow ─────────────────────────────────────────
