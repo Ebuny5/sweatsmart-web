@@ -408,90 +408,109 @@ const SpecialistRadar = () => {
 
   // ── Geolocation + reverse geocode ───────────────────────────────────────
   useEffect(() => {
+    // Seed from localStorage immediately for instant map centering
+    try {
+      const saved = localStorage.getItem('ss_last_known_location');
+      if (saved) {
+        const p = JSON.parse(saved);
+        if (p.lat && p.lng) {
+          setLocation({ lat: p.lat, lng: p.lng });
+          if (p.city) setCity(p.city);
+          if (p.state) setState(p.state);
+          if (p.country) setCountry(p.country);
+          if (p.countryCode) setCountryCode(p.countryCode);
+          if (p.continent) setContinent(p.continent);
+          setGeoReady(true);
+        }
+      }
+    } catch {}
+
     if (!navigator.geolocation) { setLocationError('Geolocation not supported'); return; }
-    navigator.geolocation.getCurrentPosition(
-      async pos => {
+
+    const doReverseGeocode = async (lat: number, lng: number) => {
+      try {
+        const res  = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`);
+        const data = await res.json();
+        const addr = data.address || {};
+        const dc = addr.city || addr.town || addr.municipality || addr.village || addr.suburb || addr.county || '';
+        const ds = addr.state || addr.region || addr.province || '';
+        const dco = addr.country || '';
+        const iso = (addr.country_code || '').toUpperCase();
+        const CONTINENT_MAP: Record<string, string> = {
+          NG:'Africa',GH:'Africa',ZA:'Africa',KE:'Africa',EG:'Africa',TZ:'Africa',
+          ET:'Africa',CM:'Africa',SN:'Africa',CI:'Africa',RW:'Africa',UG:'Africa',
+          MA:'Africa',TN:'Africa',DZ:'Africa',MZ:'Africa',AO:'Africa',CD:'Africa',
+          SD:'Africa',MG:'Africa',ZM:'Africa',ZW:'Africa',BJ:'Africa',BF:'Africa',
+          ML:'Africa',NE:'Africa',TD:'Africa',SO:'Africa',LY:'Africa',ER:'Africa',
+          TG:'Africa',SL:'Africa',GN:'Africa',MW:'Africa',LS:'Africa',
+          BW:'Africa',NA:'Africa',GM:'Africa',GA:'Africa',GQ:'Africa',CG:'Africa',
+          GB:'Europe',DE:'Europe',FR:'Europe',IT:'Europe',ES:'Europe',PT:'Europe',
+          NL:'Europe',BE:'Europe',SE:'Europe',NO:'Europe',DK:'Europe',FI:'Europe',
+          CH:'Europe',AT:'Europe',PL:'Europe',CZ:'Europe',SK:'Europe',HU:'Europe',
+          RO:'Europe',BG:'Europe',GR:'Europe',TR:'Europe',UA:'Europe',RU:'Europe',
+          IE:'Europe',HR:'Europe',RS:'Europe',SI:'Europe',LT:'Europe',LV:'Europe',
+          EE:'Europe',LU:'Europe',MT:'Europe',CY:'Europe',IS:'Europe',AL:'Europe',
+          US:'Americas',CA:'Americas',MX:'Americas',BR:'Americas',AR:'Americas',
+          CL:'Americas',CO:'Americas',PE:'Americas',VE:'Americas',EC:'Americas',
+          BO:'Americas',PY:'Americas',UY:'Americas',GY:'Americas',SR:'Americas',
+          GT:'Americas',HN:'Americas',SV:'Americas',NI:'Americas',CR:'Americas',
+          PA:'Americas',CU:'Americas',DO:'Americas',JM:'Americas',TT:'Americas',
+          CN:'Asia',JP:'Asia',IN:'Asia',KR:'Asia',PK:'Asia',BD:'Asia',TH:'Asia',
+          VN:'Asia',ID:'Asia',PH:'Asia',MY:'Asia',SG:'Asia',MM:'Asia',KH:'Asia',
+          LK:'Asia',NP:'Asia',AE:'Asia',SA:'Asia',IL:'Asia',JO:'Asia',LB:'Asia',
+          IQ:'Asia',IR:'Asia',KW:'Asia',QA:'Asia',BH:'Asia',OM:'Asia',YE:'Asia',
+          KZ:'Asia',UZ:'Asia',GE:'Asia',AM:'Asia',AZ:'Asia',TW:'Asia',HK:'Asia',
+          AU:'Oceania',NZ:'Oceania',FJ:'Oceania',PG:'Oceania',
+        };
+        const cont = CONTINENT_MAP[iso] || 'Global';
+        setCity(dc); setState(ds); setCountry(dco); setCountryCode(iso); setContinent(cont);
+        localStorage.setItem('ss_last_known_location', JSON.stringify({
+          lat, lng, city: dc, state: ds, country: dco, countryCode: iso, continent: cont,
+        }));
+        setGeoReady(true);
+      } catch {
+        setCity('your area');
+        setGeoReady(true);
+      }
+    };
+
+    let watchId: number | null = null;
+    let resolved = false;
+    watchId = navigator.geolocation.watchPosition(
+      pos => {
         const { latitude: lat, longitude: lng } = pos.coords;
         setLocation({ lat, lng });
-        try {
-          const res  = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`);
-          const data = await res.json();
-          const addr = data.address || {};
-
-          // City — try multiple Nominatim fields in priority order
-          const detectedCity = addr.city || addr.town || addr.municipality || addr.village || addr.suburb || addr.county || '';
-          setCity(detectedCity);
-
-          // State / region
-          const detectedState = addr.state || addr.region || addr.province || '';
-          setState(detectedState);
-
-          // Country
-          const detectedCountry = addr.country || '';
-          setCountry(detectedCountry);
-
-          // Country code (ISO 3166-1 alpha-2 uppercase)
-          const iso = (addr.country_code || '').toUpperCase();
-          setCountryCode(iso);
-
-          // Continent — comprehensive mapping
-          const CONTINENT_MAP: Record<string, string> = {
-            // Africa
-            NG:'Africa',GH:'Africa',ZA:'Africa',KE:'Africa',EG:'Africa',TZ:'Africa',
-            ET:'Africa',CM:'Africa',SN:'Africa',CI:'Africa',RW:'Africa',UG:'Africa',
-            MA:'Africa',TN:'Africa',DZ:'Africa',MZ:'Africa',AO:'Africa',CD:'Africa',
-            SD:'Africa',MG:'Africa',ZM:'Africa',ZW:'Africa',BJ:'Africa',BF:'Africa',
-            ML:'Africa',NE:'Africa',TD:'Africa',SO:'Africa',LY:'Africa',ER:'Africa',
-            TG:'Africa',SL:'Africa',GN:'Africa',MW:'Africa',LS:'Africa',
-            BW:'Africa',NA:'Africa',GM:'Africa',GA:'Africa',GQ:'Africa',CG:'Africa',
-            // Europe
-            GB:'Europe',DE:'Europe',FR:'Europe',IT:'Europe',ES:'Europe',PT:'Europe',
-            NL:'Europe',BE:'Europe',SE:'Europe',NO:'Europe',DK:'Europe',FI:'Europe',
-            CH:'Europe',AT:'Europe',PL:'Europe',CZ:'Europe',SK:'Europe',HU:'Europe',
-            RO:'Europe',BG:'Europe',GR:'Europe',TR:'Europe',UA:'Europe',RU:'Europe',
-            IE:'Europe',HR:'Europe',RS:'Europe',SI:'Europe',LT:'Europe',LV:'Europe',
-            EE:'Europe',LU:'Europe',MT:'Europe',CY:'Europe',IS:'Europe',AL:'Europe',
-            // Americas
-            US:'Americas',CA:'Americas',MX:'Americas',BR:'Americas',AR:'Americas',
-            CL:'Americas',CO:'Americas',PE:'Americas',VE:'Americas',EC:'Americas',
-            BO:'Americas',PY:'Americas',UY:'Americas',GY:'Americas',SR:'Americas',
-            GT:'Americas',HN:'Americas',SV:'Americas',NI:'Americas',CR:'Americas',
-            PA:'Americas',CU:'Americas',DO:'Americas',JM:'Americas',TT:'Americas',
-            // Asia
-            CN:'Asia',JP:'Asia',IN:'Asia',KR:'Asia',PK:'Asia',BD:'Asia',TH:'Asia',
-            VN:'Asia',ID:'Asia',PH:'Asia',MY:'Asia',SG:'Asia',MM:'Asia',KH:'Asia',
-            LK:'Asia',NP:'Asia',AE:'Asia',SA:'Asia',IL:'Asia',JO:'Asia',LB:'Asia',
-            IQ:'Asia',IR:'Asia',KW:'Asia',QA:'Asia',BH:'Asia',OM:'Asia',YE:'Asia',
-            KZ:'Asia',UZ:'Asia',GE:'Asia',AM:'Asia',AZ:'Asia',TW:'Asia',HK:'Asia',
-            // Oceania
-            AU:'Oceania',NZ:'Oceania',FJ:'Oceania',PG:'Oceania',
-          };
-          setContinent(CONTINENT_MAP[iso] || 'Global');
-        } catch {
-          setCity('your area');
+        setLocationError('');
+        if (!resolved) {
+          resolved = true;
+          doReverseGeocode(lat, lng);
+          if (watchId !== null) navigator.geolocation.clearWatch(watchId);
         }
       },
-      err => { setLocationError('Location access denied — please enable GPS'); console.error(err); },
-      { enableHighAccuracy: true, timeout: 12000 }
+      err => {
+        if (!resolved) { setLocationError('Location access denied — please enable GPS'); console.error(err); }
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
     );
+    return () => { if (watchId !== null) navigator.geolocation.clearWatch(watchId); };
   }, []);
 
   // ── Fetch specialists ───────────────────────────────────────────────────
   const fetchDoctors = useCallback(async () => {
-    if (!location || !user) return;
+    if (!location) { toast.error('Waiting for your location...'); return; }
     setIsLoading(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) return;
+      const token = sessionData?.session?.access_token;
+      if (!token) { toast.error('Please log in to search for specialists'); setIsLoading(false); return; }
       const RADAR_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/specialist-radar`;
       const res = await fetch(RADAR_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionData.session.access_token}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
           lat: location.lat, lng: location.lng,
           radius: SCOPE_RADII[scope],
-          city, state, country, countryCode, continent,
-          scope,
+          city, state, country, countryCode, continent, scope,
         }),
       });
       if (!res.ok) throw new Error('Search failed');
@@ -504,11 +523,14 @@ const SpecialistRadar = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [location, user, scope, countryCode, continent]);
+  }, [location, scope, city, state, country, countryCode, continent]);
 
+  // Auto-fetch: fires once geoReady + user auth available, and on scope changes
   useEffect(() => {
-    if (location) fetchDoctors();
-  }, [location, scope]);  // re-fetch when scope changes
+    if (geoReady && location && user) {
+      fetchDoctors();
+    }
+  }, [geoReady, user, scope]); // scope change = re-fetch; geoReady+user = initial fetch
 
   // ── Map markers ─────────────────────────────────────────────────────────
   useEffect(() => {
