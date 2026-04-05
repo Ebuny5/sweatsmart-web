@@ -291,6 +291,19 @@ const ClimateMonitor = () => {
   }, [checkPermissions]);
 
   useEffect(() => {
+    if ("permissions" in navigator) {
+      navigator.permissions.query({ name: "geolocation" as PermissionName }).then((status) => {
+        status.onchange = () => {
+          setLocationPermission(status.state);
+          if (status.state === "granted" && !location) {
+            handleRequestLocation();
+          }
+        };
+      });
+    }
+  }, [location, handleRequestLocation]);
+
+  useEffect(() => {
     const storedEDA = edaManager.getEDA();
     if (storedEDA && edaManager.isFresh()) {
       setPhysiologicalData({ eda: storedEDA.value });
@@ -445,12 +458,25 @@ const ClimateMonitor = () => {
   };
 
   const handleRequestLocation = () => {
+    setAlertStatus("Requesting location access...");
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setLocation(position.coords); setLocationPermission('granted');
+        setLocation(position.coords);
+        setLocationPermission('granted');
+        setAlertStatus("Location acquired. Fetching weather data...");
         if (notificationPermission === 'prompt') requestNotificationPermission();
       },
-      (error) => { if (error.code === error.PERMISSION_DENIED) setLocationPermission('denied'); }
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationPermission('denied');
+          setAlertStatus("Location permission denied. Please enable location to use this feature.");
+        } else if (error.code === error.TIMEOUT) {
+          setAlertStatus("Location request timed out. Please try again.");
+        } else {
+          setAlertStatus("Location unavailable. Please check your connection.");
+        }
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
     );
   };
 

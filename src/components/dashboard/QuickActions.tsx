@@ -68,7 +68,7 @@ const ClimateCard = ({ onNavigate }: { onNavigate: () => void }) => {
         <AlertTriangle className="h-5 w-5 text-gray-400 shrink-0" />
         <div className="flex-1">
           <p className="text-xs font-semibold text-gray-600">Climate unavailable</p>
-          <p className="text-[10px] text-gray-400">Enable location for real-time sweat risk</p>
+          <p className="text-[10px] text-gray-400">{error || "Enable location for real-time sweat risk"}</p>
         </div>
         <button onClick={() => { refresh(); }} className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-all">
           <RefreshCw className="h-3.5 w-3.5 text-gray-500" />
