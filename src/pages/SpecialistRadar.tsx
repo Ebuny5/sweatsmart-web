@@ -440,7 +440,7 @@ const SpecialistRadar = () => {
             MA:'Africa',TN:'Africa',DZ:'Africa',MZ:'Africa',AO:'Africa',CD:'Africa',
             SD:'Africa',MG:'Africa',ZM:'Africa',ZW:'Africa',BJ:'Africa',BF:'Africa',
             ML:'Africa',NE:'Africa',TD:'Africa',SO:'Africa',LY:'Africa',ER:'Africa',
-            DZ:'Africa',TG:'Africa',SL:'Africa',GN:'Africa',MW:'Africa',LS:'Africa',
+            TG:'Africa',SL:'Africa',GN:'Africa',MW:'Africa',LS:'Africa',
             BW:'Africa',NA:'Africa',GM:'Africa',GA:'Africa',GQ:'Africa',CG:'Africa',
             // Europe
             GB:'Europe',DE:'Europe',FR:'Europe',IT:'Europe',ES:'Europe',PT:'Europe',
