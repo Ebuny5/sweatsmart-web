@@ -222,8 +222,8 @@ const ClimateNotificationSidebar: React.FC<ClimateNotificationSidebarProps> = ({
   // Next log time anchored to lastLogTime
   const updateNextLogTime = useCallback((anchor?: number) => {
     const base = anchor
-      ?? parseInt(localStorage.getItem('climateLastLogTime') || '0', 10)
-      || Date.now();
+      ?? (parseInt(localStorage.getItem('climateLastLogTime') || '0', 10)
+      || Date.now());
     const next = base + LOG_INTERVAL;
     setNextLogTime(next);
     localStorage.setItem('climateNextLogTime', next.toString());

@@ -40,7 +40,7 @@ const PalmScannerApp: React.FC = () => {
       setSensorData(data);
       
       // Save EDA to shared storage
-      edaManager.saveEDA(data.EDA_uS, 'palm-scanner');
+      edaManager.saveEDA(data.EDA_uS, 'simulator');
       
       toast.success(`${mode} simulation generated`);
       
