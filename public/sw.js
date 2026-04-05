@@ -1,7 +1,7 @@
 // Professional Service Worker for SweatSmart App
 // Handles persistent notifications even when app is closed
 // Version control for cache busting
-const CACHE_VERSION = 'v2.4.0';
+const CACHE_VERSION = 'v2.4.1';
 const CACHE_NAME = `sweatsmart-${CACHE_VERSION}`;
 
 const OFFLINE_FALLBACK_URL = '/offline.html';

@@ -48,33 +48,66 @@ export function useClimateData(): ClimateSnapshot {
   const [lastUpdated, setLastUpdated]   = useState<number | null>(null);
   const [coords, setCoords]             = useState<GeolocationCoordinates | null>(null);
 
-  // ── Step 1: get geolocation ───────────────────────────────────────────────
-  useEffect(() => {
+  // ── Helper: get geolocation ───────────────────────────────────────────────
+  const getCoords = useCallback(() => {
     if (!navigator.geolocation) {
       setError("Geolocation not supported");
       setLoading(false);
       return;
     }
+
+    setLoading(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => setCoords(pos.coords),
-      () => {
-        setError("Location unavailable — enable location for sweat risk alerts");
+      (pos) => {
+        setCoords(pos.coords);
+        setError(null);
+      },
+      (err) => {
+        let msg = "Location unavailable";
+        if (err.code === err.PERMISSION_DENIED) {
+          msg = "Location permission denied — enable it in settings";
+        } else if (err.code === err.TIMEOUT) {
+          msg = "Location request timed out — please try again";
+        } else {
+          msg = "Location unavailable — check your connection";
+        }
+        setError(msg);
         setLoading(false);
       },
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
     );
   }, []);
 
-  // ── Step 2: fetch weather via Supabase Edge Function ─────────────────────
-  const fetchWeather = useCallback(async () => {
-    if (!coords) return;
+  // ── Step 1: Initial load ──────────────────────────────────────────────────
+  useEffect(() => {
+    getCoords();
+  }, [getCoords]);
+
+  // ── Step 2: Permission change listener ────────────────────────────────────
+  useEffect(() => {
+    if ("permissions" in navigator) {
+      navigator.permissions.query({ name: "geolocation" as PermissionName }).then((status) => {
+        status.onchange = () => {
+          if (status.state === "granted") {
+            getCoords();
+          }
+        };
+      });
+    }
+  }, [getCoords]);
+
+  // ── Step 3: fetch weather via Supabase Edge Function ─────────────────────
+  const fetchWeather = useCallback(async (currentCoords?: GeolocationCoordinates) => {
+    const activeCoords = currentCoords || coords;
+    if (!activeCoords) return;
+
     setLoading(true);
     setError(null);
 
     try {
       // ── Same call ClimateMonitor makes ──────────────────────────────────
       const { data, error: fnError } = await supabase.functions.invoke("get-weather-data", {
-        body: { latitude: coords.latitude, longitude: coords.longitude },
+        body: { latitude: activeCoords.latitude, longitude: activeCoords.longitude },
       });
 
       if (fnError) throw new Error(fnError.message);
@@ -98,7 +131,7 @@ export function useClimateData(): ClimateSnapshot {
       // ── Reverse geocode city name ─────────────────────────────────────────
       try {
         const geoRes = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${coords.latitude}&lon=${coords.longitude}&format=json`
+          `https://nominatim.openstreetmap.org/reverse?lat=${activeCoords.latitude}&lon=${activeCoords.longitude}&format=json`
         );
         const geoData = await geoRes.json();
         const cityName =
@@ -125,6 +158,14 @@ export function useClimateData(): ClimateSnapshot {
     }
   }, [coords]);
 
+  const refresh = useCallback(async () => {
+    if (!coords) {
+      getCoords();
+    } else {
+      await fetchWeather();
+    }
+  }, [coords, getCoords, fetchWeather]);
+
   // ── Auto-refresh every 15 min once coords are ready ──────────────────────
   useEffect(() => {
     if (!coords) return;
@@ -142,6 +183,6 @@ export function useClimateData(): ClimateSnapshot {
     loading,
     error,
     lastUpdated,
-    refresh: fetchWeather,
+    refresh,
   };
 }
