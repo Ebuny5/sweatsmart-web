@@ -127,7 +127,7 @@ const AIGreeting = ({ profile, hdss, meta, city, onDismiss }: {
           <Sparkles className="h-4 w-4 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold text-teal-400 uppercase tracking-widest mb-1">Hyper AI · Specialist Radar</p>
+          <p className="text-[10px] font-bold text-teal-400 uppercase tracking-widest mb-1">HidroAlly · Specialist Radar</p>
           <p className="text-sm text-white/85 leading-relaxed">
             <span className="font-bold text-white">{name}</span>, based on your{' '}
             <span className="text-teal-300 font-semibold">{hdssText}</span>,{' '}
@@ -308,7 +308,7 @@ const DoctorModal = ({ doctor, onClose, onShare }: { doctor: Doctor; onClose: ()
             style={{ background: 'rgba(0,188,212,0.06)', border: '1px solid rgba(0,188,212,0.18)' }}>
             <div className="flex items-center gap-2 mb-1.5">
               <Shield className="h-3.5 w-3.5 text-teal-400" />
-              <span className="text-[10px] font-bold text-teal-400 uppercase tracking-wider">Hyper AI Insight</span>
+              <span className="text-[10px] font-bold text-teal-400 uppercase tracking-wider">HidroAlly Insight</span>
             </div>
             <p className="text-xs text-white/60 leading-relaxed">
               {doctor.isIhsVerified

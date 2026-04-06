@@ -225,7 +225,7 @@ function generateClinicalInsights(episode: ProcessedEpisode): ClinicalInsight[] 
       trigProb = '60% probability: this trigger activated your cholinergic sympathetic pathway';
       trigMechanism = `Whatever the specific trigger, the final common pathway is the same: sensory or emotional input → central nervous system processing → sympathetic outflow via thoracic ganglia (T1-T4) → acetylcholine release → M3 muscarinic receptor activation → sweat secretion. The key clinical question is whether this trigger is environmental (manageable through avoidance or environmental control) or emotional/autonomic (requires neural pathway intervention).`;
       trigImmediate = `Remove from the trigger situation if possible. If not, use controlled breathing to reduce sympathetic amplification while you cannot avoid the trigger.`;
-      trigSelfManagement = `Add this trigger to your personal trigger log. After 5–7 episodes documenting it, Hyper AI's pattern analysis can calculate whether it's a consistent driver or coincidental.`;
+      trigSelfManagement = `Add this trigger to your personal trigger log. After 5–7 episodes documenting it, HidroAlly's pattern analysis can calculate whether it's a consistent driver or coincidental.`;
       trigClinical = `Unclassified triggers that consistently produce HDSS ≥3 episodes warrant a dermatology consultation. Bring your log. The pattern data is clinically useful for treatment selection.`;
     }
 

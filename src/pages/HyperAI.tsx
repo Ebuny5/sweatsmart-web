@@ -310,7 +310,7 @@ const TypingIndicator = () => (
       <div className="w-2 h-2 rounded-full bg-teal-400 typing-dot-1" />
       <div className="w-2 h-2 rounded-full bg-teal-400 typing-dot-2" />
       <div className="w-2 h-2 rounded-full bg-teal-400 typing-dot-3" />
-      <span className="text-[10px] text-white/40 ml-1">Hyper AI is thinking...</span>
+      <span className="text-[10px] text-white/40 ml-1">HidroAlly is thinking...</span>
     </div>
   </div>
 );
@@ -888,7 +888,7 @@ const HyperAI = () => {
     try {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !sessionData.session) {
-        toast.error('Please log in to use Hyper AI');
+        toast.error('Please log in to use HidroAlly');
         setIsLoading(false);
         return;
       }
@@ -1056,7 +1056,7 @@ const HyperAI = () => {
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-white font-black text-base leading-tight">Hyper AI</h1>
+              <h1 className="text-white font-black text-base leading-tight">HidroAlly</h1>
               <p className="text-white/40 text-[10px]">World's first hyperhidrosis clinical companion</p>
             </div>
           </div>

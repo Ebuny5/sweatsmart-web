@@ -247,9 +247,9 @@ const Dashboard = () => {
                 onClick={() => navigate("/insights")}
               />
               <OnboardingStep
-                step={3} emoji="🤖" title="Talk to Hyper AI"
+                step={3} emoji="🤖" title="Talk to HidroAlly"
                 description="Your 24/7 AI companion reads your history and gives personalised advice."
-                action="Meet Hyper AI"
+                action="Meet HidroAlly"
                 onClick={() => navigate("/hyper-ai")}
               />
             </div>
@@ -366,9 +366,9 @@ const Dashboard = () => {
               <Sparkles className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1">
-              <p className="text-white font-black text-sm leading-tight">Ask Hyper AI 🤖</p>
+              <p className="text-white font-black text-sm leading-tight">Ask HidroAlly 🤖</p>
               <p className="text-purple-100 text-xs mt-0.5 leading-snug">
-                "Why do my hands sweat at work?" — Hyper AI reads your history to answer.
+                "Why do my hands sweat at work?" — HidroAlly reads your history to answer.
               </p>
             </div>
             <ChevronRight className="h-5 w-5 text-white/70 shrink-0" />

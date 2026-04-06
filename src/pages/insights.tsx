@@ -435,9 +435,9 @@ const Insights = () => {
           >
             <span className="text-3xl">🤖</span>
             <div className="flex-1">
-              <p className="text-white font-black text-sm">Deep-dive with Hyper AI</p>
+              <p className="text-white font-black text-sm">Deep-dive with HidroAlly</p>
               <p className="text-purple-100 text-xs mt-0.5 leading-snug">
-                Ask personalised questions like "What can I do about my work sweating?" — Hyper AI reads your full history.
+                Ask personalised questions like "What can I do about my work sweating?" — HidroAlly reads your full history.
               </p>
             </div>
           </button>
