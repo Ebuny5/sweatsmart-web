@@ -4,12 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Bell, Save, Info, CloudSun, Database } from 'lucide-react';
 import { toast } from 'sonner';
+import { SettingsPanel } from '@/components/climate/SettingsPanel';
+import { WebPushSettings } from '@/components/climate/WebPushSettings';
+import type { Thresholds } from '@/types';
 
 const Settings = () => {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [soundAlerts, setSoundAlerts] = useState(true);
   const [dataRetention, setDataRetention] = useState(30);
   const [alertFrequency, setAlertFrequency] = useState(4);
+  const [thresholds, setThresholds] = useState<Thresholds>(() => {
+    const saved = localStorage.getItem('sweatSmartThresholds');
+    return saved ? JSON.parse(saved) : { temperature: 28, humidity: 70, uvIndex: 6 };
+  });
 
   useEffect(() => {
     const saved = localStorage.getItem('climateAppSettings');
@@ -30,7 +37,12 @@ const Settings = () => {
       alertFrequency
     };
     localStorage.setItem('climateAppSettings', JSON.stringify(settings));
+    localStorage.setItem('sweatSmartThresholds', JSON.stringify(thresholds));
     toast.success('Settings saved successfully!');
+  };
+
+  const handleThresholdChange = (key: keyof Thresholds, value: number) => {
+    setThresholds(prev => ({ ...prev, [key]: value }));
   };
 
   return (
@@ -95,6 +107,17 @@ const Settings = () => {
                 checked={soundAlerts}
                 onCheckedChange={setSoundAlerts}
               />
+            </div>
+
+            <div className="border-t pt-6 mt-6">
+              <SettingsPanel
+                thresholds={thresholds}
+                onThresholdChange={handleThresholdChange}
+              />
+            </div>
+
+            <div className="border-t pt-6 mt-6">
+              <WebPushSettings thresholds={thresholds} />
             </div>
           </div>
         </Card>

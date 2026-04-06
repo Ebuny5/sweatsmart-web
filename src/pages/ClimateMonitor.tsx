@@ -2,8 +2,6 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { LoggingSystem } from "../components/climate/LoggingSystem";
-import { SettingsPanel } from "../components/climate/SettingsPanel";
-import { WebPushSettings } from "../components/climate/WebPushSettings";
 import { useNavigate } from "react-router-dom";
 import { supabase } from '@/integrations/supabase/client';
 import { edaManager } from '@/utils/edaManager';
@@ -608,8 +606,6 @@ const ClimateMonitor = () => {
                 <ZapIcon className="w-5 h-5" /> Go to Palm Scanner
               </button>
             </div>
-
-            {/* SettingsPanel and WebPushSettings removed from here — now live in Settings page */}
 
             <LoggingSystem
               logs={logs}
