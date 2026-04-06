@@ -30,6 +30,12 @@ const Settings = () => {
       alertFrequency
     };
     localStorage.setItem('climateAppSettings', JSON.stringify(settings));
+
+    // Sync with SoundManager
+    import('@/utils/soundManager').then(({ soundManager }) => {
+      soundManager.setSoundEnabled(soundAlerts);
+    });
+
     toast.success('Settings saved successfully!');
   };
 

@@ -3,7 +3,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Send, Sparkles, Loader2, Copy, Check, Mic, MicOff,
   Trash2, Volume2, VolumeX, FileText, ChevronRight,
   Zap, AlertTriangle, PenSquare, History, ImagePlus, X,
-  Square, Phone, Settings2 } from 'lucide-react';
+  Square, Phone, Settings2, MessageSquareText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +12,7 @@ import { useEpisodes } from '@/hooks/useEpisodes';
 import { useProfile } from '@/hooks/useProfile';
 import { useClimateData } from '@/hooks/useClimateData';
 import { edaManager } from '@/utils/edaManager';
+import { soundManager } from '@/utils/soundManager';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -33,6 +34,8 @@ const DAILY_VOICE_LIMIT     = 4;
 
 // ── ElevenLabs voices ────────────────────────────────────────────────────────
 const VOICES = [
+  { id: 'browser-male',  name: 'Male',  desc: 'Browser voice' },
+  { id: 'browser-female', name: 'Female', desc: 'Browser voice' },
   { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', desc: 'Warm & calm' },
   { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam',   desc: 'Deep & clear' },
   { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Bella',  desc: 'Soft & gentle' },
@@ -592,20 +595,45 @@ const HyperAI = () => {
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
-  // ── ElevenLabs TTS via edge function ─────────────────────────────────────
+  // ── Browser or ElevenLabs TTS ────────────────────────────────────────────
   const speakMessage = useCallback(async (text: string, msgIndex: number) => {
     // Toggle off if already speaking this message
     if (speakingIndex === msgIndex) {
-      currentAudioRef.current?.pause();
-      currentAudioRef.current = null;
+      if (selectedVoiceId.startsWith('browser-')) {
+        window.speechSynthesis.cancel();
+      } else {
+        currentAudioRef.current?.pause();
+        currentAudioRef.current = null;
+      }
       setSpeakingIndex(null);
       return;
     }
+
     // Stop any current audio
+    window.speechSynthesis.cancel();
     currentAudioRef.current?.pause();
     currentAudioRef.current = null;
     setSpeakingIndex(null);
 
+    const safeText = text.replace(/[*_#]/g, '').slice(0, 3000);
+
+    // ── Use Browser TTS ──
+    if (selectedVoiceId.startsWith('browser-')) {
+      const gender = selectedVoiceId === 'browser-male' ? 'male' : 'female';
+      setSpeakingIndex(msgIndex);
+
+      soundManager.speakCustomWithGender(
+        safeText,
+        gender,
+        voiceSpeed,
+        1.0,
+        () => setSpeakingIndex(null),
+        true // force speak for Hyper AI
+      );
+      return;
+    }
+
+    // ── Use ElevenLabs TTS via edge function ──
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) return;
@@ -621,7 +649,7 @@ const HyperAI = () => {
         },
         body: JSON.stringify({
           type: 'tts',
-          text: text.replace(/[*_#]/g, '').slice(0, 3000),
+          text: safeText,
           voiceId: selectedVoiceId,
           speed: voiceSpeed,
         }),
@@ -658,6 +686,17 @@ const HyperAI = () => {
 
   // ── Helper: play TTS greeting before recording ────────────────────────────
   const playVoiceGreeting = useCallback(async (): Promise<void> => {
+    const text = "Hi Warrior, I'm listening. Speak now.";
+
+    // ── Use Browser TTS ──
+    if (selectedVoiceId.startsWith('browser-')) {
+      const gender = selectedVoiceId === 'browser-male' ? 'male' : 'female';
+      return new Promise(resolve => {
+        soundManager.speakCustomWithGender(text, gender, voiceSpeed, 1.0, () => resolve(), true);
+      });
+    }
+
+    // ── Use ElevenLabs TTS ──
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) return;
@@ -665,7 +704,7 @@ const HyperAI = () => {
       const res = await fetch(CHAT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionData.session.access_token}` },
-        body: JSON.stringify({ type: 'tts', text: "Hi Warrior, I'm listening. Speak now.", voiceId: selectedVoiceId, speed: voiceSpeed }),
+        body: JSON.stringify({ type: 'tts', text, voiceId: selectedVoiceId, speed: voiceSpeed }),
       });
       if (!res.ok) return;
       const blob = await res.blob();
@@ -988,15 +1027,10 @@ const HyperAI = () => {
       }
 
       // Auto-speak the response if this came from voice chat
-      if (autoSpeak && assistantContent) {
-        // Small delay to let messages state settle
-        setTimeout(() => {
-          setMessages(prev => {
-            const idx = prev.length - 1;
-            speakMessage(assistantContent, idx);
-            return prev;
-          });
-        }, 200);
+      if (autoSpeak && assistantContent && assistantMsgIndex !== -1) {
+        // Only trigger speakMessage AFTER assistantContent and messages are final
+        // We use assistantMsgIndex which was set during the streaming started block
+        speakMessage(assistantContent, assistantMsgIndex);
       }
 
     } catch (error: any) {
@@ -1223,7 +1257,7 @@ const HyperAI = () => {
                   : '1px solid rgba(0,188,212,0.3)',
               }}
             >
-              <Phone className={`h-4 w-4 ${isRecording ? 'text-red-400' : 'text-teal-400'}`} />
+              <Mic className={`h-4 w-4 ${isRecording ? 'text-red-400' : 'text-teal-400'}`} />
             </button>
 
             {/* Typing mic button */}
@@ -1236,7 +1270,7 @@ const HyperAI = () => {
               }`}
               style={{ border: isListening ? undefined : '1px solid rgba(255,255,255,0.08)' }}
             >
-              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              {isListening ? <MicOff className="h-4 w-4" /> : <MessageSquareText className="h-4 w-4" />}
             </button>
 
             {/* Image attach button */}
