@@ -187,7 +187,7 @@ const LogEpisode = () => {
                 className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold transition-all shadow-md shadow-blue-100"
               >
                 <LayoutDashboard className="h-4 w-4" />
-                Back to Dashboard
+                Back to Home
               </button>
               <div className="grid grid-cols-2 gap-3">
                 <button

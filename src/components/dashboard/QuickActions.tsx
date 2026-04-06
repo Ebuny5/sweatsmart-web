@@ -6,6 +6,7 @@ import { useEpisodes } from "@/hooks/useEpisodes";
 import { useClimateData } from "@/hooks/useClimateData";
 import { Thermometer, Droplets, Sun, Wind, RefreshCw, ChevronRight, AlertTriangle } from "lucide-react";
 import WarriorBadge from "@/components/dashboard/WarriorBadge";
+import { getWarriorInsight } from "@/utils/warriorLogic";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -159,21 +160,11 @@ const WarriorLaunchpad = () => {
     weekday: "long", day: "numeric", month: "long",
   });
 
-  const recentCount = episodes.filter(e => {
-    const diff = (Date.now() - new Date(e.datetime).getTime()) / (1000 * 60 * 60 * 24);
-    return diff <= 7;
-  }).length;
-
-  const avgRecent = episodes.slice(0, 5).length > 0
-    ? episodes.slice(0, 5).reduce((s, e) => s + Number(e.severityLevel), 0) / episodes.slice(0, 5).length
-    : 0;
-
-  const dynamicInsight =
-    sweatRisk === "extreme" ? "⚠️ Extreme sweat risk today — consider rescheduling outdoor plans"
-    : sweatRisk === "high"  ? "🌡️ High humidity today — carry cooling wipes and stay hydrated"
-    : recentCount === 0     ? "🎉 No episodes logged this week — you're doing amazing!"
-    : avgRecent >= 3        ? `💡 Recent episodes avg HDSS ${avgRecent.toFixed(1)} — check Insights`
-    :                         `✅ ${recentCount} episode${recentCount !== 1 ? "s" : ""} this week — keep tracking`;
+  const dynamicInsight = useMemo(() => {
+    if (sweatRisk === "extreme") return "⚠️ Extreme sweat risk today — consider rescheduling outdoor plans";
+    if (sweatRisk === "high") return "🌡️ High humidity today — carry cooling wipes and stay hydrated";
+    return getWarriorInsight(episodes).message;
+  }, [sweatRisk, episodes]);
 
   const tip = COMMUNITY_TIPS[tipIndex];
 
@@ -190,7 +181,7 @@ const WarriorLaunchpad = () => {
         </h1>
         <p className="text-purple-100 text-xs mt-1">{today}</p>
         <div className="mt-4 inline-flex items-center bg-white/15 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20 max-w-full">
-          <p className="text-white text-xs font-medium leading-snug">{dynamicInsight}</p>
+          <p className="text-[#22c55e] text-xs font-medium leading-snug">{dynamicInsight}</p>
         </div>
       </div>
 
