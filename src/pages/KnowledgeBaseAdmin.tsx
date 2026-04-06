@@ -413,7 +413,7 @@ const KnowledgeBaseAdmin = () => {
                   Test Knowledge Search
                 </CardTitle>
                 <CardDescription>
-                  Test how Hyper AI will find relevant knowledge for user questions
+                  Test how HidroAlly will find relevant knowledge for user questions
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
