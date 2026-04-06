@@ -43,7 +43,7 @@ const NotFound = () => {
         
         <div className="space-y-3">
           <Button onClick={handleGoHome} className="w-full">
-            {user ? "Go to Dashboard" : "Return to Home"}
+            {user ? "Return to Home" : "Return to Home"}
           </Button>
           
           {user && (
