@@ -127,7 +127,7 @@ const AIGreeting = ({ profile, hdss, meta, city, onDismiss }: {
           <Sparkles className="h-4 w-4 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold text-teal-400 uppercase tracking-widest mb-1">Hyper AI · Specialist Radar</p>
+          <p className="text-[10px] font-bold text-teal-400 uppercase tracking-widest mb-1">HidroAlly · Specialist Radar</p>
           <p className="text-sm text-white/85 leading-relaxed">
             <span className="font-bold text-white">{name}</span>, based on your{' '}
             <span className="text-teal-300 font-semibold">{hdssText}</span>,{' '}

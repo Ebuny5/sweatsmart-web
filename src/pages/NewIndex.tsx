@@ -284,11 +284,11 @@ export default function NewIndex() {
                   <Sparkles className="w-8 h-8 text-pink-500" />
                 </div>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 text-center mb-3">Hyper AI Companion</h3>
+              <h3 className="text-xl font-bold text-gray-900 text-center mb-3">HidroAlly Companion</h3>
               <p className="text-gray-600 text-center mb-4">
                 Your 24/7 hyperhidrosis assistant: Get personalized insights from your episode data, ask questions about your condition, and receive practical tips for managing sweating.
               </p>
-              <button onClick={() => navigate('/hyper-ai')} className="w-full py-2 text-pink-500 font-medium hover:bg-pink-50 rounded-lg transition">Chat with Hyper AI</button>
+              <button onClick={() => navigate('/hyper-ai')} className="w-full py-2 text-pink-500 font-medium hover:bg-pink-50 rounded-lg transition">Chat with HidroAlly</button>
             </div>
 
             {/* 6. Supportive Community */}
