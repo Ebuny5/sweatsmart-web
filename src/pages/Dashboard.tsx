@@ -1,6 +1,7 @@
 import { useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
+import WarriorStatusBanner from "@/components/dashboard/WarriorStatusBanner";
 import { SeverityLevel } from "@/types";
 import DashboardSummary from "@/components/dashboard/DashboardSummary";
 import TriggerSummary from "@/components/dashboard/TriggerSummary";
