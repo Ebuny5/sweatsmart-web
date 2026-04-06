@@ -1,6 +1,7 @@
 import { useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
+import WarriorStatusBanner from "@/components/dashboard/WarriorStatusBanner";
 import { SeverityLevel } from "@/types";
 import DashboardSummary from "@/components/dashboard/DashboardSummary";
 import TriggerSummary from "@/components/dashboard/TriggerSummary";
@@ -317,8 +318,11 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* ── WARRIOR STATUS BANNER ──────────────────────────────────── */}
+        <WarriorStatusBanner episodes={dashboardData.allEpisodes} firstName={firstName} />
+
         {/* ── CONTENT ───────────────────────────────────────────────────── */}
-        <div className="space-y-4 px-4 -mt-6">
+        <div className="space-y-4 px-4 -mt-2">
 
           {/* Charts — DashboardSummary */}
           <div className="bg-white rounded-2xl shadow-sm border border-purple-100 overflow-hidden">
