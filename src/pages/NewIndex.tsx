@@ -189,7 +189,7 @@ export default function NewIndex() {
               <Brain className="w-12 h-12 text-pink-600 mb-4" />
               <h3 className="text-xl font-bold text-gray-900 mb-3">AI Insights</h3>
               <p className="text-gray-600 text-sm leading-relaxed">
-                <span className="font-semibold text-gray-800">Intelligent Analysis & Personalized Guidance:</span> Powered by advanced AI, receive evidence-based recommendations tailored to your specific hyperhidrosis profile. Get real-time clinical analysis, immediate relief strategies, treatment recommendations, lifestyle modifications, and 24/7 support from Hyper AI.
+                <span className="font-semibold text-gray-800">Intelligent Analysis & Personalized Guidance:</span> Powered by advanced AI, receive evidence-based recommendations tailored to your specific hyperhidrosis profile. Get real-time clinical analysis, immediate relief strategies, treatment recommendations, lifestyle modifications, and 24/7 support from HidroAlly.
               </p>
             </div>
             <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-lg transition-shadow">
