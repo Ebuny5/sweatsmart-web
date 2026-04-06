@@ -233,7 +233,7 @@ const WarriorLaunchpad = () => {
               { emoji: "⚡", title: "Quick Capture",    subtitle: "Log this moment now",      gradient: "from-cyan-400 to-teal-500",    shadow: "shadow-teal-200",   path: "/log-episode?now=true" },
               { emoji: "🗺️", title: "My Sweat Journey", subtitle: "Full episode history",    gradient: "from-pink-400 to-rose-500",    shadow: "shadow-pink-200",   path: "/history"             },
               { emoji: "🔬", title: "Growth Radar",     subtitle: "Insights & treatment",   gradient: "from-amber-400 to-orange-500", shadow: "shadow-amber-200",  path: "/insights"            },
-              { emoji: "🤖", title: "Hyper AI",         subtitle: "Your 24/7 companion",    gradient: "from-indigo-400 to-violet-500",shadow: "shadow-indigo-200", path: "/hyper-ai"            },
+              { emoji: "🤖", title: "HidroAlly",         subtitle: "Your 24/7 companion",    gradient: "from-indigo-400 to-violet-500",shadow: "shadow-indigo-200", path: "/hyper-ai"            },
             ].map(({ emoji, title, subtitle, gradient, shadow, path }) => (
               <button
                 key={path}
