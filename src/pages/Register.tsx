@@ -53,7 +53,7 @@ const Register = () => {
         password,
         options: {
           data: {
-            full_name: name,
+            display_name: name,
           },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },

@@ -1,7 +1,7 @@
 import { useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
-import WarriorStatusBanner from "@/components/dashboard/WarriorStatusBanner";
+
 import { SeverityLevel } from "@/types";
 import DashboardSummary from "@/components/dashboard/DashboardSummary";
 import TriggerSummary from "@/components/dashboard/TriggerSummary";
@@ -286,7 +286,7 @@ const Dashboard = () => {
           <div className="flex items-start justify-between mb-4">
             <div>
               <p className="text-[#1e3a8a] text-xs font-semibold uppercase tracking-widest">
-                {getGreeting()}
+                GOOD MORNING
               </p>
               <h1 className="text-[#1e3a8a] text-xl font-black tracking-tight leading-tight mt-0.5">
                 {firstName}'s Dashboard 💧
@@ -318,8 +318,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* ── WARRIOR STATUS BANNER ──────────────────────────────────── */}
-        <WarriorStatusBanner episodes={dashboardData.allEpisodes} firstName={firstName} />
 
         {/* ── CONTENT ───────────────────────────────────────────────────── */}
         <div className="space-y-4 px-4 -mt-2">

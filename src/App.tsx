@@ -38,6 +38,7 @@ import ClimateHistory from "./pages/ClimateHistory";
 import HyperAI from "./pages/HyperAI";
 import KnowledgeBaseAdmin from "./pages/KnowledgeBaseAdmin";
 import SpecialistRadar from "./pages/SpecialistRadar";
+import SetupProfile from "./pages/SetupProfile";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -118,6 +119,11 @@ const AppRoutes = () => (
     <Route path="/onboarding" element={
       <ProtectedRoute>
         <Onboarding />
+      </ProtectedRoute>
+    } />
+    <Route path="/setup-profile" element={
+      <ProtectedRoute>
+        <SetupProfile />
       </ProtectedRoute>
     } />
     <Route path="/home" element={
