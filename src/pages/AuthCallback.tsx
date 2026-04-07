@@ -70,11 +70,24 @@ const AuthCallback = () => {
         return;
       }
 
-      // Default: if we have a user, go to dashboard. If not, back to login.
-      const t = setTimeout(() => {
+      // Default: if we have a user, check if they need profile setup. If not, back to login.
+      const t = setTimeout(async () => {
         if (user) {
-          console.log('Redirecting to home, user:', user.id);
-          navigate("/home", { replace: true });
+          console.log('Checking profile for user:', user.id);
+          // Check if user has a display name set
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('display_name')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          
+          if (!profile?.display_name) {
+            console.log('No display name, redirecting to setup-profile');
+            navigate("/setup-profile", { replace: true });
+          } else {
+            console.log('Redirecting to home');
+            navigate("/home", { replace: true });
+          }
         } else {
           console.log('No user found, redirecting to login');
           navigate("/login", { replace: true });
