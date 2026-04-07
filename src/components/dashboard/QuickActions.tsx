@@ -172,7 +172,7 @@ const WarriorLaunchpad = () => {
     <div className="min-h-screen pb-24" style={{ backgroundColor: "#f5f4f7" }}>
 
       {/* ── HERO GREETING ───────────────────────────────────────────── */}
-      <div className="bg-gradient-to-br from-violet-600 via-purple-500 to-pink-500 px-6 pt-8 pb-16 rounded-b-[2.5rem] shadow-lg shadow-purple-200">
+      <div className="px-6 pt-8 pb-16 rounded-b-[2.5rem] shadow-lg shadow-purple-200" style={{ backgroundColor: "#7c3aed" }}>
         <p className="text-purple-200 text-xs font-semibold uppercase tracking-widest mb-1">
           SweatSmart {greeting.emoji}
         </p>
@@ -180,8 +180,13 @@ const WarriorLaunchpad = () => {
           {greeting.text}, {firstName}!
         </h1>
         <p className="text-purple-100 text-xs mt-1">{today}</p>
-        <div className="mt-4 inline-flex items-center bg-white/15 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20 max-w-full">
-          <p className="text-[#22c55e] text-xs font-medium leading-snug">{dynamicInsight}</p>
+
+        {/* Warrior Status Banner */}
+        <div className="mt-4 bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-3 border border-white/20">
+          <div className="flex items-start gap-3">
+            <span className="text-xl mt-0.5 shrink-0">💡</span>
+            <p className="text-[#22c55e] text-xs font-semibold leading-snug">{dynamicInsight}</p>
+          </div>
         </div>
       </div>
 

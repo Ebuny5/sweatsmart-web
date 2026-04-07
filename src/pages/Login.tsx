@@ -50,11 +50,22 @@ const Login = () => {
           variant: "destructive",
         });
       } else {
-        toast({
-          title: "Login successful",
-          description: "Welcome back to SweatSmart!",
-        });
-        navigate("/home");
+        // Check if user has a display name
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("display_name")
+          .eq("user_id", data.user.id)
+          .maybeSingle();
+
+        if (!profile?.display_name) {
+          navigate("/setup-profile");
+        } else {
+          toast({
+            title: "Login successful",
+            description: "Welcome back to SweatSmart!",
+          });
+          navigate("/home");
+        }
       }
     } catch (error) {
       toast({
