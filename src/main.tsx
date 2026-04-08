@@ -3,6 +3,13 @@ import App from './App.tsx'
 import ErrorBoundary from './components/ErrorBoundary.tsx'
 import './index.css'
 
+// Register service worker for background notifications and offline support
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch((err) => {
+    console.warn('SW registration failed:', err);
+  });
+}
+
 // Listen for service worker messages — plays sound when a real notification arrives
 // This runs once at app start and handles PLAY_NOTIFICATION_SOUND from sw.js
 if ('serviceWorker' in navigator) {
