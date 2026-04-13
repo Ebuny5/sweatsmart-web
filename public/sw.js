@@ -87,8 +87,8 @@ async function showLogReminderNotification() {
   const title = '⏰ Time to Log Your Episode';
   const options = {
     body: 'Please record your sweat level. Tap to open Climate Alerts.',
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
+    icon: '/favicon.ico',
+    badge: '/favicon.ico',
     tag: 'log-reminder',
     requireInteraction: true,
     vibrate: [400, 100, 400, 100, 400],
@@ -154,8 +154,8 @@ self.addEventListener('message', async (event) => {
   if (event.data && event.data.type === 'TEST_NOTIFICATION') {
     await self.registration.showNotification('✅ Test Alert', {
       body: 'Your alerts are working correctly! 🎉',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
+      icon: '/favicon.ico',
+      badge: '/favicon.ico',
       tag: 'test-alert',
       vibrate: [200, 100, 200],
       silent: false
@@ -169,8 +169,8 @@ self.addEventListener('message', async (event) => {
   if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
     const { title, options } = event.data;
     await self.registration.showNotification(title, {
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
+      icon: '/favicon.ico',
+      badge: '/favicon.ico',
       silent: false,
       ...options
     });
@@ -251,8 +251,8 @@ self.addEventListener('push', (event) => {
 
         const options = {
           body: data.body || '',
-          icon: '/icon-192.png',
-          badge: '/icon-192.png',
+          icon: '/favicon.ico',
+          badge: '/favicon.ico',
           tag: tag,
           requireInteraction: isClimate || isReminder,
           vibrate: isClimate ? [800, 200, 800, 200, 800] : [400, 100, 400],
@@ -280,8 +280,8 @@ self.addEventListener('push', (event) => {
         console.error('📱 [SW] Push error:', error);
         await self.registration.showNotification('SweatSmart', {
           body: 'New alert available',
-          icon: '/icon-192.png',
-          badge: '/icon-192.png',
+          icon: '/favicon.ico',
+          badge: '/favicon.ico',
           tag: 'sweatsmart-fallback',
           data: { url: '/dashboard' }
         });
