@@ -102,8 +102,8 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 
 const AppRoutes = () => (
   <Routes>
-    <Route path="/" element={<NewIndex />} />
-    <Route path="/old" element={<PublicRoute><Index /></PublicRoute>} />
+    <Route path="/" element={<Index />} />
+    <Route path="/old-blue" element={<PublicRoute><NewIndex /></PublicRoute>} />
     <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
     <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
     <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
