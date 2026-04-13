@@ -1,7 +1,17 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SweatSmartLanding = () => {
+  const navigate = useNavigate();
+  const { user, loading } = useAuth();
   const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/home', { replace: true });
+    }
+  }, [user, loading, navigate]);
   const [animatedBars, setAnimatedBars] = useState(false);
   const chartRef = useRef(null);
 
@@ -908,7 +918,7 @@ const SweatSmartLanding = () => {
           </div>
           <span className="logo-text" style={{ fontSize: 15 }}>SweatSmart</span>
         </a>
-        <p className="footer-copy">© {new Date().getFullYear()} SweatSmart. All rights reserved.</p>
+        <p className="footer-copy">© {new Date().getFullYear()} SweatSmart by Giftovate Therapeutics Ltd. All rights reserved.</p>
         <div className="footer-links">
           <a href="/privacy" className="footer-link">Privacy</a>
           <a href="/terms" className="footer-link">Terms</a>
