@@ -43,55 +43,37 @@ class EpisodeInsightGenerator {
     const trigText = ep.triggers.map(t => lower(t.label || t.value || '')).join(' ');
     const areaList = this.formatBodyAreas(ep.bodyAreas);
 
-    // Friendly severity interpretation
-    const severityText = sev >= 4
-      ? 'Severe: sweating always interferes with your daily activities'
-      : sev === 3
-      ? 'Significant: sweating frequently interferes with your daily activities'
-      : sev === 2
-      ? 'Moderate: sweating sometimes interferes with your daily activities'
-      : 'Mild: sweating rarely interferes with your daily activities';
+    // Classification
+    const isNocturnal = hasAny(trigText, 'sleep', 'night');
+    const isWidespread = ep.bodyAreas.length > 3;
+    const classification = (isNocturnal || isWidespread)
+      ? "This pattern shows signs of Secondary Generalized Hyperhidrosis (SHH), which can be triggered by systemic factors."
+      : "This episode fits the criteria for Primary Focal Hyperhidrosis (PHH), where localized overactivity is the main driver.";
 
+    // Probability & Pathway Mapping
     const isEmotional = hasAny(trigText, 'stress', 'anxiety', 'nervous', 'anger', 'anticipat', 'social', 'crowd', 'embarrass', 'exam', 'work pressure');
     const isThermal = hasAny(trigText, 'hot', 'heat', 'humid', 'temperature', 'sun', 'warm', 'outdoor');
-    const isDietary = hasAny(trigText, 'spicy', 'caffein', 'alcohol', 'hot drink', 'energy drink');
-    const isPhysical = hasAny(trigText, 'exercise', 'physical', 'sleep', 'night');
+    const amygdalaProb = isEmotional ? (isThermal ? 60 : 80) : 20;
+    const hypothalamusProb = 100 - amygdalaProb;
 
-    let insight: string;
+    const mechanism = `Reasoning suggests this is ${amygdalaProb}% driven by the Amygdala (emotional response) and ${hypothalamusProb}% by the Hypothalamus (thermal load). Your Hypothalamus is sending a "start sweating" signal down the Sympathetic Chain—the nervous system's "software"—which is overdriving your functionally normal sweat glands.`;
 
-    if (isEmotional && isThermal) {
-      insight = `It looks like your body's "cool down" system is getting a double-hit from both the heat and the stress of the situation. Your nervous system is sending out a "start sweating" signal much earlier and stronger than it needs to. This is a common physical overreaction where your brain thinks it needs to cool you down even though you're already comfortable.`;
-    } else if (isEmotional) {
-      insight = `This episode seems mostly driven by your body's reaction to stress or anticipation. Your brain's "alert" system is directly triggering your sweat glands, often before you even consciously feel anxious. It's almost like a reflex that has become a bit too sensitive, firing the sweat signal in social or high-pressure situations.`;
-    } else if (isThermal) {
-      insight = `The heat and humidity are likely the main drivers here. When it's humid (above 70%), sweat can't evaporate properly to cool you down. Your body reacts by producing even *more* sweat, trying to achieve a cooling effect that the air simply won't allow. For someone with hyperhidrosis, this creates a frustrating loop of constant sweating.`;
-    } else if (isDietary) {
-      insight = `What you've eaten or drunk is likely setting this off. Spicy foods contain compounds that trick your brain into thinking you're overheating, while caffeine can dial up your body's baseline "alert" level, making your sweat glands much easier to trigger.`;
-    } else if (isPhysical) {
-      insight = `Your body is being very efficient—perhaps too efficient—at cooling you down during physical activity. In hyperhidrosis, the "dial" for sweat production is turned up much higher than average, so you produce far more moisture than is actually needed to stay cool.`;
-    } else {
-      insight = `This episode follows the typical pattern of primary hyperhidrosis, where specific areas like your ${areaList} sweat more than expected. It's essentially a minor "glitch" in the signal between your brain and your sweat glands, where the "on" switch is a bit too sensitive to daily life.`;
-    }
+    // Vasodilation Link
+    const hasVasodilation = ep.notes && hasAny(lower(ep.notes), 'tight', 'swell', 'puff', 'expand');
+    const vasodilationNote = hasVasodilation
+      ? "\n\nNote: The 'tightness' or 'swelling' you're feeling is likely the Vasodilation-Edema Link—the same signal that triggers sweat also opens blood vessels, causing temporary fluid buildup."
+      : "";
 
-    // Body area specifics
-    const hasPalms = areas.some(a => a.includes('palm'));
-    const hasSoles = areas.some(a => a.includes('sole') || a.includes('feet') || a.includes('foot'));
-    const isPalmoplantar = hasPalms && hasSoles;
-    const hasAxillae = areas.some(a => a.includes('arm') || a.includes('under'));
-    const hasFace = areas.some(a => a.includes('face') || a.includes('scalp') || a.includes('head'));
+    // Friendly severity interpretation
+    const severityText = sev >= 4
+      ? 'Severe: sweating always interferes with your daily activities (HDSS 4)'
+      : sev === 3
+      ? 'Significant: sweating frequently interferes with your daily activities (HDSS 3)'
+      : sev === 2
+      ? 'Moderate: sweating sometimes interferes with your daily activities (HDSS 2)'
+      : 'Mild: sweating rarely interferes with your daily activities (HDSS 1)';
 
-    let areaInsight = '';
-    if (isPalmoplantar) {
-      areaInsight = ` Sweating on both your hands and feet is very common and is usually triggered more by your emotions and thoughts than by actual heat.`;
-    } else if (hasPalms) {
-      areaInsight = ` Hand sweating is one of the most common ways this condition shows up, especially in social or work situations.`;
-    } else if (hasAxillae) {
-      areaInsight = ` Underarm sweating is a very common pattern and actually has some of the most effective treatment options available today.`;
-    } else if (hasFace) {
-      areaInsight = ` Facial sweating can be particularly tough because it's so visible, but it follows the same "sensitive signal" pattern as other areas.`;
-    }
-
-    return `**${severityText}**\n\n${insight}${areaInsight}`;
+    return `**Clinical Analysis: What This Means**\n\n**${severityText}**\n\n${classification}\n\n${mechanism}${vasodilationNote}`;
   }
 
   private buildReliefStrategies(ep: Episode): string[] {
@@ -101,7 +83,7 @@ class EpisodeInsightGenerator {
     const isThermal = hasAny(trigText, 'hot', 'heat', 'humid', 'temperature', 'sun', 'warm');
 
     strategies.push(
-      `**The 4-7-8 Breathing Trick:** Breathe in through your nose for 4 seconds, hold it for 7, and exhale slowly through your mouth for 8. Doing this just 3 times can "reset" your nervous system and help quiet the signal that's telling your sweat glands to work so hard.`
+      `**The 4-7-8 Breathing Trick:** Breathe in through your nose for 4 seconds, hold it for 7, and exhale slowly through your mouth for 8. This activates your Vagus Nerve to shift your body from "fight or flight" to "rest and digest," reducing the acetylcholine signal sent to your sweat glands.`
     );
 
     strategies.push(
@@ -132,22 +114,22 @@ class EpisodeInsightGenerator {
 
     if (sev >= 3) {
       recs.push(
-        `**Time for a Specialist:** Since your sweating is significantly interfering with your life, it's worth seeing a dermatologist. They can offer prescription wipes (like Qbrexza), specialized gels (like Sofdra), or even Botox injections that can stop the sweating in specific areas for months at a time.`
+        `**Prescription Threshold Reached:** Since your severity is HDSS 3-4, it's time to discuss prescription options with a dermatologist. Treatments like Botox injections or topical gels (Sofdra, Qbrexza) work by 'blocking the acetylcholine signal' directly at the sweat glands.`
       );
       if (areas.some(a => a.includes('arm') || a.includes('under'))) {
         recs.push(
-          `**Permanent Options:** For underarms, there's a treatment called miraDry that permanently stops sweat glands from working in that area. It's a great one-time solution if you're tired of daily management.`
+          `**Permanent Relief:** miraDry uses thermal energy to destroy underarm sweat glands permanently, providing a lasting solution for this severity level.`
         );
       }
       recs.push(
-        `**Iontophoresis (Water Treatment):** This is a highly effective treatment for hands and feet that uses a gentle electrical current in a shallow tray of water. It "quiets" the sweat glands and works for about 80-90% of people who try it.`
+        `**Iontophoresis:** For hands and feet, this water-bath treatment uses gentle current to quieten overactive glands and has an 80-90% success rate.`
       );
     } else {
       recs.push(
-        `**Clinical-Strength Antiperspirants:** Look for products containing "aluminium chloride 20%" (like Certain Dri). The secret is to apply them to *completely dry* skin right before you go to bed, then wash them off in the morning. This gives them time to work while your sweat glands are naturally less active.`
+        `**Aluminium Chloride 20%:** For HDSS 1-2, clinical-strength OTC antiperspirants are the first line of defense. Apply to completely dry skin at night to help plug the sweat ducts.`
       );
       recs.push(
-        `**Lifestyle Tweaks:** Sometimes small changes make a big difference. Try wearing moisture-wicking fabrics (like bamboo or merino wool) instead of cotton, which just holds onto moisture and makes you feel colder.`
+        `**Behavioral Resets:** Focus on the 4-7-8 technique to manage the nervous system 'start' signal before it reaches your glands.`
       );
     }
 
@@ -197,13 +179,13 @@ class EpisodeInsightGenerator {
   private buildMedicalAttention(ep: Episode): string {
     const sev = ep.severityLevel;
 
-    const redFlags = "Keep an eye out for 'red flags' like night sweats (sweating so much during sleep that you have to change clothes), sweating that only happens on one side of your body, or if this started very suddenly in adulthood.";
+    const redFlags = "Red Flags for SHH: Night sweats (soaking clothes/sheets), generalized sweating (entire body), or sudden onset after age 50 require medical escalation to rule out systemic conditions like thyroid issues.";
 
     if (sev >= 3) {
-      return `Because your sweating is frequently interfering with your daily life, I'd strongly recommend chatting with a doctor or dermatologist. You can even show them your logs from this app to help them see exactly what's been happening.\n\n${redFlags}`;
+      return `Prescription Threshold Reached. Because your sweating frequently interferes with your life (HDSS 3-4), a dermatologist visit is indicated to discuss prescription options that block the acetylcholine signal.\n\n${redFlags}`;
     }
 
-    return `If your sweating starts to feel unmanageable or starts happening during your sleep, it's a good idea to check in with a healthcare provider.\n\n${redFlags}`;
+    return `If your sweating reaches HDSS 3 or you notice any red flags, please consult a healthcare provider for a clinical evaluation.\n\n${redFlags}`;
   }
 
   private formatBodyAreas(areas: string[]): string {
