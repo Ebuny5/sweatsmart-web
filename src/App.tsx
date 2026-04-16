@@ -35,7 +35,7 @@ import Cookies from "./pages/Cookies";
 import Legal from "./pages/Legal";
 import ClimateMonitor from "./pages/ClimateMonitor";
 import ClimateHistory from "./pages/ClimateHistory";
-import HyperAI from "./pages/HyperAI";
+import HydroAlly from "./pages/HydroAlly";
 import KnowledgeBaseAdmin from "./pages/KnowledgeBaseAdmin";
 import SpecialistRadar from "./pages/SpecialistRadar";
 import SetupProfile from "./pages/SetupProfile";
@@ -189,7 +189,7 @@ const AppRoutes = () => (
     <Route path="/climate/settings" element={<Navigate to="/settings" replace />} />
     <Route path="/hyper-ai" element={
       <ProtectedRoute>
-        <HyperAI />
+        <HydroAlly />
       </ProtectedRoute>
     } />
     <Route path="/knowledge-admin" element={
