@@ -151,12 +151,12 @@ function analyzeEpisodes(episodes: Episode[]): WarriorInsight[] {
       trigName.includes("public");
 
     const detail = isHeat
-      ? `Your body reacts to rising temperatures by ramping up sweating harder and faster than it needs to — that's the core of what's happening here. In humid conditions, sweat can't evaporate from your skin properly, so your body keeps producing more without the cooling relief it's expecting. This creates a frustrating loop: the more it sweats, the more uncomfortable you feel, and the more your body keeps going. The good news is that heat-triggered sweating has very clear management strategies that work.`
+      ? `Your body reacts to rising temperatures by ramping up sweating harder and faster than it needs to. Essentially, your "software" (nervous system) is overdriving your functionally normal "hardware" (sweat glands). In humid conditions, sweat can't evaporate properly, so your hypothalamus (your body's thermostat) keeps sending signals down the sympathetic chain, producing more sweat without the expected cooling relief.`
       : isStress
-      ? `Your brain's alarm system — the part that reacts to stress or social pressure — directly triggers your sweat glands. Crucially, this often fires in *anticipation* of a stressful situation, not just during it, which is why you might start sweating before a presentation or social event even begins. This isn't a character flaw or anxiety problem — it's a physical overreaction in your body's nervous system that responds well to specific techniques and treatments.`
+      ? `Your brain's alarm system — the part that reacts to stress — is overdriving your sweat glands. This is a case of your "software" (nervous system) over-triggering your normal "hardware" (sweat glands). Crucially, this often fires in *anticipation* of a stressful situation, sending a signal down the sympathetic chain before the event even begins. This isn't a character flaw; it's a physical overreaction that can be reset.`
       : isSocial
-      ? `Your body has learned to associate certain social situations with a sweating response — almost like a reflex that fires automatically. The part of your brain that stores memories of past uncomfortable episodes sends out a "prepare for sweating" signal before you've even walked into the room. Understanding this pattern is actually powerful, because it means you can intervene *before* it starts, not just react to it.`
-      : `This trigger is consistently setting off your body's sweat response, and you're seeing it appear in ${trigPercent}% of your logged episodes. Whatever mechanism is at play, the pattern is clear and that's something you can work with. Consistent triggers are far easier to manage than unpredictable ones — they give you a real opportunity to prepare and intervene.`;
+      ? `Your body has learned to associate social situations with a sweating response. Your "software" (nervous system) is sending a "prepare for sweating" signal to your "hardware" (sweat glands) before you've even entered the room. The signal travels from your amygdala down the sympathetic chain, triggering the glands. Understanding this means you can use techniques to interrupt the signal before it starts.`
+      : `This trigger is consistently setting off your body's sweat response. Your "software" (nervous system) is overdriving your "hardware" (sweat glands) by sending excessive signals down the sympathetic chain. Pattern awareness is powerful because it allows you to intervene and reset the nervous system before the sweating becomes intolerable.`;
 
     const isPrescriptionThreshold = parseFloat(trigAvgSev) >= 3;
 
@@ -268,8 +268,8 @@ function analyzeEpisodes(episodes: Episode[]): WarriorInsight[] {
         ? `Keep doing what you're doing, and if you recently started a new treatment or habit, document it. This progress is evidence you can show a dermatologist to guide next steps.`
         : `Use this stable window to make one deliberate change — for example, consistent use of aluminium chloride 20% antiperspirant at night for two weeks — and track whether it shifts your baseline.`,
       clinicalNote: worsening
-        ? `If episodes are scoring HDSS 3 or higher consistently, it's time to ask your doctor about prescription options. Qbrexza and Sofdra are newer treatments that block the acetylcholine signal at the gland. Botulinum toxin injections are also an option for palms, underarms, and feet, providing relief for 3–6 months by stopping the nerve signal.`
-        : `Continue your current approach. If severity drops below HDSS 2 consistently, you can consider reducing treatment frequency to find the minimum that keeps you comfortable.`,
+        ? `If episodes are scoring HDSS 3 or higher consistently, it's time to ask your doctor about prescription options. Topical anticholinergics like Qbrexza and Sofdra are newer treatments that work by 'blocking the acetylcholine signal' at the gland. Botox injections are also an option, providing relief by stopping the nerve signal from reaching the glands.`
+        : `Continue your current approach. For HDSS 1-2, first-line treatments like Aluminium Chloride 20% are recommended. If severity drops below HDSS 2 consistently, you can consider reducing treatment frequency to find the minimum that keeps you comfortable.`,
     });
   }
 
@@ -334,11 +334,11 @@ function analyzeEpisodes(episodes: Episode[]): WarriorInsight[] {
         ? (isMorning
           ? `For severe morning sweating, a low-dose oral medication like glycopyrrolate is often recommended. It 'blocks the acetylcholine signal' throughout the body, and taking it the night before can help you wake up dry and confident.`
           : isNight
-          ? `Frequent nocturnal sweating at HDSS 3+ requires a medical panel (thyroid, glucose) to rule out secondary causes. If it's primary, prescription anticholinergics can help by blocking the acetylcholine signals that are firing during your sleep.`
-          : `At this severity level, a dermatologist may recommend iontophoresis for hands/feet or prescription topicals (Sofdra, Qbrexza). Both approaches work by disrupting the signal to the sweat glands, with topicals specifically 'blocking the acetylcholine messenger'.`)
+          ? `Frequent nocturnal sweating at HDSS 3+ requires a medical panel (thyroid, glucose) to rule out secondary causes. If it's primary, prescription anticholinergics can help by 'blocking the acetylcholine signal' that is firing during your sleep.`
+          : `At this severity level, a dermatologist may recommend iontophoresis or prescription topicals (Sofdra, Qbrexza). These approaches work by 'blocking the acetylcholine signal' at the gland level to stop the sweating response.`)
         : (isMorning
-          ? `For moderate morning episodes, focus on the 4-7-8 Vagus Nerve reset and clinical-strength antiperspirant applied the night before. This combination targets both the nervous system 'start' signal and the physical exit point.`
-          : `Continue monitoring these patterns. If severity reaches HDSS 3 consistently, it signals that lifestyle resets alone may not be enough to manage the overactive signals your nervous system is sending to your glands.`),
+          ? `For moderate morning episodes (HDSS 1-2), focus on the 4-7-8 Vagus Nerve reset and Aluminium Chloride 20% clinical-strength antiperspirant applied the night before. This combination targets both the nervous system 'start' signal and the physical exit point.`
+          : `For HDSS 1-2 patterns, consistent use of Aluminium Chloride 20% and 4-7-8 breathing resets are recommended. If severity reaches HDSS 3, it signals that the nervous system signals are overdriving these first-line defenses.`),
     });
   }
 

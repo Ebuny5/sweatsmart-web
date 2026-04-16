@@ -66,40 +66,40 @@ class EpisodeInsightGenerator {
       : 'Mild: sweating rarely interferes with your daily activities';
 
     // 3. Neural Pathway Mapping & Human Filter
-    let classification = "Clinical Classification: This episode matches the pattern of Primary Focal Hyperhidrosis (PHH). It's focal, bilateral, and clearly linked to specific triggers.";
+    let classification = "Clinical Analysis: Clinical Classification: This episode matches the pattern of Primary Focal Hyperhidrosis (PHH). It's focal (hands, feet, underarms), bilateral, and clearly linked to specific triggers.";
     if (isNocturnal || isSudden) {
-      classification = "Clinical Classification: This episode has features that require careful monitoring. While likely Primary Hyperhidrosis, the timing or onset suggests we should keep an eye out for Secondary patterns.";
+      classification = "Clinical Analysis: Clinical Classification: This episode has features that require medical escalation. While likely PHH, the timing or onset suggests we must rule out Secondary Generalized Hyperhidrosis (SHH).";
     }
 
     let probability = "";
     if (isEmotional && isThermal) {
-      probability = "Probability Distribution: 50% Amygdala (Emotional Stress) / 50% Hypothalamus (Thermal Load).";
+      probability = "Probability Distribution: This episode appears to be 50% driven by the Amygdala (emotional stress) and 50% by the Hypothalamus (thermal load).";
     } else if (isEmotional) {
-      probability = "Probability Distribution: 80% Amygdala (Emotional Stress) / 20% Baseline Autonomic Activity.";
+      probability = "Probability Distribution: This episode appears to be 80% driven by the Amygdala (emotional stress) and 20% by baseline Autonomic Activity.";
     } else if (isThermal) {
-      probability = "Probability Distribution: 90% Hypothalamus (Thermal Load) / 10% Physical Activity.";
+      probability = "Probability Distribution: This episode appears to be 90% driven by the Hypothalamus (thermal load) and 10% by Physical Activity.";
     } else if (isDietary) {
-      probability = "Probability Distribution: 70% Gustatory Stimuli / 30% Sympathetic Sensitivity.";
+      probability = "Probability Distribution: This episode appears to be 70% driven by Gustatory Stimuli and 30% by Sympathetic Sensitivity.";
     } else {
       probability = "Probability Distribution: Mixed Autonomic Triggering.";
     }
 
-    const mapping = "Neural Pathway Mapping: Your brain is sending a signal down the Sympathetic Chain—the 'highway' for your nervous system—telling your sweat glands to over-fire. This results in an excess of the acetylcholine signal at the gland site.";
+    const mapping = "Neural Pathway Mapping: Your Hypothalamus (body thermostat) is sending a 'start sweating' signal down the Sympathetic Chain to the glands. This results in an excess of the acetylcholine signal at the gland site.";
 
     let insight: string;
 
     if (isEmotional && isThermal) {
-      insight = `It looks like your body's "cool down" system is getting a double-hit from both the heat and the stress of the situation. Your nervous system is sending out a "start sweating" signal much earlier and stronger than it needs to. This is a common physical overreaction where your brain thinks it needs to cool you down even though you're already comfortable.`;
+      insight = `It looks like your body's "cool down" system is getting a double-hit from both the heat and the stress of the situation. Your "software" (nervous system) is overdriving your functionally normal "hardware" (sweat glands). This is a common physical overreaction where your brain thinks it needs to cool you down even though you're already comfortable.`;
     } else if (isEmotional) {
-      insight = `This episode seems mostly driven by your body's reaction to stress or anticipation. Your nervous system (the "software") is overdriving your functionally normal sweat glands (the "hardware"). Your brain's "alert" system is directly triggering your sweat glands through the sympathetic chain, often before you even consciously feel anxious.`;
+      insight = `This episode seems mostly driven by your body's reaction to stress or anticipation. Your "software" (nervous system) is overdriving your functionally normal "hardware" (sweat glands). Your brain's "alert" system is directly triggering your sweat glands through the sympathetic chain, often before you even consciously feel anxious.`;
     } else if (isThermal) {
-      insight = `The heat and humidity are the main drivers here. When it's humid (above 70%), sweat can't evaporate properly. Your hypothalamus (your body's thermostat) reacts by producing even more sweat, trying to achieve a cooling effect that the air simply won't allow. For someone with hyperhidrosis, this creates a frustrating loop.`;
+      insight = `The heat and humidity are the main drivers here. When it's humid (above 70%), sweat can't evaporate properly. Your hypothalamus (your body's thermostat) reacts by producing even more sweat, trying to achieve a cooling effect that the air simply won't allow. For someone with hyperhidrosis, this creates a frustrating loop of over-triggering the sympathetic chain.`;
     } else if (isDietary) {
-      insight = `What you've eaten or drunk is likely setting this off. Spicy foods contain compounds that trick your brain into thinking you're overheating, while caffeine dials up your body's baseline "alert" level, making your sweat glands much easier to trigger via the sympathetic nervous system.`;
+      insight = `What you've eaten or drunk is likely setting this off. Spicy foods trick your brain into thinking you're overheating, while caffeine dials up your baseline "alert" level, making your sweat glands much easier to trigger via the sympathetic nervous system and the acetylcholine messenger.`;
     } else if (isPhysical) {
-      insight = `Your body is being very efficient—perhaps too efficient—at cooling you down. In hyperhidrosis, the "dial" for sweat production is turned up much higher than average, so your sympathetic chain sends far more moisture signals than is actually needed.`;
+      insight = `Your body is being too efficient at cooling you down. Your "software" (nervous system) is over-triggering your "hardware" (sweat glands), so your sympathetic chain sends far more moisture signals (acetylcholine) than is actually needed.`;
     } else {
-      insight = `This episode follows the typical pattern of primary focal hyperhidrosis, where specific areas like your ${areaList} sweat more than expected. It's essentially a minor "glitch" in the signal between your brain and your sweat glands, where the "on" switch is a bit too sensitive to daily life.`;
+      insight = `This episode follows the typical pattern of primary focal hyperhidrosis, where specific areas like your ${areaList} sweat more than expected. It's essentially your "software" (nervous system) overdriving your functionally normal "hardware" (sweat glands), where the "on" switch is a bit too sensitive to daily life.`;
     }
 
     // Vasodilation-Edema Link
@@ -167,7 +167,7 @@ class EpisodeInsightGenerator {
 
     if (sev >= 3) {
       recs.push(
-        `Time for a Specialist: Since your sweating is significantly interfering with your life (Prescription Threshold Reached), it's worth seeing a dermatologist. They can offer prescription wipes (like Qbrexza), specialized gels (like Sofdra), or even Botox injections. These medical options work by "blocking the acetylcholine signal"—the chemical messenger that tells your glands to sweat.`
+        `Time for a Specialist: Since your sweating is significantly interfering with your life (Prescription Threshold Reached), it's worth seeing a dermatologist. They can offer prescription wipes (like **Qbrexza**), specialized gels (like **Sofdra**), or even **Botox** injections. These medical options work by 'blocking the acetylcholine signal'—the chemical messenger that tells your glands to sweat.`
       );
       if (areas.some(a => a.includes('arm') || a.includes('under'))) {
         recs.push(
@@ -175,14 +175,14 @@ class EpisodeInsightGenerator {
         );
       }
       recs.push(
-        `Iontophoresis (Water Treatment): This is highly effective for hands and feet, using a gentle electrical current in water to "quiet" the sweat glands. It works for about 80-90% of people who try it.`
+        `Iontophoresis (Water Treatment): This is highly effective for hands and feet, using a gentle electrical current in water to 'quiet' the sweat glands. It works for about 80-90% of people who try it.`
       );
     } else {
       recs.push(
-        `Clinical-Strength Antiperspirants: First-line treatments include aluminium chloride 20% (like Certain Dri). Apply to completely dry skin right before bed to allow the formula to block the sweat ducts while the glands are least active.`
+        `Clinical-Strength Antiperspirants: First-line treatments for HDSS 1-2 include **Aluminium Chloride 20%** (like Certain Dri). Apply to completely dry skin right before bed to allow the formula to block the sweat ducts while the glands are least active.`
       );
       recs.push(
-        `Lifestyle Tweaks: Choose moisture-wicking fabrics (bamboo, merino wool, or athletic wear) instead of cotton. Cotton soaks up sweat and stays wet, which can actually make you feel colder and trigger more sweating.`
+        `Behavioral Resets: Focus on the **4-7-8 breathing** technique to calm the nervous system signal before it reaches the glands.`
       );
     }
 

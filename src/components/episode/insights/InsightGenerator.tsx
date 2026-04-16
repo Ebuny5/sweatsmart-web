@@ -99,10 +99,10 @@ function generateInsights(episode: ProcessedEpisode): clinicalInsight[] {
     : 'Never Noticeable';
 
   const severityMechanism = severity >= 4
-    ? `At this level, your body's "cool down" system is firing at maximum intensity. Your brain is sending signals down the Sympathetic Chain with such force that it results in a massive excess of the acetylcholine signal at the gland site. This high severity level (HDSS 4) is a clear sign that it's time to seek specialist help from a dermatologist, as simple over-the-counter fixes are likely being overwhelmed by the intensity of the neural firing.`
+    ? `At this level, your body's "cool down" system is firing at maximum intensity. Your brain is sending signals down the Sympathetic Chain with such force that it results in a massive excess of the acetylcholine signal at the gland site. Your "software" (nervous system) is overdriving your functionally normal "hardware" (sweat glands). This high severity level (HDSS 4) is a clear sign that it's time to seek specialist help from a dermatologist.`
     : severity === 3
-    ? `This is a clinical tipping point (HDSS 3) where sweating starts to frequently get in the way of your daily life. Your nervous system (the "software") is overdriving your functionally normal sweat glands (the "hardware") with a much lower threshold than usual. The sympathetic ganglia responsible for this area are firing more frequently than required for normal temperature regulation.`
-    : `This episode shows your body was triggered but not completely overwhelmed (HDSS 1-2). You produced extra sweat, but the sympathetic signal remained within a semi-manageable range. The goal now is to identify the specific neural trigger—whether emotional or thermal—to prevent it from escalating next time.`;
+    ? `This is a clinical tipping point (HDSS 3) where sweating frequently interferes with your life. Your "software" (nervous system) is overdriving your functionally normal "hardware" (sweat glands) with a much lower threshold than usual. The sympathetic ganglia responsible for this area are firing more frequently than required, sending excessive acetylcholine signals to the glands.`
+    : `This episode shows your body was triggered but not completely overwhelmed (HDSS 1-2). Your "software" (nervous system) sent extra signals down the sympathetic chain, but the acetylcholine signal remained within a semi-manageable range. The goal is to identify the neural trigger—emotional or thermal—to prevent escalation.`;
 
   const severityImmediate = severity >= 4
     ? `Get out of the triggering environment immediately. Run cold water over your wrists and the back of your neck. These "pulse points" help cool your core temperature quickly and tell your brain to ease up on the sweat signals.`
@@ -158,7 +158,7 @@ function generateInsights(episode: ProcessedEpisode): clinicalInsight[] {
       trigMechanism = `When it's hot, your hypothalamus (body thermostat) tells your sweat glands to kick in. But when it's humid (above 70%), that sweat can't evaporate, so your body just keeps producing more in a frustrating loop. It's essentially a "failed mission" where the brain continues to send the acetylcholine signal through the sympathetic chain to achieve a cooling effect that the air won't allow.`;
       trigImmediate = `Use a fan! Moving air across your skin helps that sweat evaporate even when it's humid. Target your neck and wrists for the fastest relief.`;
       trigSelfManagement = `Try "pre-cooling" by taking a cool shower before you head into a hot environment. This gives your body a longer "buffer" before the hypothalamus feels the need to start sweating.`;
-      trigClinical = `If heat always sets you off, clinical-strength antiperspirants (aluminium chloride 20%) applied at night are your best first defense. These work by temporarily blocking the sweat ducts so the acetylcholine signal has nowhere to go.`;
+      trigClinical = `If heat always sets you off, Aluminium Chloride 20% clinical-strength antiperspirant applied at night is your best first defense. It works by temporarily blocking the sweat ducts so the acetylcholine signal has nowhere to go.`;
       trigIcon = <Thermometer className="h-5 w-5" />;
     } else if (isStress || isAntic) {
       trigTitle = isAntic ? 'Trigger — Anticipation' : 'Trigger — Stress & Anxiety';
@@ -393,7 +393,7 @@ const InsightCard: React.FC<{ insight: clinicalInsight }> = ({ insight }) => {
       pdf.text(insight.probability, margin, y); y += 10;
 
       section('Summary', insight.summary);
-      section('What\'s Happening', insight.mechanism);
+      section('Clinical Analysis', insight.mechanism);
       section('What To Do Now', insight.immediate);
       section('Long-term Strategy', insight.selfManagement);
       section('Doctor\'s Note / Treatment', insight.clinicalNote);
@@ -435,7 +435,7 @@ const InsightCard: React.FC<{ insight: clinicalInsight }> = ({ insight }) => {
         <div className="px-4 pb-4 space-y-3 mt-2">
           {/* Mechanism */}
           <div className="p-3 rounded-xl bg-violet-50 border border-violet-100">
-            <p className="text-[10px] font-black text-violet-600 uppercase tracking-wide mb-1">What's Happening</p>
+            <p className="text-[10px] font-black text-violet-600 uppercase tracking-wide mb-1">Clinical Analysis</p>
             <p className="text-xs text-violet-900 leading-relaxed">{insight.mechanism}</p>
           </div>
           {/* Immediate */}
