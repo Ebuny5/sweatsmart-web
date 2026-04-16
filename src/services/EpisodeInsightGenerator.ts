@@ -1,9 +1,8 @@
 /**
- * EpisodeInsightGenerator.ts — Dr. Cody Fallback Engine
+ * EpisodeInsightGenerator.ts
  * 
- * Deep, clinically-enriched deterministic insights using the
- * Hyperhidrosis Warrior's Manual and 2026 treatment protocols.
- * Matches the enriched Gemini prompt so fallback quality is near-identical.
+ * Friendly, plain-language insights for hyperhidrosis episodes.
+ * Provides fallback analysis when the AI service is unavailable.
  */
 
 interface Episode {
@@ -38,56 +37,40 @@ class EpisodeInsightGenerator {
     };
   }
 
-  // ── CLINICAL ANALYSIS (Dr. Cody Method) ──────────────────────────────────
   private buildClinicalAnalysis(ep: Episode): string {
     const sev = ep.severityLevel;
     const areas = ep.bodyAreas.map(lower);
     const trigText = ep.triggers.map(t => lower(t.label || t.value || '')).join(' ');
     const areaList = this.formatBodyAreas(ep.bodyAreas);
 
-    // HDSS classification
-    const hdss = sev >= 4
-      ? 'HDSS 4 — Intolerable: sweating always interferes with daily activities'
+    // Friendly severity interpretation
+    const severityText = sev >= 4
+      ? 'Severe: sweating always interferes with your daily activities'
       : sev === 3
-      ? 'HDSS 3 — Barely Tolerable: sweating frequently interferes with daily activities'
+      ? 'Significant: sweating frequently interferes with your daily activities'
       : sev === 2
-      ? 'HDSS 2 — Tolerable: sweating sometimes interferes with daily activities'
-      : 'HDSS 1 — Never Noticeable: sweating rarely interferes';
+      ? 'Moderate: sweating sometimes interferes with your daily activities'
+      : 'Mild: sweating rarely interferes with your daily activities';
 
-    // Determine primary driver & probability
     const isEmotional = hasAny(trigText, 'stress', 'anxiety', 'nervous', 'anger', 'anticipat', 'social', 'crowd', 'embarrass', 'exam', 'work pressure');
     const isThermal = hasAny(trigText, 'hot', 'heat', 'humid', 'temperature', 'sun', 'warm', 'outdoor');
     const isDietary = hasAny(trigText, 'spicy', 'caffein', 'alcohol', 'hot drink', 'energy drink');
     const isPhysical = hasAny(trigText, 'exercise', 'physical', 'sleep', 'night');
 
-    let primaryDriver: string;
-    let probability: string;
-    let mechanism: string;
+    let insight: string;
 
     if (isEmotional && isThermal) {
-      primaryDriver = 'combined emotional-thermal activation';
-      probability = '60% emotional (amygdala-sympathetic) / 40% thermal load';
-      mechanism = `Your amygdala classified this situation as a threat, firing the sympathetic chain (amygdala → hypothalamus → T2-T4 sympathetic ganglia → acetylcholine → M3 muscarinic receptors → eccrine glands) in under 200 milliseconds. Simultaneously, environmental heat activated warm-sensitive neurons in your hypothalamic preoptic area, creating a dual-pathway assault on your eccrine glands. In hyperhidrosis, both pathways have abnormally low firing thresholds — meaning smaller stimuli produce disproportionately larger sweat responses.`;
+      insight = `It looks like your body's "cool down" system is getting a double-hit from both the heat and the stress of the situation. Your nervous system is sending out a "start sweating" signal much earlier and stronger than it needs to. This is a common physical overreaction where your brain thinks it needs to cool you down even though you're already comfortable.`;
     } else if (isEmotional) {
-      primaryDriver = 'emotional/anticipatory sympathetic activation';
-      probability = '85% emotional drive / 15% baseline thermal contribution';
-      mechanism = `Your amygdala detected a social or stress threat and fired the sympathetic chain (amygdala → hypothalamus → T2-T4 ganglia → acetylcholine release → M3 muscarinic receptors on eccrine glands) before your prefrontal cortex could evaluate it rationally. This pathway fires in under 200 milliseconds — faster than conscious thought. Critically, palmar and plantar sweating is 95% emotionally mediated (not thermoregulatory). Your hippocampus has encoded similar past situations as "sweating contexts" through classical conditioning, so your glands begin activating upon recognition of the context, before you even consciously feel anxious.`;
+      insight = `This episode seems mostly driven by your body's reaction to stress or anticipation. Your brain's "alert" system is directly triggering your sweat glands, often before you even consciously feel anxious. It's almost like a reflex that has become a bit too sensitive, firing the sweat signal in social or high-pressure situations.`;
     } else if (isThermal) {
-      primaryDriver = 'environmental thermal overload';
-      probability = '82% thermal load / 18% anticipatory anxiety contribution';
-      mechanism = `High ambient temperature activated warm-sensitive neurons in your hypothalamic preoptic area, which signalled the rostral ventrolateral medulla to increase sympathetic outflow to eccrine glands. When relative humidity exceeds 70%, sweat cannot evaporate efficiently — the partial pressure gradient between skin and air approaches zero. Your body sweats more trying to achieve cooling that the environment cannot permit. For someone with hyperhidrosis, this creates a runaway loop: failed evaporation → continued sweating → more failed evaporation.`;
+      insight = `The heat and humidity are likely the main drivers here. When it's humid (above 70%), sweat can't evaporate properly to cool you down. Your body reacts by producing even *more* sweat, trying to achieve a cooling effect that the air simply won't allow. For someone with hyperhidrosis, this creates a frustrating loop of constant sweating.`;
     } else if (isDietary) {
-      primaryDriver = 'gustatory-autonomic reflex';
-      probability = '71% gustatory trigger / 29% baseline sympathetic tone';
-      mechanism = `Spicy foods contain capsaicin which binds TRPV1 receptors on oral mucosa — the same heat-sensing receptors that detect real thermal stimulation. Your brain interprets this chemical heat signal as genuine temperature increase and activates eccrine glands accordingly. Caffeine blocks adenosine receptors, increasing norepinephrine release and raising baseline sympathetic tone. In hyperhidrosis, this additional sympathetic load easily pushes already-sensitized eccrine glands past their activation threshold.`;
+      insight = `What you've eaten or drunk is likely setting this off. Spicy foods contain compounds that trick your brain into thinking you're overheating, while caffeine can dial up your body's baseline "alert" level, making your sweat glands much easier to trigger.`;
     } else if (isPhysical) {
-      primaryDriver = 'exercise-induced thermoregulatory activation';
-      probability = '78% thermoregulatory / 22% exercise-anxiety component';
-      mechanism = `Physical activity increases core body temperature, triggering the hypothalamic thermoregulatory centre to activate eccrine glands for evaporative cooling. In hyperhidrosis, the gain on this system is abnormally high — your body produces 2-4x more sweat than needed for effective cooling. The eccrine glands (600-700/cm² on palms, 150-200/cm² on axillae) receive sustained acetylcholine signals that overwhelm normal inhibitory feedback.`;
+      insight = `Your body is being very efficient—perhaps too efficient—at cooling you down during physical activity. In hyperhidrosis, the "dial" for sweat production is turned up much higher than average, so you produce far more moisture than is actually needed to stay cool.`;
     } else {
-      primaryDriver = 'multifactorial sympathetic activation';
-      probability = '65% primary focal HH pattern / 35% environmental contribution';
-      mechanism = `This episode follows the pattern of primary focal hyperhidrosis: bilateral, symmetric activation of eccrine glands in characteristic sites. The sympathetic chain (T2-T4 ganglia) is firing with a lowered activation threshold — meaning stimuli that would not cause sweating in unaffected individuals are crossing your eccrine activation threshold. This is neurological dysregulation of the cholinergic sympathetic pathway, not a behavioural or character trait.`;
+      insight = `This episode follows the typical pattern of primary hyperhidrosis, where specific areas like your ${areaList} sweat more than expected. It's essentially a minor "glitch" in the signal between your brain and your sweat glands, where the "on" switch is a bit too sensitive to daily life.`;
     }
 
     // Body area specifics
@@ -99,94 +82,78 @@ class EpisodeInsightGenerator {
 
     let areaInsight = '';
     if (isPalmoplantar) {
-      areaInsight = ` Palmoplantar involvement is highly characteristic of primary focal hyperhidrosis — these areas have the highest eccrine gland density (600-700/cm²) and are 95% emotionally mediated rather than thermoregulatory.`;
+      areaInsight = ` Sweating on both your hands and feet is very common and is usually triggered more by your emotions and thoughts than by actual heat.`;
     } else if (hasPalms) {
-      areaInsight = ` Isolated palmar hyperhidrosis is one of the most common and socially impactful presentations, with eccrine density reaching 600-700 glands/cm².`;
+      areaInsight = ` Hand sweating is one of the most common ways this condition shows up, especially in social or work situations.`;
     } else if (hasAxillae) {
-      areaInsight = ` Axillary hyperhidrosis is the most common presentation and responds well to the widest range of treatments, including topical anticholinergics and miraDry.`;
+      areaInsight = ` Underarm sweating is a very common pattern and actually has some of the most effective treatment options available today.`;
     } else if (hasFace) {
-      areaInsight = ` Craniofacial hyperhidrosis involves the gustatory and emotional sweating pathways converging on facial eccrine glands, making it particularly challenging in social situations.`;
+      areaInsight = ` Facial sweating can be particularly tough because it's so visible, but it follows the same "sensitive signal" pattern as other areas.`;
     }
 
-    return `**${hdss}**\n\nYour episode affecting the ${areaList} indicates ${primaryDriver}. There is a **${probability}**.${areaInsight}\n\n**Neurological Mechanism:** ${mechanism}`;
+    return `**${severityText}**\n\n${insight}${areaInsight}`;
   }
 
-  // ── IMMEDIATE RELIEF STRATEGIES ──────────────────────────────────────────
   private buildReliefStrategies(ep: Episode): string[] {
     const strategies: string[] = [];
     const trigText = ep.triggers.map(t => lower(t.label || t.value || '')).join(' ');
-    const areas = ep.bodyAreas.map(lower);
     const isEmotional = hasAny(trigText, 'stress', 'anxiety', 'nervous', 'anger', 'anticipat', 'social', 'crowd');
     const isThermal = hasAny(trigText, 'hot', 'heat', 'humid', 'temperature', 'sun', 'warm');
 
-    // Always include the most effective universal technique
     strategies.push(
-      '**4-7-8 Vagal Breathing (within 2 minutes of onset):** Inhale through nose for 4 seconds, hold for 7, exhale through mouth for 8. Repeat 3 cycles. This activates the vagus nerve\'s parasympathetic branch, directly opposing the amygdala-sympathetic signal that drives eccrine gland activation. Cortisol levels measurably drop within 5 minutes, reducing acetylcholine release at the gland level.'
+      `**The 4-7-8 Breathing Trick:** Breathe in through your nose for 4 seconds, hold it for 7, and exhale slowly through your mouth for 8. Doing this just 3 times can "reset" your nervous system and help quiet the signal that's telling your sweat glands to work so hard.`
     );
 
-    // Cold wrist immersion — proven thermoreceptor reset
     strategies.push(
-      '**Cold Wrist Immersion (thermoreceptor reset):** Immerse wrists in cold water (10-15°C) for 4 minutes. Thermoreceptors in the radial and ulnar arteries send direct signals to the hypothalamic cooling centre, dropping core temperature approximately 0.3°C. This directly reduces the thermal component of sympathetic drive and provides relief within minutes.'
+      `**Cold Wrist Rinse:** Run cold water over your wrists for a few minutes. Your blood vessels are very close to the skin there, so this helps cool your entire body down quickly and tells your brain to ease up on the sweat production.`
     );
 
     if (isThermal) {
       strategies.push(
-        '**Forced Convection Cooling:** Use a high-velocity personal fan directed at affected areas. When humidity exceeds 70%, natural sweat evaporation fails because the partial pressure gradient between skin and air approaches zero. Forced airflow increases the evaporation rate per the heat transfer equation Q = hA(Tskin - Tair), achieving cooling that passive evaporation cannot. Target wrists and neck — thermoreceptors here are directly connected to the hypothalamic temperature regulation circuit.'
+        `**Get Air Moving:** Find a fan or a breeze. When it's humid, your sweat can't evaporate on its own, so moving air is your best friend to help that moisture actually do its job of cooling you down.`
       );
     } else if (isEmotional) {
       strategies.push(
-        '**Cognitive Defusion (ACT Technique):** Name 5 things you can see, 4 you can touch, 3 sounds you hear, 2 things you smell, 1 thing you taste. This redirects prefrontal processing away from internal body-monitoring (which amplifies sweating awareness through the anxiety-sweat-anxiety positive feedback loop) to external sensory data. It engages prefrontal cortex inhibitory control over limbic activation within 60-90 seconds.'
+        `**The 5-4-3-2-1 Grounding Method:** Name 5 things you see, 4 you can touch, 3 you hear, 2 you smell, and 1 you taste. This pulls your brain out of "stress mode" and can help stop the sweat-anxiety-sweat loop within about a minute.`
       );
     } else {
       strategies.push(
-        '**Rapid Cooling Protocol:** Apply cold water or a cooling towel to the back of the neck and inner wrists — these pulse points have superficial blood vessels that rapidly transfer cooling to core circulation. Combined with moving to a ventilated area, this interrupts the hypothalamic sympathetic drive signal within 3-5 minutes.'
+        `**Rapid Cooling:** Apply a cold drink or a wet towel to the back of your neck. This is one of your body's main "thermostats" and can help lower the sweat signal very quickly.`
       );
     }
 
     return strategies;
   }
 
-  // ── TREATMENT RECOMMENDATIONS (2026 Ladder) ──────────────────────────────
   private buildTreatmentRecommendations(ep: Episode): string[] {
     const sev = ep.severityLevel;
     const areas = ep.bodyAreas.map(lower);
     const recs: string[] = [];
 
-    if (sev >= 4) {
+    if (sev >= 3) {
       recs.push(
-        '**Botulinum Toxin Type A (Level A Evidence):** 100-200 units per palm via serial intradermal injections, 50-200 units per axilla. Duration: 3-12 months. Blocks acetylcholine release at the neuromuscular junction of eccrine glands. This is the gold-standard treatment for HDSS 4 and qualifies for insurance coverage with documented severity scores.'
+        `**Time for a Specialist:** Since your sweating is significantly interfering with your life, it's worth seeing a dermatologist. They can offer prescription wipes (like Qbrexza), specialized gels (like Sofdra), or even Botox injections that can stop the sweating in specific areas for months at a time.`
       );
       if (areas.some(a => a.includes('arm') || a.includes('under'))) {
         recs.push(
-          '**miraDry (FDA-Cleared, Permanent):** Microwave thermolysis permanently destroys eccrine and apocrine glands in the axillae. Clinical trials show 82% average sweat reduction after 1-2 sessions. Unlike Botox, results are permanent. Recommended for axillary HDSS 3-4 when patients prefer a one-time solution.'
+          `**Permanent Options:** For underarms, there's a treatment called miraDry that permanently stops sweat glands from working in that area. It's a great one-time solution if you're tired of daily management.`
         );
       }
       recs.push(
-        '**Sofdra (Sofpironium Bromide Gel):** A 2026 retro-metabolite topical anticholinergic — designed to be rapidly metabolised after absorption, giving near-zero systemic side effects (no dry mouth, no blurred vision). Apply once daily to affected areas. Particularly suitable for patients who cannot tolerate oral anticholinergics.'
-      );
-    } else if (sev === 3) {
-      recs.push(
-        '**Qbrexza (Glycopyrronium Cloth):** FDA-approved topical anticholinergic wipe. Apply once daily to affected areas. Blocks M3 muscarinic receptors directly at the gland level. Clinical trials showed 50% of patients achieved ≥50% sweat reduction. Minimal systemic absorption compared to oral anticholinergics.'
-      );
-      recs.push(
-        '**Oral Glycopyrrolate 1-2mg BID:** Crosses the blood-brain barrier less than oxybutynin, resulting in fewer cognitive side effects. Take 30-60 minutes before anticipated trigger situations for pre-emptive protection. Titrate dose from 1mg to find optimal efficacy/tolerability balance.'
-      );
-      recs.push(
-        '**Iontophoresis (Level A Evidence, 80-90% Success):** Low-level electrical current through tap water drives mineral ions into sweat duct openings, creating temporary blockage. 3-4 sessions per week for initial treatment, then maintenance 1-2x weekly. Particularly effective for palmar and plantar hyperhidrosis. Home devices available for ongoing self-treatment.'
+        `**Iontophoresis (Water Treatment):** This is a highly effective treatment for hands and feet that uses a gentle electrical current in a shallow tray of water. It "quiets" the sweat glands and works for about 80-90% of people who try it.`
       );
     } else {
       recs.push(
-        '**Aluminium Chloride 20% on DRY Skin at Night:** The keratin plug mechanism requires inactive glands — apply before sleep when eccrine activity is at its lowest. The aluminium ions combine with intracellular proteins to form a temporary plug in the sweat duct opening. Allow 6-8 hours of contact time. Wash off in the morning. Consistent nightly application for 4 weeks before evaluating response.'
+        `**Clinical-Strength Antiperspirants:** Look for products containing "aluminium chloride 20%" (like Certain Dri). The secret is to apply them to *completely dry* skin right before you go to bed, then wash them off in the morning. This gives them time to work while your sweat glands are naturally less active.`
       );
       recs.push(
-        '**Clinical-Strength OTC Antiperspirants (12-15% Aluminium Chloride):** Products like Certain Dri or Driclor applied to dry skin at bedtime. If irritation occurs, reduce frequency to every other night or apply a thin layer of hydrocortisone 1% cream beforehand. This is the first-line treatment for HDSS 1-2.'
+        `**Lifestyle Tweaks:** Sometimes small changes make a big difference. Try wearing moisture-wicking fabrics (like bamboo or merino wool) instead of cotton, which just holds onto moisture and makes you feel colder.`
       );
     }
 
     return recs;
   }
 
-  // ── LIFESTYLE MODIFICATIONS ──────────────────────────────────────────────
   private buildLifestyleModifications(ep: Episode): string[] {
     const mods: string[] = [];
     const trigText = ep.triggers.map(t => lower(t.label || t.value || '')).join(' ');
@@ -198,71 +165,47 @@ class EpisodeInsightGenerator {
 
     if (isThermal) {
       mods.push(
-        '**Pre-Cooling Strategy:** Take a cold shower 20 minutes before anticipated heat exposure. This lowers core temperature, delaying the threshold at which your hypothalamus activates sweating. Carry an evaporative cooling towel — it works even in humidity because the towel is the evaporating surface, not your skin. In tropical/humid climates (>70% RH), the evaporation equation shifts against you; forced convection is your primary defence.'
+        `**Pre-Cooling:** If you know you're heading into the heat, take a cool shower first. This lowers your body's internal temperature and gives you a much longer "buffer" before your sweat glands feel the need to kick in.`
       );
     }
 
     if (isEmotional) {
       mods.push(
-        '**Planned Exposure Therapy:** Deliberately enter mild versions of your trigger situation (shorter social interactions before longer ones) while using breathing techniques. Over 3-4 weeks, this re-trains your hippocampus to de-classify these contexts as threats, measurably reducing amygdala activation. Combined with pre-emptive anticholinergic use, this breaks both the physical and psychological components of the anxiety-sweat loop.'
+        `**Practice Your Reset:** Try those breathing exercises when you're *not* sweating. If your body is already familiar with them, they'll work much faster and more effectively when an episode actually starts.`
       );
     }
 
     if (isDietary) {
       mods.push(
-        '**Gustatory Sweating Journal:** Log which specific foods (not just categories) trigger episodes and at what quantity. Most warriors find a dose-response relationship — small amounts of caffeine are tolerable; large amounts cross the personal threshold. Capsaicin (TRPV1 receptor binding) can be partially counteracted by cold water sipped slowly after eating, which activates oral cold receptors.'
+        `**Watch for Patterns:** Keep an eye on exactly which foods or drinks seem to push you over the edge. You might find that a small coffee is fine, but a second cup is what starts the sweating.`
       );
     }
 
     if (isMorning) {
       mods.push(
-        '**Cortisol Awakening Response Management:** Cortisol peaks 30-45 minutes after waking, priming the sympathetic nervous system. Morning episodes cluster here because elevated cortisol lowers your eccrine activation threshold. Strategy: apply anticholinergic the night before, and use 4-7-8 breathing within the first 10 minutes of waking to dampen the cortisol spike before it triggers sympathetic cascading.'
+        `**Morning Routine:** Your body's "stress hormones" naturally peak in the morning, which is why morning episodes are so common. Try to build in 5 minutes of quiet time or breathing right after you wake up to help keep those levels steady.`
       );
     }
 
-    // Universal
     mods.push(
-      '**Fabric Science:** Moisture-wicking fabrics (bamboo, merino wool, technical synthetics) pull sweat away from skin via capillary action, allowing evaporation from the fabric surface rather than your skin. Avoid cotton (absorbs but doesn\'t wick) and polyester (traps heat). Layering with a sweat-proof undershirt creates a moisture barrier that protects outer clothing.'
-    );
-
-    mods.push(
-      '**Trigger Sequence Documentation:** Document what you were doing in the 30 minutes before each episode: location, temperature, diet, stress level (1-10), and social context. After 5-7 logs, your personal trigger sequence becomes clear — the specific combination that pushes you over your eccrine activation threshold. This transforms management from reactive to predictive.'
+      `**Smart Fabrics:** Choose fabrics that "wick" moisture away from your skin (like athletic wear, bamboo, or wool). Avoid cotton, which soaks up sweat and stays wet, often making the episode feel worse.`
     );
 
     return mods;
   }
 
-  // ── WHEN TO SEEK MEDICAL ATTENTION ───────────────────────────────────────
   private buildMedicalAttention(ep: Episode): string {
     const sev = ep.severityLevel;
-    const areas = ep.bodyAreas;
 
-    const parts: string[] = [];
+    const redFlags = "Keep an eye out for 'red flags' like night sweats (sweating so much during sleep that you have to change clothes), sweating that only happens on one side of your body, or if this started very suddenly in adulthood.";
 
     if (sev >= 3) {
-      parts.push(
-        `Your HDSS ${sev} severity qualifies for prescription treatment under International Hyperhidrosis Society guidelines. Schedule a dermatology referral and bring your SweatSmart episode history as objective evidence for treatment escalation — clinicians respond to documented severity data.`
-      );
+      return `Because your sweating is frequently interfering with your daily life, I'd strongly recommend chatting with a doctor or dermatologist. You can even show them your logs from this app to help them see exactly what's been happening.\n\n${redFlags}`;
     }
 
-    parts.push(
-      '**Critical Red Flags (rule out secondary hyperhidrosis):** Primary hyperhidrosis stops during sleep — if you experience nocturnal sweating, this warrants investigation for thyroid disease, lymphoma, infections, or medication side effects. Other red flags: sudden onset in adulthood without family history, asymmetric or unilateral sweating, associated weight loss, fever, or lymphadenopathy. Any of these require urgent medical evaluation.'
-    );
-
-    if (areas.length >= 3) {
-      parts.push(
-        'Multiple body areas affected simultaneously may indicate a more widespread pattern requiring systemic treatment (oral anticholinergics) rather than site-specific approaches. A dermatologist can perform the Minor starch-iodine test to map your exact sweat distribution and guide targeted treatment.'
-      );
-    }
-
-    parts.push(
-      'Use the "Export for Clinician" feature to generate a clinical referral report with your HDSS trend, trigger correlations, and treatment history — this gives your dermatologist the objective data needed to justify treatment escalation on the evidence-based treatment ladder.'
-    );
-
-    return parts.join('\n\n');
+    return `If your sweating starts to feel unmanageable or starts happening during your sleep, it's a good idea to check in with a healthcare provider.\n\n${redFlags}`;
   }
 
-  // ── Helpers ─────────────────────────────────────────────────────────────
   private formatBodyAreas(areas: string[]): string {
     if (areas.length === 0) return 'unspecified areas';
     if (areas.length === 1) return areas[0];
@@ -271,10 +214,8 @@ class EpisodeInsightGenerator {
   }
 }
 
-// Export singleton
 export const insightGenerator = new EpisodeInsightGenerator();
 
-// Helper for direct use
 export function generateFallbackInsights(
   severity: number,
   bodyAreas: string[],
