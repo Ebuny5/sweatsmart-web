@@ -47,6 +47,7 @@ interface WarriorInsight {
   detail: string;
   action: string;
   clinicalNote: string;
+  isPrescriptionThreshold?: boolean;
 }
 
 const sev = (ep: Episode) => Number(ep.severity) || 0;
@@ -157,17 +158,24 @@ function analyzeEpisodes(episodes: Episode[]): WarriorInsight[] {
       ? `Your body has learned to associate certain social situations with a sweating response — almost like a reflex that fires automatically. The part of your brain that stores memories of past uncomfortable episodes sends out a "prepare for sweating" signal before you've even walked into the room. Understanding this pattern is actually powerful, because it means you can intervene *before* it starts, not just react to it.`
       : `This trigger is consistently setting off your body's sweat response, and you're seeing it appear in ${trigPercent}% of your logged episodes. Whatever mechanism is at play, the pattern is clear and that's something you can work with. Consistent triggers are far easier to manage than unpredictable ones — they give you a real opportunity to prepare and intervene.`;
 
+    const isPrescriptionThreshold = parseFloat(trigAvgSev) >= 3;
+
     const action = isHeat
       ? `Cool your wrists under cold running water for 3–4 minutes before entering a hot environment. Blood vessels close to the surface of your wrist carry cooled blood towards your core, which signals your brain to ease up on the sweating. Carry a small personal fan — moving air across your skin helps sweat actually do its job of cooling you down, which reduces the urge to produce more.`
       : isStress
-      ? `Try the 4-7-8 breathing technique before you hit the trigger: breathe in for 4 seconds, hold for 7, breathe out for 8. Do this 3–4 times. It activates your body's calming system and directly dials back the sweat signal within about 90 seconds. Practice it before you're stressed — it works best when it's already familiar to your body.`
+      ? `Try the 4-7-8 breathing technique: breathe in for 4, hold for 7, breathe out for 8. This activates your Vagus Nerve to shift your body from "fight or flight" to "rest and digest," reducing the chemical signal (acetylcholine) sent to your sweat glands.`
       : `Give yourself a 2-minute buffer before entering the triggering situation. Try the 5-4-3-2-1 grounding technique (name 5 things you can see, 4 you can hear, 3 you can touch) — it redirects your brain away from anticipation mode and genuinely reduces the physical response within about a minute.`;
 
-    const clinicalNote = isHeat
-      ? `The most effective first-line treatment for heat-triggered underarm or facial sweating is aluminium chloride 20% antiperspirant — apply it to completely dry skin at night (that's when it works best) and wash off in the morning. If that's not enough, Sofdra is a prescription gel specifically designed for facial sweating that blocks the signal to your sweat glands with minimal side effects.`
-      : `If this trigger keeps disrupting your life despite lifestyle strategies, botulinum toxin injections (Botox) are worth discussing with a dermatologist. They block the signal to your sweat glands entirely for 3–6 months, regardless of what triggers you — meaning the stress response simply can't produce the same physical reaction.`;
+    const clinicalNote = isPrescriptionThreshold
+      ? (isHeat
+        ? `At this severity level (HDSS 3-4), first-line antiperspirants may not be enough. Prescription options like Sofdra (topical gel) or Botox injections are recommended. These treatments work by 'blocking the acetylcholine signal'—the nervous system's command to sweat—directly at the gland.`
+        : `Since your episodes are reaching the prescription threshold, treatments like Botox or topical anticholinergics (Sofdra, Qbrexza) are worth discussing with a dermatologist. These options 'block the acetylcholine signal' at the gland to stop the sweating response regardless of the trigger.`)
+      : (isHeat
+        ? `For mild-to-moderate heat triggers (HDSS 1-2), the most effective first-line treatment is aluminium chloride 20% clinical-strength antiperspirant. Apply it to completely dry skin at night so it can properly block the sweat ducts while your glands are less active.`
+        : `For stress-related triggers at this level, focus on behavioral resets like the 4-7-8 technique and clinical-strength OTC antiperspirants. These help manage the 'software' signal while providing a physical barrier to the sweat.`);
 
     insights.push({
+      isPrescriptionThreshold,
       rank: 1,
       icon: isHeat ? (
         <Droplets className="h-3.5 w-3.5" />
@@ -180,7 +188,7 @@ function analyzeEpisodes(episodes: Episode[]): WarriorInsight[] {
       label: `"${
         trigName.charAt(0).toUpperCase() + trigName.slice(1)
       }" is your #1 driver`,
-      sublabel: `${trigData.count}× · avg severity ${trigAvgSev} · ${trigPercent}% of all episodes`,
+      sublabel: `${trigData.count}× · avg HDSS ${trigAvgSev} · ${trigPercent}% of all episodes`,
       probability: trigPercent,
       probabilityLabel: `Appears in ${trigPercent}% of your logged episodes`,
       bar: "from-amber-400 to-orange-500",
@@ -204,8 +212,11 @@ function analyzeEpisodes(episodes: Episode[]): WarriorInsight[] {
     const worsening = sevDrift > 0.3;
     const improving = sevDrift < -0.3;
 
+    const isPrescriptionThreshold = last3Avg >= 3;
+
     insights.push({
       rank: 2,
+      isPrescriptionThreshold,
       icon: worsening ? (
         <TrendingUp className="h-3.5 w-3.5" />
       ) : improving ? (
@@ -219,13 +230,13 @@ function analyzeEpisodes(episodes: Episode[]): WarriorInsight[] {
         ? "bg-green-400"
         : "bg-gray-400",
       label: worsening
-        ? `Severity escalating — avg +${sevDrift.toFixed(1)} pts over time`
+        ? `Severity escalating — avg +${sevDrift.toFixed(1)} HDSS pts over time`
         : improving
-        ? `Severity improving — avg ${Math.abs(sevDrift).toFixed(1)} pts reduction`
+        ? `Severity improving — avg ${Math.abs(sevDrift).toFixed(1)} HDSS pts reduction`
         : `Severity stable — consistent across episodes`,
       sublabel: `Baseline ${first3Avg.toFixed(1)} → Recent ${last3Avg.toFixed(
         1
-      )} (5-point scale)`,
+      )} (HDSS 1-4 Scale)`,
       probability: driftPercent,
       probabilityLabel: worsening
         ? `The escalation is consistent across your last ${Math.min(
@@ -257,8 +268,8 @@ function analyzeEpisodes(episodes: Episode[]): WarriorInsight[] {
         ? `Keep doing what you're doing, and if you recently started a new treatment or habit, document it. This progress is evidence you can show a dermatologist to guide next steps.`
         : `Use this stable window to make one deliberate change — for example, consistent use of aluminium chloride 20% antiperspirant at night for two weeks — and track whether it shifts your baseline.`,
       clinicalNote: worsening
-        ? `If episodes are scoring 3 or higher consistently, it's time to ask your doctor about prescription options. Qbrexza (glycopyrronium cloth) and Sofdra (for facial sweating) are newer treatments that work by reducing the signal to sweat glands. Botulinum toxin injections are also an option for palms, underarms, and feet with results lasting 3–6 months.`
-        : `Continue your current approach. If severity drops below level 2 consistently, you can consider reducing treatment frequency to find the minimum that keeps you comfortable.`,
+        ? `If episodes are scoring HDSS 3 or higher consistently, it's time to ask your doctor about prescription options. Qbrexza and Sofdra are newer treatments that block the acetylcholine signal at the gland. Botulinum toxin injections are also an option for palms, underarms, and feet, providing relief for 3–6 months by stopping the nerve signal.`
+        : `Continue your current approach. If severity drops below HDSS 2 consistently, you can consider reducing treatment frequency to find the minimum that keeps you comfortable.`,
     });
   }
 
@@ -291,8 +302,15 @@ function analyzeEpisodes(episodes: Episode[]): WarriorInsight[] {
     const isMorning = peakPeriod.name === "morning";
     const isNight = peakPeriod.name === "night";
 
+    const peakAvgSev = (
+      (peakPeriod.name === "morning" ? morningEps : peakPeriod.name === "afternoon" ? afternoonEps : nightEps)
+      .reduce((a, e) => a + sev(e), 0) / peakPeriod.count
+    );
+    const isPrescriptionThreshold = peakAvgSev >= 3;
+
     insights.push({
       rank: 3,
+      isPrescriptionThreshold,
       icon: <Clock className="h-3.5 w-3.5" />,
       rankColor: "bg-violet-400",
       label: `Peak episodes: ${peakPeriod.label}`,
@@ -308,15 +326,19 @@ function analyzeEpisodes(episodes: Episode[]): WarriorInsight[] {
         ? `This is worth paying attention to. Hyperhidrosis related to daytime triggers typically stops during sleep — so regular nocturnal episodes suggest something else may be going on, such as hormonal changes, thyroid function, blood sugar regulation, or a medication effect. This doesn't mean something serious is wrong, but it does mean it's worth raising with your doctor rather than managing alone.`
         : `Afternoons tend to be a double hit — it's the hottest part of the day AND often the most socially and professionally demanding. Your body is working harder on both fronts at the same time. Knowing this is your peak window gives you a real opportunity to build in protective strategies for exactly this period.`,
       action: isMorning
-        ? `Build a 10-minute morning routine before your first engagement: 4-7-8 breathing (repeat 4 times) + cold wrist rinse. If you're using an aluminium chloride antiperspirant, apply it the night before so it's already working by morning.`
+        ? `Build a 10-minute morning routine: 4-7-8 breathing (repeat 4 times) + cold wrist rinse. The 4-7-8 reset activates your Vagus Nerve to calm your system before the day's stressors hit. If using antiperspirant, apply it the night before for max effect.`
         : isNight
         ? `Keep a simple note for the next 2 weeks: time you wake, how soaked your clothes/sheets are, and anything unusual the day before (food, stress, medication). Bring this to your doctor — it gives them exactly what they need to investigate efficiently.`
         : `Prepare for the afternoon window specifically: keep a cooling pack, small fan, or cold water bottle at your desk or in your bag. Plan your most public-facing activities for morning where possible, and build in a short reset (even 5 minutes of breathing outside) around 1–2pm.`,
-      clinicalNote: isMorning
-        ? `If morning sweating is significantly impacting your confidence or routine, it's worth discussing a low-dose oral medication option with your doctor. Glycopyrrolate is a prescription tablet that reduces the signal to sweat glands and can be taken the night before to provide morning coverage with minimal daytime side effects.`
-        : isNight
-        ? `Nocturnal sweating with severity 3+ is a clear reason to ask your GP for a basic blood panel: thyroid function, blood glucose, and a general check. This rules out secondary causes quickly and gives you peace of mind — or a clear path forward if something is found.`
-        : `A treatment called iontophoresis — which uses gentle electrical pulses to temporarily quieten overactive sweat glands on hands and feet — has strong evidence for afternoon/thermal-triggered sweating. Sessions take 15–20 minutes and can be done at home with a device; results build over 2–4 weeks of regular use.`,
+      clinicalNote: isPrescriptionThreshold
+        ? (isMorning
+          ? `For severe morning sweating, a low-dose oral medication like glycopyrrolate is often recommended. It 'blocks the acetylcholine signal' throughout the body, and taking it the night before can help you wake up dry and confident.`
+          : isNight
+          ? `Frequent nocturnal sweating at HDSS 3+ requires a medical panel (thyroid, glucose) to rule out secondary causes. If it's primary, prescription anticholinergics can help by blocking the acetylcholine signals that are firing during your sleep.`
+          : `At this severity level, a dermatologist may recommend iontophoresis for hands/feet or prescription topicals (Sofdra, Qbrexza). Both approaches work by disrupting the signal to the sweat glands, with topicals specifically 'blocking the acetylcholine messenger'.`)
+        : (isMorning
+          ? `For moderate morning episodes, focus on the 4-7-8 Vagus Nerve reset and clinical-strength antiperspirant applied the night before. This combination targets both the nervous system 'start' signal and the physical exit point.`
+          : `Continue monitoring these patterns. If severity reaches HDSS 3 consistently, it signals that lifestyle resets alone may not be enough to manage the overactive signals your nervous system is sending to your glands.`),
     });
   }
 
@@ -326,8 +348,10 @@ function analyzeEpisodes(episodes: Episode[]): WarriorInsight[] {
     const isFocal = multiPercent < 30;
 
     if (topArea) {
+      const isPrescriptionThreshold = avgSev >= 3;
       insights.push({
         rank: 4,
+        isPrescriptionThreshold,
         icon: <Wind className="h-3.5 w-3.5" />,
         rankColor: "bg-sky-400",
         label: isFocal
@@ -351,9 +375,13 @@ function analyzeEpisodes(episodes: Episode[]): WarriorInsight[] {
         action: isFocal
           ? `Focus your treatment on your primary area — ${topArea[0]}. Targeted approaches (topical antiperspirants, botulinum toxin, or iontophoresis for hands/feet) are more effective per side-effect than whole-body medications when the problem is localised.`
           : `During a widespread episode: get to a cool environment first (reduces the thermal component), then use a grounding or breathing technique (reduces the stress component). For future episodes, note: what did you eat in the 2 hours prior? Was it unusually hot? Were you under more stress than usual? Narrowing it down makes it manageable.`,
-        clinicalNote: isFocal
-          ? `For focal palmar (hands) or plantar (feet) sweating, iontophoresis — a treatment using gentle electrical currents to quieten overactive sweat glands — has very strong evidence (80–90% improvement). Home devices are available. For underarms, aluminium chloride 20% is first-line; if insufficient, botulinum toxin injections offer 3–6 months of significant relief.`
-          : `For widespread episodes, your doctor may suggest a low-dose oral anticholinergic medication (like glycopyrrolate or oxybutynin) which reduces the signal to sweat glands across your whole body. Starting at a very low dose and titrating up helps manage the common dry-mouth side effect.`,
+        clinicalNote: isPrescriptionThreshold
+          ? (isFocal
+            ? `For severe focal sweating, Botox injections or Sofdra are highly effective because they 'block the acetylcholine signal' specifically in ${topArea[0]}. This localized approach stops the sweating where it's most intense with minimal side effects.`
+            : `For severe widespread episodes, oral anticholinergic medications (like glycopyrrolate) are the clinical standard. They 'block the acetylcholine signal' across your entire system, providing relief to all affected areas at once.`)
+          : (isFocal
+            ? `For focal sweating at this level, aluminium chloride 20% or iontophoresis (for hands/feet) are excellent starting points. These treatments focus on the 'hardware'—the sweat glands—to reduce output in your most affected areas.`
+            : `Widespread moderate sweating suggests a systemic trigger. Identifying and managing these triggers (heat, stress) while using clinical-strength antiperspirants is the recommended first-line approach.`),
       });
     }
   }
@@ -363,10 +391,11 @@ function analyzeEpisodes(episodes: Episode[]): WarriorInsight[] {
     const highPercent = Math.round((highSevEps.length / total) * 100);
     insights.push({
       rank: 5,
+      isPrescriptionThreshold: true,
       icon: <AlertTriangle className="h-3.5 w-3.5" />,
       rankColor: "bg-rose-500",
       label: `${highSevEps.length} high-severity episodes (4–5/5) logged`,
-      sublabel: `${highPercent}% of total · avg severity ${(
+      sublabel: `${highPercent}% of total · avg HDSS ${(
         highSevEps.map(sev).reduce((a, b) => a + b, 0) / highSevEps.length
       ).toFixed(1)} · prescription threshold reached`,
       probability: highPercent,
@@ -376,7 +405,7 @@ function analyzeEpisodes(episodes: Episode[]): WarriorInsight[] {
       pillText: "Severity",
       detail: `${highSevEps.length} episodes at severity 4–5 puts you firmly in the range where prescription treatments aren't just an option — they're genuinely indicated. Medical guidelines describe this level as sweating that is "barely tolerable to intolerable and frequently to always getting in the way of daily life." Many GPs aren't aware of how many options now exist for this, which means patients at your severity often go years without the treatment they could access. You have the data to make a case.`,
       action: `Take your episode log to your next doctor's appointment. You can say directly: "I've been tracking my sweating episodes and I consistently score 4–5 out of 5 on severity. I'd like to discuss prescription treatment options — specifically botulinum toxin or topical anticholinergics." Having your data ready removes the guesswork from the appointment.`,
-      clinicalNote: `Your logged data is objective evidence for treatment escalation. At this severity level, botulinum toxin injections are approved and often covered by insurance in many healthcare systems when HDSS severity is documented. Use SweatSmart's "Export for Clinician" feature to generate a formal PDF report you can bring to your appointment.`,
+      clinicalNote: `Your logged data is objective evidence for treatment escalation. At HDSS 3-4, prescription options like Botox or Sofdra are indicated because they 'block the acetylcholine signal' at the gland level. Use SweatSmart's "Export for Clinician" feature to share this HDSS documentation with your dermatologist.`,
     });
   }
 
@@ -386,9 +415,17 @@ function analyzeEpisodes(episodes: Episode[]): WarriorInsight[] {
 // ── Expanded detail drawer ────────────────────────────────────────────────────
 const InsightDetail = ({ insight }: { insight: WarriorInsight }) => (
   <div className="mt-3 space-y-2.5 border-t border-gray-100 pt-3">
+    {insight.isPrescriptionThreshold && (
+      <div className="px-3 py-1.5 rounded-full bg-red-100 border border-red-200 w-fit mb-2">
+        <p className="text-[10px] font-bold text-red-700 flex items-center gap-1.5">
+          <AlertTriangle className="h-3 w-3" />
+          Prescription Threshold Reached
+        </p>
+      </div>
+    )}
     <div className="p-3 rounded-xl bg-violet-50 border border-violet-100">
       <p className="text-[10px] font-black text-violet-500 uppercase tracking-wide mb-1">
-        What This Means
+        Clinical Analysis: What This Means
       </p>
       <p className="text-xs text-violet-800 leading-relaxed">{insight.detail}</p>
     </div>
@@ -400,7 +437,7 @@ const InsightDetail = ({ insight }: { insight: WarriorInsight }) => (
     </div>
     <div className="p-3 rounded-xl bg-blue-50 border border-blue-100">
       <p className="text-[10px] font-black text-blue-500 uppercase tracking-wide mb-1">
-        Treatment Options
+        Clinical Treatment Options
       </p>
       <p className="text-xs text-blue-800 leading-relaxed">
         {insight.clinicalNote}
