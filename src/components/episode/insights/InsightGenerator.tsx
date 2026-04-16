@@ -99,10 +99,10 @@ function generateInsights(episode: ProcessedEpisode): clinicalInsight[] {
     : 'Never Noticeable';
 
   const severityMechanism = severity >= 4
-    ? `At this level, your body's "cool down" system is firing at maximum intensity. Your sweat glands are receiving constant signals that overwhelm your body's ability to reabsorb moisture. This high severity level is a clear sign that it's time to seek specialist help from a dermatologist, as simple over-the-counter fixes might not be enough.`
+    ? `At this level, your body's "cool down" system is firing at maximum intensity. Your brain is sending signals down the Sympathetic Chain with such force that it results in a massive excess of the acetylcholine signal at the gland site. This high severity level (HDSS 4) is a clear sign that it's time to seek specialist help from a dermatologist, as simple over-the-counter fixes are likely being overwhelmed by the intensity of the neural firing.`
     : severity === 3
-    ? `This is a clinical tipping point where sweating starts to frequently get in the way of your daily life. Your nervous system is over-reacting to triggers with a much lower threshold than usual. This isn't something you're doing wrong—it's just your body's signals being a bit too sensitive.`
-    : `This episode shows your body was triggered but not completely overwhelmed. You produced extra sweat, but it stayed within a manageable range. The goal now is to identify what set this off so you can prevent it from escalating next time.`;
+    ? `This is a clinical tipping point (HDSS 3) where sweating starts to frequently get in the way of your daily life. Your nervous system (the "software") is overdriving your functionally normal sweat glands (the "hardware") with a much lower threshold than usual. The sympathetic ganglia responsible for this area are firing more frequently than required for normal temperature regulation.`
+    : `This episode shows your body was triggered but not completely overwhelmed (HDSS 1-2). You produced extra sweat, but the sympathetic signal remained within a semi-manageable range. The goal now is to identify the specific neural trigger—whether emotional or thermal—to prevent it from escalating next time.`;
 
   const severityImmediate = severity >= 4
     ? `Get out of the triggering environment immediately. Run cold water over your wrists and the back of your neck. These "pulse points" help cool your core temperature quickly and tell your brain to ease up on the sweat signals.`
@@ -154,19 +154,19 @@ function generateInsights(episode: ProcessedEpisode): clinicalInsight[] {
 
     if (isHeat) {
       trigTitle = 'Trigger — Heat & Humidity';
-      trigProb = 'The heat likely overwhelmed your body\'s natural cooling';
-      trigMechanism = `When it's hot, your brain tells your sweat glands to kick in to cool you down. But when it's humid (above 70%), that sweat can't evaporate, so your body just keeps producing more and more in a frustrating loop. It's essentially a "failed mission" where your body tries to cool you down using a method that the air won't allow.`;
+      trigProb = 'Probability: 90% Hypothalamus (Thermal) / 10% Baseline Autonomic';
+      trigMechanism = `When it's hot, your hypothalamus (body thermostat) tells your sweat glands to kick in. But when it's humid (above 70%), that sweat can't evaporate, so your body just keeps producing more in a frustrating loop. It's essentially a "failed mission" where the brain continues to send the acetylcholine signal through the sympathetic chain to achieve a cooling effect that the air won't allow.`;
       trigImmediate = `Use a fan! Moving air across your skin helps that sweat evaporate even when it's humid. Target your neck and wrists for the fastest relief.`;
-      trigSelfManagement = `Try "pre-cooling" by taking a cool shower before you head into a hot environment. This gives your body a longer "buffer" before it feels the need to start sweating.`;
-      trigClinical = `If heat always sets you off, clinical-strength antiperspirants applied at night are your best first defense. For hands and feet, a water-bath treatment (iontophoresis) is highly effective at "quieting" those glands.`;
+      trigSelfManagement = `Try "pre-cooling" by taking a cool shower before you head into a hot environment. This gives your body a longer "buffer" before the hypothalamus feels the need to start sweating.`;
+      trigClinical = `If heat always sets you off, clinical-strength antiperspirants (aluminium chloride 20%) applied at night are your best first defense. These work by temporarily blocking the sweat ducts so the acetylcholine signal has nowhere to go.`;
       trigIcon = <Thermometer className="h-5 w-5" />;
     } else if (isStress || isAntic) {
       trigTitle = isAntic ? 'Trigger — Anticipation' : 'Trigger — Stress & Anxiety';
-      trigProb = 'Your brain\'s "alarm" system likely fired before the stress even arrived';
-      trigMechanism = `Your brain's alarm system—the part that reacts to threats—is directly connected to your sweat glands. In hyperhidrosis, this system is a bit too trigger-happy, firing the sweat signal faster than you can even think. This is why you might start sweating *before* a big event—your brain is "preparing" for a situation it remembers as being uncomfortable.`;
-      trigImmediate = `The 4-7-8 breathing trick is your best friend here. Breathe in for 4 seconds, hold for 7, and out for 8. Doing this just 3 times can "reset" your nervous system and quiet the sweat signal.`;
-      trigSelfManagement = `Practice your breathing exercises when you're *not* stressed. If your body is already familiar with them, they'll work much better when an episode actually starts.`;
-      trigClinical = `If stress is your main driver, a doctor might suggest a low-dose oral medication taken only when you know you have a high-stakes event coming up. This can "block" the signal to your sweat glands during that specific window.`;
+      trigProb = 'Probability: 80% Amygdala (Emotional) / 20% Hypothalamus (Thermal)';
+      trigMechanism = `Your amygdala (the brain's alarm system) is directly connected to your sweat glands via the sympathetic chain. In hyperhidrosis, this pathway is "hyper-sensitized," firing the sweat signal faster than you can even consciously feel anxious. This is why you might start sweating *before* a big event—your brain is "preparing" the hardware for a situation the software remembers as being stressful.`;
+      trigImmediate = `The 4-7-8 breathing trick is your best friend here. Breathe in for 4 seconds, hold for 7, and out for 8. Doing this just 3 times can "reset" your nervous system by activating the Vagus Nerve and quiet the sweat signal.`;
+      trigSelfManagement = `Practice your breathing exercises when you're *not* stressed. If your body is already familiar with this Vagus Nerve reset, it will work much faster when an episode actually starts.`;
+      trigClinical = `If stress is your main driver, a doctor might suggest a low-dose oral medication (anticholinergic) taken only for high-stakes events. These work by blocking the acetylcholine signal at the gland site during that specific window.`;
       trigIcon = <Brain className="h-5 w-5" />;
       trigHeader = 'from-purple-500 to-violet-500';
       trigAccent = 'border-l-purple-500';
@@ -174,11 +174,11 @@ function generateInsights(episode: ProcessedEpisode): clinicalInsight[] {
       trigBadge = 'bg-purple-100 text-purple-800';
     } else if (isSocial) {
       trigTitle = 'Trigger — Social Settings';
-      trigProb = 'Social pressure likely set off an automatic sweat response';
-      trigMechanism = `Being around people can make your brain feel like it's being "evaluated," which triggers a physical stress response. Your body has learned to associate social situations with sweating, so it fires the signal automatically. It's like a reflex that has become a bit too well-trained over time.`;
-      trigImmediate = `Try the 5-4-3-2-1 grounding method: find 5 things you can see, 4 you can touch, 3 you can hear, 2 you can smell, and 1 you can taste. This pulls your brain out of its internal worry and back into the real world, which can help stop the sweating loop.`;
-      trigSelfManagement = `Try small social interactions first to "re-train" your brain that these situations aren't threats. Over time, your body will learn to stay calmer in larger groups.`;
-      trigClinical = `Many people find that a combination of therapy (to manage the social worry) and medical treatment (to stop the physical sweating) works best. When you stop the sweating, the social anxiety often starts to fade too.`;
+      trigProb = 'Probability: 75% Amygdala (Social) / 25% Ambiance (Thermal)';
+      trigMechanism = `Social interaction triggers a physical stress response in the Amygdala. Your sympathetic nervous system has learned to associate social situations with sweating, so it fires the signal through the sympathetic chain automatically. It's like a neural reflex that has become a bit too well-trained over time, overdriving your glands even when you feel socially comfortable.`;
+      trigImmediate = `Try the 5-4-3-2-1 grounding method: find 5 things you can see, 4 you can touch, 3 you can hear, 2 you can smell, and 1 you can taste. This pulls your brain out of the "social alarm" mode and back into the parasympathetic "rest and digest" state.`;
+      trigSelfManagement = `Try small social interactions first to "re-train" the neural pathway that these situations aren't threats. Over time, your body's sympathetic response will learn to stay calmer in larger groups.`;
+      trigClinical = `Many people find that a combination of therapy (to manage the software/worry) and medical treatment like Botox (to block the hardware/sweat) works best. When you stop the physical sweating, the social alarm often starts to fade too.`;
       trigIcon = <Heart className="h-5 w-5" />;
       trigHeader = 'from-pink-500 to-rose-400';
       trigAccent = 'border-l-pink-500';
@@ -186,11 +186,11 @@ function generateInsights(episode: ProcessedEpisode): clinicalInsight[] {
       trigBadge = 'bg-pink-100 text-pink-800';
     } else if (isDietary) {
       trigTitle = 'Trigger — Food & Drink';
-      trigProb = 'What you ate or drank likely tricked your body into sweating';
-      trigMechanism = `Spicy foods contain a compound (capsaicin) that literally tricks your brain into thinking you're overheating. Caffeine and alcohol also dial up your body's "alert" level, making it much easier for your sweat glands to be triggered. It's a simple chemical reaction in your body, not a sign of poor health.`;
-      trigImmediate = `Sip cold water slowly after eating something spicy. This helps cool down the "heat receptors" in your mouth and can ease the sweat signal.`;
-      trigSelfManagement = `Keep a simple log of which foods seem to set you off. You might find that one cup of coffee is fine, but a second one is what pushes you over the edge.`;
-      trigClinical = `If specific foods always cause facial sweating, there are newer prescription gels (like Sofdra) that can be applied to the face to block those signals without affecting the rest of your body.`;
+      trigProb = 'Probability: 70% Gustatory Stimuli / 30% Sympathetic Sensitivity';
+      trigMechanism = `Spicy foods contain capsaicin that tricks your brain's thermal receptors into thinking you're overheating. Caffeine dials up your body's baseline sympathetic "alert" level, making it much easier for your sweat glands to be triggered by the acetylcholine signal. This is a direct chemical reaction in your neural pathway, not a sign of poor health.`;
+      trigImmediate = `Sip cold water slowly after eating something spicy. This helps cool down the "heat receptors" in your mouth and can ease the sympathetic signal to your face and scalp.`;
+      trigSelfManagement = `Keep a log of which foods push you over the edge. You might find that one cup of coffee is fine, but a second one is what pushes the sympathetic nervous system to over-fire.`;
+      trigClinical = `If specific foods always cause facial sweating (Gustatory Hyperhidrosis), newer prescription gels like Sofdra can be applied locally to block those signals without affecting your entire body's cooling system.`;
       trigIcon = <Droplets className="h-5 w-5" />;
       trigHeader = 'from-green-500 to-emerald-500';
       trigAccent = 'border-l-green-500';
@@ -198,11 +198,11 @@ function generateInsights(episode: ProcessedEpisode): clinicalInsight[] {
       trigBadge = 'bg-green-100 text-green-800';
     } else {
       trigTitle = 'Logged Trigger';
-      trigProb = 'This factor likely pushed your body\'s sweat signals over the edge';
-      trigMechanism = `Whatever the trigger, the result is the same: your brain sent a "start sweating" signal to your glands through your nervous system. In hyperhidrosis, this signal is just much louder and easier to set off than in other people. The goal is to figure out if your triggers are mostly environmental (like heat) or internal (like stress).`;
-      trigImmediate = `If you can, step away from whatever is triggering you. Even a 5-minute break in a quiet or cool spot can help your body reset.`;
-      trigSelfManagement = `Keep logging this trigger! After a few more entries, our pattern analysis can tell you for sure if it's a consistent driver for you or just a one-off.`;
-      trigClinical = `If this trigger consistently causes high-severity episodes, it's worth mentioning to a dermatologist. They can help you find a treatment that specifically targets the neural pathway involved.`;
+      trigProb = 'Probability: Mixed Autonomic Triggering';
+      trigMechanism = `Whatever the trigger, the result is the same: your brain sent a "start sweating" signal to your glands through the sympathetic chain. In hyperhidrosis, this signal is just much louder (more acetylcholine) and easier to set off than in other people. The goal is to figure out if your triggers are mostly thermal (Hypothalamus) or emotional (Amygdala).`;
+      trigImmediate = `If you can, step away from the trigger. Even a 5-minute break in a cool spot helps your nervous system shift from sympathetic (fight/flight) to parasympathetic (rest/digest).`;
+      trigSelfManagement = `Keep logging this trigger! After a few more entries, our pattern analysis can tell you for sure if it's a consistent driver for your specific neural pathway.`;
+      trigClinical = `If this trigger consistently causes high-severity episodes, it's worth mentioning to a dermatologist. They can help you find a treatment that specifically targets the acetylcholine signal at the gland site.`;
     }
 
     insights.push({
@@ -232,29 +232,29 @@ function generateInsights(episode: ProcessedEpisode): clinicalInsight[] {
     let areaSelf = '';
     let areaClinical = '';
     let areaProb = '';
-    let areaIcon = <Activity className="h-5 w-5" />;
+    const areaIcon = <Activity className="h-5 w-5" />;
 
     if (isPalmoplantar) {
       areaTitle = 'Pattern — Hands & Feet';
-      areaProb = 'This is a classic pattern of primary hyperhidrosis';
-      areaMechanism = `Sweating on both your hands and feet at the same time is very common. Both areas have the highest density of sweat glands and are mostly controlled by your "fight or flight" system rather than actual heat. This means your hands and feet are reacting to your thoughts and environment with millisecond speed. It's a neurological glitch, not a sign of any other health problem.`;
+      areaProb = 'Classification: Primary Focal Hyperhidrosis (PHH)';
+      areaMechanism = `Sweating on both your hands and feet (Palmoplantar) is a classic PHH pattern. These areas are mostly controlled by the sympathetic nervous system's reaction to emotion rather than heat. This means your hands and feet are reacting to neural signals from the sympathetic chain with millisecond speed. It's a 'software' over-firing issue, not a sign of any other health problem.`;
       areaImmediate = `For your palms: press them firmly against a cool, dry surface. For your feet: try to get some air moving over them as soon as it's safe to do so.`;
-      areaSelf = `Consider a water-bath treatment (iontophoresis). It's one of the most effective ways to treat hands and feet, works for about 80-90% of people, and can be done right at home.`;
-      areaClinical = `The treatment ladder for hands and feet usually goes: (1) 20% aluminium chloride antiperspirant at night; (2) Iontophoresis; (3) Botox injections. All of these are highly effective and reversible.`;
+      areaSelf = `Consider iontophoresis (water-bath treatment). It's one of the most effective ways to treat hands and feet, works for about 80-90% of people by using a gentle current to "quiet" the sweat glands.`;
+      areaClinical = `The treatment ladder usually goes: (1) Aluminium chloride 20% (Certain Dri); (2) Iontophoresis; (3) Botox. All of these work by blocking the acetylcholine signal that tells your glands to produce moisture.`;
     } else if (hasFace) {
       areaTitle = 'Pattern — Face & Scalp';
-      areaProb = 'Facial sweating often has a double-trigger of stress and food';
-      areaMechanism = `Facial sweating is tough because it's so visible, which can create a "shame loop"—you sweat, you worry about people seeing it, so you sweat more. Your face also reacts to certain foods through an automatic reflex. The goal is to break this loop by using mattifying skincare and targeted treatments.`;
-      areaImmediate = `Use simple oil-blotting papers to soak up moisture without making your skin red. A quick mist of cool water can also help "reset" your skin temperature.`;
-      areaSelf = `Avoid your known food triggers before big social events. You can also carry cooling wipes to use discreetly if you feel an episode starting.`;
-      areaClinical = `For facial sweating, a newer prescription gel called Sofdra is a game-changer. It blocks the signal to your sweat glands without the side effects of older oral medications.`;
+      areaProb = 'Classification: Craniofacial Hyperhidrosis';
+      areaMechanism = `Facial sweating is often driven by a combination of thermal signals and emotional stress. The 'shame loop'—where worrying about sweating triggers more sweat—is a documented sympathetic response. Your face also has a direct reflex to certain foods (Gustatory). Breaking this requires blocking the local acetylcholine signal.`;
+      areaImmediate = `Use oil-blotting papers to soak up moisture. A quick mist of cool water can help "reset" the local skin temperature receptors and tell the brain to ease up.`;
+      areaSelf = `Avoid known food triggers before big events. Carry cooling wipes to use discreetly if you feel the sympathetic chain starting to fire in your face.`;
+      areaClinical = `For facial sweating, Sofdra or Qbrexza wipes are excellent. They block the acetylcholine signal locally without the systemic side effects of oral medications.`;
     } else {
       areaTitle = `Pattern — ${areas[0]}`;
-      areaProb = 'Your sweating is concentrated in a specific area';
-      areaMechanism = `The areas you're tracking have a high concentration of sweat glands. In your case, these glands are receiving a signal that is "turned up too high." It's not that your glands are broken—it's that the signal telling them to work is too loud. Focused treatments that target just this area are usually the most effective.`;
-      areaImmediate = `Cool the area with a wet cloth or a fan. Applying a clinical-strength antiperspirant even *during* an episode can sometimes provide a bit of relief a few hours later.`;
-      areaSelf = `Focus your tracking on this area specifically. Notice if certain clothes or temperatures make it better or worse so you can build your own personal "management kit."`;
-      areaClinical = `Targeted treatments like Botox or miraDry (for underarms) are excellent for this pattern because they stop the sweating in just one area without affecting the rest of your body.`;
+      areaProb = 'Classification: Focal Hyperhidrosis';
+      areaMechanism = `The area you're tracking has a high concentration of eccrine sweat glands. In your case, the sympathetic ganglia responsible for this area are over-firing, sending a signal that is "turned up too high." Focused treatments that target the local acetylcholine receptors are usually the most effective for this pattern.`;
+      areaImmediate = `Cool the area with a wet cloth or fan. This sends a "cooling" signal back to the hypothalamus, which can sometimes override the sympathetic "sweat" signal.`;
+      areaSelf = `Focus your tracking on this area. Notice if specific fabrics (like cotton, which stays wet) make the episode feel worse compared to moisture-wicking bamboo or wool.`;
+      areaClinical = `Targeted treatments like Botox or miraDry (for underarms) are excellent for focal patterns because they stop the sweating in just one area by permanently or temporarily disabling the sweat glands' ability to receive the acetylcholine signal.`;
     }
 
     insights.push({
