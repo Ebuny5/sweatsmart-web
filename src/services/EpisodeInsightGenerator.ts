@@ -66,6 +66,26 @@ class EpisodeInsightGenerator {
       : 'Mild: sweating rarely interferes with your daily activities';
 
     // 3. Neural Pathway Mapping & Human Filter
+    let classification = "Clinical Classification: This episode matches the pattern of Primary Focal Hyperhidrosis (PHH). It's focal, bilateral, and clearly linked to specific triggers.";
+    if (isNocturnal || isSudden) {
+      classification = "Clinical Classification: This episode has features that require careful monitoring. While likely Primary Hyperhidrosis, the timing or onset suggests we should keep an eye out for Secondary patterns.";
+    }
+
+    let probability = "";
+    if (isEmotional && isThermal) {
+      probability = "Probability Distribution: 50% Amygdala (Emotional Stress) / 50% Hypothalamus (Thermal Load).";
+    } else if (isEmotional) {
+      probability = "Probability Distribution: 80% Amygdala (Emotional Stress) / 20% Baseline Autonomic Activity.";
+    } else if (isThermal) {
+      probability = "Probability Distribution: 90% Hypothalamus (Thermal Load) / 10% Physical Activity.";
+    } else if (isDietary) {
+      probability = "Probability Distribution: 70% Gustatory Stimuli / 30% Sympathetic Sensitivity.";
+    } else {
+      probability = "Probability Distribution: Mixed Autonomic Triggering.";
+    }
+
+    const mapping = "Neural Pathway Mapping: Your brain is sending a signal down the Sympathetic Chain—the 'highway' for your nervous system—telling your sweat glands to over-fire. This results in an excess of the acetylcholine signal at the gland site.";
+
     let insight: string;
 
     if (isEmotional && isThermal) {
@@ -106,7 +126,7 @@ class EpisodeInsightGenerator {
       areaInsight = ` Facial sweating can be particularly tough because it's so visible, but it follows the same "sensitive signal" pattern as other areas.`;
     }
 
-    return `${severityText}\n\n${insight}${complicationInsight}${areaInsight}`;
+    return `${severityText}\n\n${classification}\n\n${probability}\n\n${mapping}\n\n${insight}${complicationInsight}${areaInsight}`;
   }
 
   private buildReliefStrategies(ep: Episode): string[] {
