@@ -46,7 +46,7 @@ const SweatSmartLanding = () => {
     {
       icon: "🌡",
       title: "Track Episodes",
-      desc: "The core of your journey is the multi-layered Episode Logger. Record your experience by selecting complex environmental, emotional, gustatory, or pharmacological triggers alongside HDSS severity and body-area mapping.Immediately after logging, our cutting-edge technology performs a granular clinical analysis to provide personalized relief strategies specifically for your body",
+      desc: "The core of your journey is the multi-layered Episode Logger. Record your experience by selecting complex environmental, emotional, gustatory, or pharmacological triggers alongside HDSS severity and body-area mapping. Immediately after logging, our cutting-edge technology performs a granular clinical analysis to provide personalized relief strategies specifically for your body",
       accent: "#a78bfa",
     },
     {
