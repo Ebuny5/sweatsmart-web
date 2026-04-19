@@ -57,7 +57,7 @@ const SweatSmartLanding = () => {
     },
     {
       icon: "🤖",
-      title: "HidroAlly AI",
+      title: "HidroAlly",
       desc: "Your 24/7 companion reads your history and answers questions with personalized insight.",
       accent: "#c084fc",
     },
