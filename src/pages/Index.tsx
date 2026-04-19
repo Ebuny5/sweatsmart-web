@@ -51,8 +51,8 @@ const SweatSmartLanding = () => {
     },
     {
       icon: "📊",
-      title: "Identify Patterns",
-      desc: "Beautiful visualizations reveal what's driving your symptoms — see the data tell your story.",
+      title: "Longitudinal Dashboard & Analytics",
+      desc: "Your dashboard features interactive Trend Overview charts that visualize your history over weeks, months, and years. Track frequency fluctuations and severity trends to see how you are successfully navigating your journey toward bodily dignity.",
       accent: "#818cf8",
     },
     {
