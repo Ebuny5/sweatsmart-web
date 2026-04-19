@@ -64,7 +64,7 @@ const SweatSmartLanding = () => {
     {
       icon: "🌤",
       title: "Climate Alerts",
-      desc: "Real-time weather monitoring flags high-risk conditions before they trigger an episode.",
+      desc: "Proactive Climate Alerts: Stay ahead of the sweat. Our system triggers "High Risk" notifications before an episode starts by tracking real-time heat, humidity, and UV levels tuned to the African HH Trigger Baseline (28°C and 70% humidity).",
       accent: "#e879f9",
     },
     {
