@@ -58,7 +58,10 @@ const SweatSmartLanding = () => {
     {
       icon: "🤖",
       title: "HidroAlly",
-      desc: "Your 24/7 companion reads your history and answers questions with personalized insight.",
+      desc: "Meet HydroAlly, the world’s first 24/7 hyperhidrosis companion.
+Historical Review: HydroAlly reviews your entire user history—including logged episodes, EDA scans, and past AI recommendations—to identify complex trends.
+Exportable Clinical Reports: Generate detailed, professional reports based on your longitudinal data to share with your dermatologist, ensuring you are taken seriously at every hospital visit
+Constant Support: Chat hands-free using our Voice-First interface for instant strategies during high-arousal sweat episodes.",
       accent: "#c084fc",
     },
     {
