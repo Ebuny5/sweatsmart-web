@@ -76,7 +76,7 @@ const SweatSmartLanding = () => {
     {
       icon: "🫴",
       title: "AIoT Biometric Simulation",
-      desc: "Bridge the gap between smartphone accessibility and medical diagnostics. Our world-first camera-integrated Palm Scanner utilizes computer vision and moisture detection to simulate Xiaomi IoT sensor data. By quantifying your Electrodermal Activity (EDA) and heart rate across Resting, Active, and Trigger phases, the app confirms your physiological state to provide objective evidence for a condition that is otherwise invisible.",
+      desc: "Bridge the gap between smartphone accessibility and medical diagnostics. Our world-first camera-integrated Scanner utilizes computer vision and moisture detection to simulate Xiaomi IoT sensor data. By quantifying your Electrodermal Activity (EDA) and heart rate across Resting, Active, and Trigger phases, the app confirms your physiological state to provide objective evidence for a condition that is otherwise invisible.",
       accent: "#a78bfa",
     },
   ];
