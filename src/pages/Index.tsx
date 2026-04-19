@@ -97,7 +97,7 @@ const SweatSmartLanding = () => {
     {
       icon: "🎯",
       title: "Your Personal Trigger Profile",
-      desc: "Every log and EDA scan is connected to your Personal Trigger Profile. This isn't just a list of episodes; it is a <span class='highlight-gold'>"Digital Phenotype"</span>—a smart map of your life. Identify whether your episodes are <span class='highlight-navy'>climate-driven or stress-driven</span>, allowing you to build a clearer understanding of your daily comfort and stay in control.",
+      desc: "Every log and EDA scan is connected to your Personal Trigger Profile. This isn't just a list of episodes; it is a <span class='highlight-gold'>&quot;Digital Phenotype&quot;</span>—a smart map of your life. Identify whether your episodes are <span class='highlight-navy'>climate-driven or stress-driven</span>, allowing you to build a clearer understanding of your daily comfort and stay in control.",
       accent: "#818cf8",
       direction: "right",
     },
@@ -111,14 +111,14 @@ const SweatSmartLanding = () => {
     {
       icon: "🌤️",
       title: "Climate Alerts",
-      desc: "<span class='highlight-gold'>Proactive Guarding:</span> Real-time environmental monitoring that triggers <span class='highlight-navy'>"High Risk" notifications</span> before an episode starts by tracking real-time heat, humidity, and UV levels tuned to the <span class='highlight-gold'>African HH Trigger Baseline</span> (28°C and 70% humidity).",
+      desc: "<span class='highlight-gold'>Proactive Guarding:</span> Real-time environmental monitoring that triggers <span class='highlight-navy'>&quot;High Risk&quot; notifications</span> before an episode starts by tracking real-time heat, humidity, and UV levels tuned to the <span class='highlight-gold'>African HH Trigger Baseline</span> (28°C and 70% humidity).",
       accent: "#e879f9",
       direction: "right",
     },
     {
       icon: "🫴",
       title: "AIoT Biometric Simulation (Xiaomi Integration)",
-      desc: "Bridge the gap between smartphone accessibility and medical diagnostics. Our world-first camera-integrated <span class='highlight-gold'>Palm Scanner</span> utilizes computer vision and moisture detection to simulate <span class='highlight-navy'>Xiaomi IoT sensor data</span>. By quantifying your Electrodermal Activity (EDA) and heart rate across Resting, Active, and Trigger phases, the app confirms your "physiological state" to provide <span class='highlight-gold'>objective evidence</span> for a condition that is otherwise invisible.",
+      desc: "Bridge the gap between smartphone accessibility and medical diagnostics. Our world-first camera-integrated <span class='highlight-gold'>Palm Scanner</span> utilizes computer vision and moisture detection to simulate <span class='highlight-navy'>Xiaomi IoT sensor data</span>. By quantifying your Electrodermal Activity (EDA) and heart rate across Resting, Active, and Trigger phases, the app confirms your &quot;physiological state&quot; to provide <span class='highlight-gold'>objective evidence</span> for a condition that is otherwise invisible.",
       accent: "#f0abfc",
       direction: "left",
     },
@@ -349,6 +349,9 @@ const SweatSmartLanding = () => {
       line-height: 1.1;
       margin-bottom: 26px;
       color: #f5f3ff;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      hyphens: auto;
     }
 
     .gradient-text {
@@ -1017,13 +1020,9 @@ const SweatSmartLanding = () => {
       <nav className={scrolled ? 'scrolled' : ''}>
         <a href="/" className="logo">
           <img 
-            src="/api/placeholder/44/44" 
+            src="/sweatsmart-logo.png"
             alt="SweatSmart Logo" 
             className="logo-img"
-            onError={(e) => {
-              // Fallback to data URL of uploaded logo
-              e.currentTarget.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-            }}
           />
           <span className="logo-text">SweatSmart</span>
         </a>
@@ -1245,12 +1244,9 @@ const SweatSmartLanding = () => {
         <div className="footer-top">
           <a href="/" className="logo" style={{ textDecoration: 'none' }}>
             <img 
-              src="/api/placeholder/38/38" 
+              src="/sweatsmart-logo.png"
               alt="SweatSmart Logo" 
               className="footer-logo-img"
-              onError={(e) => {
-                e.currentTarget.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-              }}
             />
             <span className="logo-text" style={{ fontSize: 16 }}>SweatSmart</span>
           </a>
