@@ -715,7 +715,7 @@ const SweatSmartLanding = () => {
             Trusted by 12,000+ people
           </div>
           <h1 className="hero-title">
-            Take back control<br />
+            Take control<br />
             of your{' '}
             <span className="gradient-text">hyperhidrosis</span>
           </h1>
