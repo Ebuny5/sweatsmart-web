@@ -1,5 +1,6 @@
 import { soundManager } from '@/utils/soundManager';
 import { notificationManager } from './NotificationManager';
+import { LocalNotifications } from '@capacitor/local-notifications';
 
 interface NotificationData {
   id: string;
@@ -116,14 +117,37 @@ class EnhancedMobileNotificationService {
   }
 
   private async showPersistentNotification(title: string, body: string, type: string): Promise<void> {
-    // Handle vibration separately before showing notification
+    // Check if we are running in Capacitor (Android/iOS)
+    const isCapacitor = (window as any).Capacitor !== undefined;
+
+    if (isCapacitor) {
+      try {
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              title,
+              body,
+              id: Math.floor(Math.random() * 1000000),
+              schedule: { at: new Date(Date.now() + 100) },
+              sound: 'water-sound.mp3', // Note: Android requires sounds in res/raw, but we provide hint
+              extra: { type, url: window.location.origin }
+            }
+          ]
+        });
+        console.log('📱 Capacitor local notification scheduled');
+        return;
+      } catch (error) {
+        console.error('📱 Capacitor local notification failed:', error);
+      }
+    }
+
+    // Handle vibration separately before showing notification for web/PWA
     if (navigator.vibrate) {
       const vibrationPattern = type === 'destructive' ? [800, 200, 800, 200, 800] : [400, 100, 400];
       navigator.vibrate(vibrationPattern);
     }
 
     // Always use ServiceWorkerRegistration.showNotification() for PWA compatibility
-    // Direct new Notification() fails on Android PWAs with "Illegal constructor" error
     if ('serviceWorker' in navigator && 'Notification' in window && Notification.permission === 'granted') {
       try {
         const registration = await navigator.serviceWorker.ready;
@@ -147,7 +171,7 @@ class EnhancedMobileNotificationService {
     }
 
     // Fallback: just log if notifications aren't available
-    console.log('📱 Notification displayed in-app only (no SW available)');
+    console.log('📱 Notification displayed in-app only (no SW/Capacitor available)');
   }
 
   private storeNotification(title: string, body: string, type: string): void {
