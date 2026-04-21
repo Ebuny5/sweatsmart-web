@@ -79,38 +79,26 @@ class NotificationManager {
   }
 
   /**
-   * Request permission for both native and web notifications.
+   * Request permission for native notifications.
    */
   async requestPermission(): Promise<boolean> {
-    let nativeGranted = false;
-    let webGranted = false;
-
     if (this.isCapacitor) {
       try {
         const { display } = await LocalNotifications.requestPermissions();
-        nativeGranted = display === 'granted';
+        return display === 'granted';
       } catch (err) {
         console.warn('📱 Capacitor permission request failed:', err);
       }
     }
-
-    if ('Notification' in window) {
-      try {
-        const status = await Notification.requestPermission();
-        webGranted = status === 'granted';
-      } catch (err) {
-        console.warn('📱 Web permission request failed:', err);
-      }
-    }
-
-    return nativeGranted || webGranted;
+    return false;
   }
 
-  getPermissionStatus(): 'granted' | 'denied' | 'default' {
-    if ('Notification' in window) {
-      return Notification.permission;
+  async getPermissionStatus(): Promise<'granted' | 'denied' | 'prompt' | 'prompt-with-rationale'> {
+    if (this.isCapacitor) {
+      const status = await LocalNotifications.checkPermissions();
+      return status.display;
     }
-    return 'default';
+    return 'denied';
   }
 
   static getInstance(): NotificationManager {
