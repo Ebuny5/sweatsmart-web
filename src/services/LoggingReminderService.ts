@@ -1,5 +1,4 @@
-import { soundManager } from '@/utils/soundManager';
-import { enhancedMobileNotificationService } from './EnhancedMobileNotificationService';
+import { notificationManager } from './NotificationManager';
 
 // Production mode: 4-hour blocks
 const TESTING_MODE = false;
