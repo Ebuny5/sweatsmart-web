@@ -15,7 +15,10 @@ const MAX_LONGITUDE = 180;
 type WeatherResult = {
   temperature: number;
   humidity: number;
-  uvIndex: number;
+  /** Real UV index. null when API didn't return one (no fake fallback). */
+  uvIndex: number | null;
+  /** 'sunny' | 'partly_cloudy' | 'overcast' — derived from cloud cover & weather code. */
+  sky: 'sunny' | 'partly_cloudy' | 'overcast';
   description?: string;
   icon?: string;
   location?: string;
@@ -125,32 +128,61 @@ serve(async (req: Request) => {
     const weatherData = await weatherResponse.json();
     console.log('Weather data received');
 
-    // Fetch UV index (separate endpoint)
-    let uvIndex = 5; // Default UV
+    // Fetch UV index — prefer One Call 3.0 (`uvi`), fall back to legacy /uvi endpoint.
+    // Returns NULL when no real value is available — no silent fake fallback.
+    let uvIndex: number | null = null;
     try {
-      const uvUrl = `https://api.openweathermap.org/data/2.5/uvi?lat=${latitude}&lon=${longitude}&appid=${OPENWEATHER_API_KEY}`;
-      const uvResponse = await fetch(uvUrl);
-      if (uvResponse.ok) {
-        const uvData = await uvResponse.json();
-        uvIndex = uvData.value || 5;
-      }
-    } catch (uvError) {
-      console.log('UV fetch failed, using estimate:', uvError);
-      // Estimate UV based on time of day and weather
-      const hour = new Date().getHours();
-      if (hour >= 10 && hour <= 14) {
-        uvIndex = weatherData.clouds?.all < 50 ? 7 : 4;
-      } else if (hour >= 8 && hour <= 16) {
-        uvIndex = weatherData.clouds?.all < 50 ? 5 : 3;
+      const oneCallUrl =
+        `https://api.openweathermap.org/data/3.0/onecall?lat=${latitude}&lon=${longitude}` +
+        `&exclude=minutely,hourly,daily,alerts&units=metric&appid=${OPENWEATHER_API_KEY}`;
+      const oneCallRes = await fetch(oneCallUrl);
+      if (oneCallRes.ok) {
+        const oneCall = await oneCallRes.json();
+        const uvi = oneCall?.current?.uvi;
+        if (typeof uvi === 'number' && !isNaN(uvi)) {
+          uvIndex = uvi;
+        }
       } else {
-        uvIndex = 1;
+        console.log('One Call 3.0 failed:', oneCallRes.status);
+      }
+    } catch (e) {
+      console.log('One Call UV fetch error:', e);
+    }
+
+    if (uvIndex == null) {
+      try {
+        const uvUrl = `https://api.openweathermap.org/data/2.5/uvi?lat=${latitude}&lon=${longitude}&appid=${OPENWEATHER_API_KEY}`;
+        const uvResponse = await fetch(uvUrl);
+        if (uvResponse.ok) {
+          const uvData = await uvResponse.json();
+          if (typeof uvData?.value === 'number' && !isNaN(uvData.value)) {
+            uvIndex = uvData.value;
+          }
+        }
+      } catch (uvError) {
+        console.log('Legacy UV fetch failed:', uvError);
       }
     }
 
-    const result = {
+    // Derive sky condition from cloud cover + weather id (no UV faking).
+    const clouds = weatherData.clouds?.all ?? 0;
+    const weatherId: number = weatherData.weather?.[0]?.id ?? 800;
+    let sky: 'sunny' | 'partly_cloudy' | 'overcast';
+    if (weatherId >= 200 && weatherId < 800) {
+      sky = 'overcast'; // rain/storm/snow/etc
+    } else if (clouds <= 25) {
+      sky = 'sunny';
+    } else if (clouds <= 70) {
+      sky = 'partly_cloudy';
+    } else {
+      sky = 'overcast';
+    }
+
+    const result: WeatherResult = {
       temperature: Math.round(weatherData.main.temp * 10) / 10,
       humidity: weatherData.main.humidity,
-      uvIndex: Math.round(uvIndex * 10) / 10,
+      uvIndex: uvIndex == null ? null : Math.round(uvIndex * 10) / 10,
+      sky,
       description: weatherData.weather?.[0]?.description || 'Unknown',
       icon: weatherData.weather?.[0]?.icon,
       location: weatherData.name,
