@@ -185,7 +185,7 @@ const WarriorLaunchpad = () => {
         <div className="mt-4 bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-3 border border-white/20">
           <div className="flex items-start gap-3">
             <span className="text-xl mt-0.5 shrink-0">💡</span>
-            <p className="text-[#22c55e] text-xs font-semibold leading-snug">{dynamicInsight}</p>
+            <p className="text-white text-sm font-bold leading-snug">{dynamicInsight}</p>
           </div>
         </div>
       </div>
