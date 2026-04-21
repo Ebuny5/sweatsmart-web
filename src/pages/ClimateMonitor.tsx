@@ -389,21 +389,26 @@ const ClimateMonitor = () => {
     }, []
   );
 
-  const sendNotification = useCallback(
-    async (title: string, body: string, severity: 'CRITICAL' | 'WARNING' | 'MODERATE' | 'LOW' | 'OPTIMAL' | 'REMINDER' = 'WARNING') => {
-      playAlertSound(severity);
-      if ('serviceWorker' in navigator && notificationPermission === 'granted') {
-        try {
-          const registration = await navigator.serviceWorker.ready;
-          await registration.showNotification(title, {
-            body, icon: '/icon-192.png', badge: '/icon-192.png',
-            tag: `sweatsmart-climate-${Date.now()}`,
-            requireInteraction: severity === 'CRITICAL',
-            vibrate: severity === 'CRITICAL' ? [800, 200, 800, 200, 800] : [400, 100, 400],
-          } as NotificationOptions);
-        } catch (err) { console.error('📱 Notification failed:', err); }
-      }
-    }, [notificationPermission, playAlertSound]
+  // All climate alerts now go through the central NotificationManager so they
+  // share dedup/cooldown with reminders and never collide.
+  const sendClimateAlert = useCallback(
+    async (
+      title: string,
+      body: string,
+      kind: 'low' | 'moderate' | 'high' | 'extreme',
+      dedupKey: string,
+    ) => {
+      await notificationManager.send({
+        channel: 'climate',
+        kind,
+        title,
+        body,
+        dedupKey,
+        url: '/climate',
+        toastVariant: kind === 'extreme' || kind === 'high' ? 'destructive' : 'default',
+      });
+    },
+    [],
   );
 
   useEffect(() => {
@@ -412,37 +417,47 @@ const ClimateMonitor = () => {
 
     const settings = localStorage.getItem('climateAppSettings');
     const soundEnabled = settings ? JSON.parse(settings).soundAlerts !== false : true;
-    const safeUV = Math.min(11, weatherData.uvIndex);
-    const edaForRisk = edaIsWearableAndFresh ? physiologicalData.eda : 0;
+    // Pass UV through unmodified — calculator handles 11+ correctly.
+    const risk = calculateSweatRisk(
+      weatherData.temperature,
+      weatherData.humidity,
+      weatherData.uvIndex,
+      0,
+      false,
+      (weatherData as any).sky ?? 'unknown',
+    );
 
-    const risk = calculateSweatRisk(weatherData.temperature, weatherData.humidity, safeUV, edaForRisk, false);
-
-    const riskToSeverity: Record<SweatRiskLevel, 'CRITICAL' | 'WARNING' | 'MODERATE' | 'LOW' | 'OPTIMAL'> = {
-      safe: 'OPTIMAL', low: 'LOW', moderate: 'MODERATE', high: 'WARNING', extreme: 'CRITICAL',
-    };
     const riskToAlertType: Record<SweatRiskLevel, string> = {
-      safe: 'optimal', low: 'optimal', moderate: 'moderate', high: 'high', extreme: 'high',
+      safe: 'optimal', low: 'optimal', moderate: 'moderate', high: 'high', extreme: 'extreme',
     };
-
     const currentAlertType = riskToAlertType[risk.level];
-    const currentSeverity = riskToSeverity[risk.level];
 
-    if (risk.level === 'safe') setAlertStatus("Conditions Optimal: Comfortable conditions for hyperhidrosis management.");
-    else if (risk.level === 'low') setAlertStatus("Low Risk: Mild conditions — stay hydrated and monitor.");
-    else setAlertStatus(`${risk.message}: ${risk.description}`);
+    setAlertStatus(`${risk.message}: ${risk.description}`);
 
-    if (soundEnabled && currentAlertType !== lastAlertType && currentAlertType !== 'optimal') {
-      sendNotification(
+    // Only fire on real escalations (not safe/low) — manager handles cooldowns.
+    if (
+      soundEnabled &&
+      currentAlertType !== lastAlertType &&
+      currentAlertType !== 'optimal'
+    ) {
+      const uvLabel =
+        weatherData.uvIndex == null
+          ? 'N/A'
+          : weatherData.uvIndex > 11
+            ? '11+'
+            : weatherData.uvIndex.toFixed(1);
+      void sendClimateAlert(
         `SweatSmart Alert — ${risk.message}`,
-        `Temp: ${weatherData.temperature.toFixed(1)}°C | Humidity: ${weatherData.humidity.toFixed(0)}% | UV: ${safeUV.toFixed(1)}`,
-        currentSeverity
+        `${risk.description} (Temp ${weatherData.temperature.toFixed(1)}°C, Humidity ${weatherData.humidity.toFixed(0)}%, UV ${uvLabel})`,
+        risk.level as 'low' | 'moderate' | 'high' | 'extreme',
+        `climate:${risk.level}:${new Date().toISOString().slice(0, 13)}`,
       );
     }
 
     localStorage.setItem('climateLastAlertType', currentAlertType);
     localStorage.setItem('climateLastAlertTimestamp', Date.now().toString());
     setLastAlertType(currentAlertType);
-  }, [weatherData, physiologicalData, sendNotification, arePermissionsGranted, lastAlertType, hasRealWeather, edaIsWearableAndFresh]);
+  }, [weatherData, sendClimateAlert, arePermissionsGranted, lastAlertType, hasRealWeather]);
 
   const updateNextLogTime = useCallback((anchor?: number) => {
     const base = anchor ?? (parseInt(localStorage.getItem('climateLastLogTime') || '0', 10) || Date.now());
