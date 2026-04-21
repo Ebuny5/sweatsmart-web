@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Bell, Save, Info, CloudSun, Database } from 'lucide-react';
+import { Bell, Save, Info, CloudSun, Database, TestTube } from 'lucide-react';
 import { toast } from 'sonner';
+import { enhancedMobileNotificationService } from '@/services/EnhancedMobileNotificationService';
 import { SettingsPanel } from '@/components/climate/SettingsPanel';
 import { WebPushSettings } from '@/components/climate/WebPushSettings';
 import type { Thresholds } from '@/types';
@@ -187,6 +188,33 @@ const Settings = () => {
             All your data is stored locally on your device. We do not collect or transmit any personal information. 
             Your location is only used to fetch weather data and is never shared with third parties.
           </p>
+        </Card>
+
+        {/* Test Notifications */}
+        <Card className="p-6 border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/20">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-amber-500/10 rounded-lg">
+              <TestTube className="w-6 h-6 text-amber-600" />
+            </div>
+            <h2 className="text-xl font-bold">Developer Tools</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Trigger a test notification to verify delivery on your device.
+          </p>
+          <Button
+            variant="outline"
+            className="w-full border-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40"
+            onClick={async () => {
+              toast.info("Triggering test notification...");
+              await enhancedMobileNotificationService.showNotification(
+                "SweatSmart Test",
+                "This is a test notification to verify Capacitor delivery! 💧",
+                "info"
+              );
+            }}
+          >
+            Send Test Notification
+          </Button>
         </Card>
 
         {/* App Information */}
