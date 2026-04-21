@@ -8,6 +8,7 @@ import { edaManager } from '@/utils/edaManager';
 import type { WeatherData, PhysiologicalData, Thresholds, LogEntry, HDSSLevel } from "@/types";
 import { soundManager } from '@/utils/soundManager';
 import { calculateSweatRisk, getRiskSeverity, type SweatRiskLevel } from '@/utils/sweatRiskCalculator';
+import { notificationManager } from '@/services/NotificationManager';
 
 // --- Realistic Icons matching Gemini mockup ---
 
