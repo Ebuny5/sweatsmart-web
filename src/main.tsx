@@ -1,38 +1,34 @@
-import { createRoot } from 'react-dom/client'
-import App from './App.tsx'
-import ErrorBoundary from './components/ErrorBoundary.tsx'
-import './index.css'
+import { createRoot } from 'react-dom/client';
+import App from './App.tsx';
+import ErrorBoundary from './components/ErrorBoundary.tsx';
+import './index.css';
+import { audioAlertPlayer } from './utils/audioAlertPlayer';
 
-// Listen for service worker messages — plays sound when a real notification arrives
-// This runs once at app start and handles PLAY_NOTIFICATION_SOUND from sw.js
+// Service Worker → app: play the water sound + voice clip when a real push
+// notification arrives. We no longer use browser speechSynthesis here.
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', (event) => {
-    if (event.data?.type === 'PLAY_NOTIFICATION_SOUND') {
-      try {
-        // Use browser TTS with a lady's voice instead of beep tones
-        if ('speechSynthesis' in window) {
-          speechSynthesis.cancel();
-          const msg = new SpeechSynthesisUtterance('Attention. You have a new SweatSmart alert. Please check your notifications.');
-          msg.lang = 'en-US';
-          msg.rate = 1.0;
-          msg.pitch = 1.0;
-          msg.volume = 1.0;
-          // Try to pick a female voice
-          const voices = speechSynthesis.getVoices();
-          const femaleKeywords = ['female', 'samantha', 'victoria', 'karen', 'fiona', 'zira', 'hazel', 'jenny', 'aria', 'sara'];
-          const femaleVoice = voices.filter(v => v.lang.startsWith('en')).find(v => femaleKeywords.some(k => v.name.toLowerCase().includes(k))) || voices.find(v => v.lang.startsWith('en')) || voices[0];
-          if (femaleVoice) msg.voice = femaleVoice;
-          speechSynthesis.speak(msg);
-        }
-      } catch (e) {
-        console.warn('Could not play notification voice:', e);
-      }
+    const data = event.data;
+    if (!data) return;
+    if (data.type === 'PLAY_NOTIFICATION_SOUND') {
+      const kind =
+        data.kind === 'reminder' ||
+        data.kind === 'checkin' ||
+        data.kind === 'extreme' ||
+        data.kind === 'high' ||
+        data.kind === 'moderate' ||
+        data.kind === 'low'
+          ? data.kind
+          : 'reminder';
+      audioAlertPlayer.playAlert(kind).catch((e) =>
+        console.warn('Could not play notification audio:', e),
+      );
     }
   });
 }
 
-createRoot(document.getElementById("root")!).render(
+createRoot(document.getElementById('root')!).render(
   <ErrorBoundary>
     <App />
-  </ErrorBoundary>
+  </ErrorBoundary>,
 );
