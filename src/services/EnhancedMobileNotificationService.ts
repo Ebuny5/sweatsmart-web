@@ -1,4 +1,5 @@
 import { soundManager } from '@/utils/soundManager';
+import { notificationManager } from './NotificationManager';
 
 interface NotificationData {
   id: string;
@@ -35,31 +36,22 @@ class EnhancedMobileNotificationService {
 
   private async initialize(): Promise<void> {
     if (this.isInitialized) return;
-    
+
     console.log('🚀 Enhanced Mobile Notification Service initializing...');
-    
-    // Request notification permission immediately
-    await this.requestNotificationPermission();
-    
+
+    // IMPORTANT: do NOT auto-request notification permission here.
+    // Permission must be requested explicitly during onboarding (after location),
+    // not on page load — that previously caused the prompt to appear unexpectedly
+    // and tied notifications to the React lifecycle.
+
     // Register service worker for persistent notifications
     await this.registerServiceWorker();
-    
+
     this.startReminderChecker();
     this.startTriggerChecker();
     this.isInitialized = true;
-    
-    console.log('✅ Enhanced Mobile Notification Service initialized');
-  }
 
-  private async requestNotificationPermission(): Promise<void> {
-    if ('Notification' in window) {
-      const permission = await Notification.requestPermission();
-      console.log('📱 Notification permission:', permission);
-      
-      if (permission === 'denied') {
-        console.warn('📱 Notification permission denied. App will use in-app notifications only.');
-      }
-    }
+    console.log('✅ Enhanced Mobile Notification Service initialized (permission deferred to onboarding)');
   }
 
   private async registerServiceWorker(): Promise<void> {
@@ -96,29 +88,31 @@ class EnhancedMobileNotificationService {
     return isMedian;
   }
 
-  async showNotification(title: string, body: string, type: 'info' | 'success' | 'warning' | 'destructive' = 'info'): Promise<void> {
-    console.log(`📱 Professional Notification [${type.toUpperCase()}]:`, title, body);
-    
-    // Map notification type to sound severity
-    const soundSeverity = type === 'destructive' ? 'CRITICAL' : 
-                         type === 'warning' ? 'WARNING' : 'REMINDER';
-    
-    // Speak the actual notification content with female voice
-    await soundManager.speakCustom(`${title}. ${body}`, soundSeverity);
-    
-    // Show persistent system notification (works even when app is closed)
-    await this.showPersistentNotification(title, body, type);
-    
-    // Create a custom event for in-app notification
-    const event = new CustomEvent('sweatsmart-notification', {
-      detail: { title, body, type }
+  async showNotification(
+    title: string,
+    body: string,
+    type: 'info' | 'success' | 'warning' | 'destructive' = 'info',
+  ): Promise<void> {
+    console.log(`📱 Notification [${type.toUpperCase()}]:`, title, body);
+
+    // All notifications now go through the central manager so cooldown/dedup
+    // and the audio sequence (water sound → voice clip) apply consistently.
+    const kind =
+      type === 'destructive' ? 'extreme' : type === 'warning' ? 'high' : 'reminder';
+
+    await notificationManager.send({
+      channel: type === 'destructive' || type === 'warning' ? 'climate' : 'system',
+      kind,
+      title,
+      body,
+      // Lightweight dedup so identical back-to-back calls collapse but
+      // distinct messages still fire (different body → different key).
+      dedupKey: `enhanced:${type}:${title}:${body}`.slice(0, 200),
+      toastVariant: type === 'destructive' ? 'destructive' : 'default',
     });
-    window.dispatchEvent(event);
-    
-    // Store notification for persistence
+
+    // Persist to local history for the in-app notifications screen
     this.storeNotification(title, body, type);
-    
-    console.log('📱 Professional notification system activated');
   }
 
   private async showPersistentNotification(title: string, body: string, type: string): Promise<void> {
