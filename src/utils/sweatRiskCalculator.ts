@@ -1,9 +1,16 @@
 /**
  * Sweat Risk Calculator for Hyperhidrosis
- * 
- * Based on medical research for hyperhidrosis trigger conditions.
- * IMPORTANT: Alerts should NEVER fire on simulated/fallback data.
- * Only real weather data from OpenWeather API should trigger alerts.
+ *
+ * Weighted scoring system designed for real-world hyperhidrosis sufferers,
+ * including hot/dry climates (e.g., Africa) where temperature alone — without
+ * high humidity or UV — is enough to trigger episodes.
+ *
+ * Primary driver: Temperature
+ * Modifiers:    Humidity, UV index, Sky condition (sunny vs overcast)
+ *
+ * IMPORTANT: Alerts NEVER fire on simulated/fallback data.
+ * EDA is intentionally excluded from real alert decisions until reliable
+ * wearable data is available — see project requirements.
  */
 
 export type SweatRiskLevel = 'safe' | 'low' | 'moderate' | 'high' | 'extreme';
@@ -14,28 +21,38 @@ export interface SweatRiskResult {
   description: string;
   color: string;
   triggers: string[];
+  /** Combined weighted score, useful for debugging / UI */
+  score: number;
+  /** Heat index ("real feel") in °C — undefined if not computable */
+  heatIndex?: number;
   isSimulated?: boolean;
 }
 
+export type SkyCondition = 'sunny' | 'partly_cloudy' | 'overcast' | 'unknown';
+
 /**
- * Calculate heat index using NOAA official formula (Celsius in, Celsius out)
- * UV is capped at 11 — values above 11 are physically impossible
+ * NOAA Heat Index ("real feel") — Celsius in / Celsius out.
+ * Used as an additional severity bump, not as the primary driver.
  */
 function calculateHeatIndex(tempC: number, humidity: number): number {
-  const T = tempC * 9 / 5 + 32; // to Fahrenheit
+  const T = (tempC * 9) / 5 + 32;
   const R = humidity;
 
-  // Simple formula for cooler temps
   if (T < 80) {
-    const hiF = 0.5 * (T + 61.0 + ((T - 68.0) * 1.2) + (R * 0.094));
-    return (hiF - 32) * 5 / 9;
+    const hiF = 0.5 * (T + 61.0 + (T - 68.0) * 1.2 + R * 0.094);
+    return ((hiF - 32) * 5) / 9;
   }
 
-  // Full Rothfusz regression
-  let hiF = -42.379 + 2.04901523 * T + 10.14333127 * R
-    - 0.22475541 * T * R - 0.00683783 * T * T
-    - 0.05481717 * R * R + 0.00122874 * T * T * R
-    + 0.00085282 * T * R * R - 0.00000199 * T * T * R * R;
+  let hiF =
+    -42.379 +
+    2.04901523 * T +
+    10.14333127 * R -
+    0.22475541 * T * R -
+    0.00683783 * T * T -
+    0.05481717 * R * R +
+    0.00122874 * T * T * R +
+    0.00085282 * T * R * R -
+    0.00000199 * T * T * R * R;
 
   if (R < 13 && T >= 80 && T <= 112) {
     hiF -= ((13 - R) / 4) * Math.sqrt((17 - Math.abs(T - 95)) / 17);
@@ -43,167 +60,176 @@ function calculateHeatIndex(tempC: number, humidity: number): number {
     hiF += ((R - 85) / 10) * ((87 - T) / 5);
   }
 
-  return (hiF - 32) * 5 / 9;
+  return ((hiF - 32) * 5) / 9;
+}
+
+/** Temperature score — primary driver (0–4). */
+function tempScore(t: number): number {
+  if (t < 24) return 0;
+  if (t < 28) return 1; // Low
+  if (t < 32) return 2; // Moderate (anxiety zone — 28°C+ already counts)
+  if (t < 35) return 3; // High
+  return 4; // Extreme
+}
+
+/** Humidity modifier (0–1.5). */
+function humidityScore(h: number): number {
+  if (h < 40) return 0;
+  if (h < 60) return 0.5;
+  if (h < 75) return 1;
+  return 1.5;
 }
 
 /**
- * Calculate sweat risk based on REAL weather data only.
- * 
- * Risk is based on ACTUAL temperature, not heat index alone.
- * Heat index is used as a modifier, not the primary trigger.
- * This prevents false "Extreme Risk" at low real temperatures.
- * 
- * Rules:
- * - Extreme: real temp >= 35°C OR heat index > 45°C
- * - High: real temp >= 32°C OR (real temp >= 28°C AND humidity >= 80%)
- * - Moderate: real temp >= 28°C OR humidity >= 70%
- * - Low: real temp >= 24°C
- * - Safe: real temp < 24°C
- * 
- * UV is always capped at 11 before use.
+ * UV / sun-exposure modifier (0–2).
+ * Do NOT cap UV — values above 11 keep contributing.
  */
-export function calculateSweatRisk(
-  temperature: number,
-  humidity: number,
-  uvIndex: number,
-  edaValue?: number,
-  isSimulated?: boolean
-): SweatRiskResult {
-  // If data is simulated, NEVER fire a warning alert — just show safe status
+function uvScore(uv: number | null | undefined): number {
+  if (uv == null || isNaN(uv)) return 0;
+  if (uv <= 2) return 0;
+  if (uv <= 5) return 0.5;
+  if (uv <= 7) return 1;
+  if (uv <= 10) return 1.5;
+  return 2; // 11+
+}
+
+/** Sky condition modifier (0–0.5). */
+function skyScore(sky: SkyCondition): number {
+  if (sky === 'sunny') return 0.5;
+  return 0;
+}
+
+/**
+ * Convert combined score to risk level.
+ * Score ranges tuned so:
+ *   - 28°C dry / clear (score ~2.0–2.5) → moderate
+ *   - 32°C dry / clear (score ~3.5–4.0) → high
+ *   - 35°C+ → extreme regardless of humidity (dry heat still triggers)
+ */
+function scoreToLevel(score: number, tempC: number): SweatRiskLevel {
+  // Hard temperature gates so dry heat in hot climates never reads as "low"
+  if (tempC >= 35) return 'extreme';
+  if (tempC >= 32 && score >= 3) return 'high';
+
+  if (score >= 6) return 'extreme';
+  if (score >= 4) return 'high';
+  if (score >= 2) return 'moderate';
+  if (score >= 1) return 'low';
+  return 'safe';
+}
+
+const LEVEL_META: Record<
+  SweatRiskLevel,
+  { message: string; description: string; color: string }
+> = {
+  safe: {
+    message: 'Optimal',
+    description: 'Optimal conditions — no immediate sweat trigger.',
+    color: 'text-green-400',
+  },
+  low: {
+    message: 'Low Risk',
+    description:
+      'Low Risk: Mild sweat risk — stay hydrated and monitor your body closely.',
+    color: 'text-yellow-300',
+  },
+  moderate: {
+    message: 'Moderate Risk',
+    description:
+      'Moderate sweat risk — reduce outdoor exposure and use cooling strategies.',
+    color: 'text-yellow-400',
+  },
+  high: {
+    message: 'High Risk',
+    description:
+      'High sweat risk — stay in AC, reduce outdoor exposure, and use cooling support.',
+    color: 'text-red-400',
+  },
+  extreme: {
+    message: 'Extreme Risk',
+    description:
+      'Extreme sweat risk — avoid heat, stay indoors, and take immediate cooling action.',
+    color: 'text-red-500',
+  },
+};
+
+export interface SweatRiskInput {
+  temperature: number;
+  humidity: number;
+  /** Real UV index from API. Pass null/undefined when unavailable — no fake fallbacks. */
+  uvIndex: number | null | undefined;
+  sky?: SkyCondition;
+  isSimulated?: boolean;
+}
+
+/**
+ * Primary entrypoint — preferred form.
+ */
+export function calculateSweatRiskV2(input: SweatRiskInput): SweatRiskResult {
+  const { temperature, humidity, uvIndex, sky = 'unknown', isSimulated } = input;
+
   if (isSimulated) {
     return {
       level: 'safe',
-      message: 'Conditions Optimal',
+      ...LEVEL_META.safe,
       description: 'Simulated data — enable location for real weather alerts.',
-      color: 'text-green-400',
       triggers: [],
+      score: 0,
       isSimulated: true,
     };
   }
 
-  const triggers: string[] = [];
-
-  // Always cap UV at 11 — values above 11 are physically impossible
-  const uv = Math.min(11, uvIndex);
+  const t = tempScore(temperature);
+  const h = humidityScore(humidity);
+  const u = uvScore(uvIndex);
+  const s = skyScore(sky);
 
   const heatIndex = calculateHeatIndex(temperature, humidity);
-  const isHighEDA = edaValue !== undefined && edaValue > 5.0;
-  const isHighUV = uv >= 8;
+  // Real-feel bump: when heat index notably exceeds actual temp (humid heat),
+  // add up to +1. Pure dry heat already scored via tempScore.
+  const heatIndexBump = Math.min(1, Math.max(0, (heatIndex - temperature) / 4));
 
-  if (isHighEDA) triggers.push(`High EDA: ${edaValue?.toFixed(1)} µS`);
-  if (isHighUV) triggers.push(`High UV: ${uv.toFixed(1)}`);
+  const score = t + h + u + s + heatIndexBump;
+  const level = scoreToLevel(score, temperature);
 
-  // SAFE: real temp below 24°C — heat index irrelevant at low temperatures
-  if (temperature < 24) {
-    return {
-      level: 'safe',
-      message: 'Conditions Optimal',
-      description: 'Comfortable conditions for hyperhidrosis management.',
-      color: 'text-green-400',
-      triggers,
-    };
+  const triggers: string[] = [];
+  triggers.push(`🌡️ Temp: ${temperature.toFixed(1)}°C`);
+  if (h > 0) triggers.push(`💧 Humidity: ${humidity.toFixed(0)}%`);
+  if (uvIndex != null && !isNaN(uvIndex)) {
+    const uvLabel = uvIndex > 11 ? '11+' : uvIndex.toFixed(1);
+    if (u > 0) triggers.push(`☀️ UV: ${uvLabel}`);
   }
+  if (s > 0) triggers.push('☀️ Clear/Sunny sky');
+  if (heatIndexBump > 0.2)
+    triggers.push(`🥵 Real feel: ${heatIndex.toFixed(1)}°C`);
 
-  // LOW RISK: 24–27°C real temp
-  if (temperature >= 24 && temperature < 28) {
-    triggers.push(`Temp: ${temperature.toFixed(1)}°C`);
-    if (humidity >= 75) {
-      triggers.push(`High humidity: ${humidity.toFixed(0)}%`);
-      return {
-        level: 'low',
-        message: 'Low Risk',
-        description: 'Mild conditions with high humidity — stay hydrated and monitor.',
-        color: 'text-yellow-300',
-        triggers,
-      };
-    }
-    return {
-      level: 'low',
-      message: 'Low Risk',
-      description: 'Mild warmth — consider light clothing and stay hydrated.',
-      color: 'text-yellow-300',
-      triggers,
-    };
-  }
-
-  // EXTREME RISK: real temp >= 35°C (must check before high)
-  if (temperature >= 35) {
-    triggers.push(`Extreme temp: ${temperature.toFixed(1)}°C`);
-    if (humidity >= 50) triggers.push(`Humidity: ${humidity.toFixed(0)}%`);
-    return {
-      level: 'extreme',
-      message: 'Extreme Risk',
-      description: 'Extreme heat — stay indoors with AC, avoid all outdoor activities.',
-      color: 'text-red-500',
-      triggers,
-    };
-  }
-
-  // HIGH RISK: real temp 32–34°C
-  if (temperature >= 32) {
-    triggers.push(`High temp: ${temperature.toFixed(1)}°C`);
-    if (humidity >= 60) triggers.push(`Humidity: ${humidity.toFixed(0)}%`);
-    return {
-      level: 'high',
-      message: 'High Risk',
-      description: 'High sweat risk — use cooling devices, stay in AC, consider iontophoresis.',
-      color: 'text-red-400',
-      triggers,
-    };
-  }
-
-  // MODERATE/HIGH RISK: real temp 28–31°C
-  if (temperature >= 28) {
-    triggers.push(`Temp: ${temperature.toFixed(1)}°C`);
-
-    // High humidity at 28°C+ pushes to high risk
-    if (humidity >= 80) {
-      triggers.push(`High humidity: ${humidity.toFixed(0)}%`);
-      if (isHighEDA || isHighUV) {
-        return {
-          level: 'high',
-          message: 'High Risk',
-          description: 'High sweat conditions — use cooling aids and consider staying indoors.',
-          color: 'text-red-400',
-          triggers,
-        };
-      }
-      return {
-        level: 'moderate',
-        message: 'Moderate Risk',
-        description: 'Sweating likely — prepare cooling aids and antiperspirant.',
-        color: 'text-yellow-400',
-        triggers,
-      };
-    }
-
-    if (humidity >= 70) {
-      triggers.push(`Humidity: ${humidity.toFixed(0)}%`);
-    }
-
-    return {
-      level: isHighEDA ? 'moderate' : 'low',
-      message: isHighEDA ? 'Moderate Risk' : 'Low Risk',
-      description: 'Warm conditions — monitor symptoms and stay cool.',
-      color: isHighEDA ? 'text-yellow-400' : 'text-yellow-300',
-      triggers,
-    };
-  }
-
-  // Fallback safe
   return {
-    level: 'safe',
-    message: 'Conditions Optimal',
-    description: 'Comfortable conditions for hyperhidrosis management.',
-    color: 'text-green-400',
+    level,
+    ...LEVEL_META[level],
     triggers,
+    score: Math.round(score * 100) / 100,
+    heatIndex: Math.round(heatIndex * 10) / 10,
   };
 }
 
 /**
- * Get severity level for notifications
+ * Legacy signature kept for backwards compatibility with older call sites.
+ * EDA is accepted but intentionally ignored (see file header).
  */
-export function getRiskSeverity(level: SweatRiskLevel): 'REMINDER' | 'WARNING' | 'CRITICAL' {
+export function calculateSweatRisk(
+  temperature: number,
+  humidity: number,
+  uvIndex: number | null | undefined,
+  _edaValue?: number,
+  isSimulated?: boolean,
+  sky: SkyCondition = 'unknown',
+): SweatRiskResult {
+  return calculateSweatRiskV2({ temperature, humidity, uvIndex, sky, isSimulated });
+}
+
+export function getRiskSeverity(
+  level: SweatRiskLevel,
+): 'REMINDER' | 'WARNING' | 'CRITICAL' {
   switch (level) {
     case 'safe':
     case 'low':
@@ -217,39 +243,28 @@ export function getRiskSeverity(level: SweatRiskLevel): 'REMINDER' | 'WARNING' |
 }
 
 /**
- * Check if conditions should trigger an alert based on user thresholds.
- * Never triggers on simulated data.
+ * Determine whether a real-data alert should fire.
+ * Only `moderate`, `high`, `extreme` ever alert. Safe/low never alert.
  */
 export function shouldTriggerAlert(
   temperature: number,
   humidity: number,
-  uvIndex: number,
+  uvIndex: number | null | undefined,
   thresholds: { temperature: number; humidity: number; uvIndex: number },
-  isSimulated?: boolean
-): { shouldAlert: boolean; triggers: string[] } {
-  // Never alert on simulated data
-  if (isSimulated) return { shouldAlert: false, triggers: [] };
+  isSimulated?: boolean,
+  sky: SkyCondition = 'unknown',
+): { shouldAlert: boolean; triggers: string[]; level: SweatRiskLevel } {
+  if (isSimulated) return { shouldAlert: false, triggers: [], level: 'safe' };
 
-  const uv = Math.min(11, uvIndex);
-  const risk = calculateSweatRisk(temperature, humidity, uv);
+  const risk = calculateSweatRiskV2({ temperature, humidity, uvIndex, sky });
 
   if (risk.level === 'safe' || risk.level === 'low') {
-    return { shouldAlert: false, triggers: [] };
-  }
-
-  const triggers: string[] = [];
-  if (temperature >= thresholds.temperature) {
-    triggers.push(`🌡️ Temperature: ${temperature.toFixed(1)}°C (threshold: ${thresholds.temperature}°C)`);
-  }
-  if (humidity >= thresholds.humidity) {
-    triggers.push(`💧 Humidity: ${humidity.toFixed(0)}% (threshold: ${thresholds.humidity}%)`);
-  }
-  if (uv >= thresholds.uvIndex) {
-    triggers.push(`☀️ UV Index: ${uv.toFixed(1)} (threshold: ${thresholds.uvIndex})`);
+    return { shouldAlert: false, triggers: [], level: risk.level };
   }
 
   return {
-    shouldAlert: triggers.length > 0,
-    triggers: triggers.length > 0 ? triggers : risk.triggers,
+    shouldAlert: true,
+    triggers: risk.triggers,
+    level: risk.level,
   };
 }

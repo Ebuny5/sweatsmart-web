@@ -1,5 +1,4 @@
-import { soundManager } from '@/utils/soundManager';
-import { enhancedMobileNotificationService } from './EnhancedMobileNotificationService';
+import { notificationManager } from './NotificationManager';
 
 // Production mode: 4-hour blocks
 const TESTING_MODE = false;
@@ -201,56 +200,32 @@ class LoggingReminderService {
 
 
   private async sendLogReminder(): Promise<void> {
-    console.log('📅 Sending log reminder notification...');
+    console.log('📅 Sending log reminder via NotificationManager...');
 
-    // Never let sound/badge failures block the notification.
-    try {
-      await soundManager.speakCustom('Time to log your episode. Please record your sweat level for the last 4 hours.', 'REMINDER');
-    } catch (error) {
-      console.warn('📅 Reminder sound failed:', error);
-    }
-
-    try {
-      await this.setAppBadge(1);
-    } catch (error) {
-      console.warn('📅 Badging failed:', error);
-    }
-
-    try {
-      await enhancedMobileNotificationService.showNotification(
-        '⏰ Time to Log Your Episode',
-        'Please record your sweat level for the last 4 hours. Tap to log your episode.',
-        'warning'
-      );
-    } catch (error) {
-      console.warn('📅 Enhanced notification failed:', error);
-    }
-
-    // Use ServiceWorkerRegistration.showNotification() for PWA compatibility
-    if ('serviceWorker' in navigator && 'Notification' in window && Notification.permission === 'granted') {
-      try {
-        const registration = await navigator.serviceWorker.ready;
-        await registration.showNotification('⏰ Time to Log Your Episode', {
-          body: 'Please record your sweat level for the last 4 hours.',
-          icon: '/icon-192.png',
-          badge: '/icon-192.png',
-          tag: 'log-reminder',
-          requireInteraction: true,
-          data: { url: '/log-episode', type: 'log-reminder' },
-        });
-        console.log('📅 Service Worker notification shown');
-      } catch (error) {
-        console.error('📅 Service Worker notification failed:', error);
-      }
-    } else {
-      console.log('📅 System notification not shown (permission not granted)');
-    }
-
-    // Dispatch custom event for in-app handling
-    const event = new CustomEvent('sweatsmart-log-reminder', {
-      detail: { timestamp: Date.now() },
+    // Single pipeline: dedup, cooldown, water-sound + voice, system notif, in-app toast.
+    const delivered = await notificationManager.send({
+      channel: 'reminder',
+      kind: 'reminder',
+      title: '⏰ Time to Log Your Episode',
+      body: 'Please record your sweat level for the last 4 hours. Tap to log your episode.',
+      // Hour-bucketed dedup so we never double-fire within the same hour
+      dedupKey: `log-reminder:${new Date().toISOString().slice(0, 13)}`,
+      url: '/log-episode',
     });
-    window.dispatchEvent(event);
+
+    if (delivered) {
+      try {
+        await this.setAppBadge(1);
+      } catch (error) {
+        console.warn('📅 Badging failed:', error);
+      }
+
+      window.dispatchEvent(
+        new CustomEvent('sweatsmart-log-reminder', {
+          detail: { timestamp: Date.now() },
+        }),
+      );
+    }
   }
 
   private async setAppBadge(count: number): Promise<void> {

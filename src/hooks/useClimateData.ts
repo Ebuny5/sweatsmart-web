@@ -115,17 +115,20 @@ export function useClimateData(): ClimateSnapshot {
 
       const w: WeatherData = {
         ...data,
-        uvIndex: Math.min(11, data.uvIndex ?? data.uvi ?? 0),
+        // Pass UV through unchanged (null when API didn't provide one).
+        uvIndex: typeof data.uvIndex === 'number' ? data.uvIndex : null,
+        sky: data.sky ?? 'unknown',
         lastUpdated: Date.now(),
       };
 
-      // ── Sweat risk via the shared utility ────────────────────────────────
+      // Sweat risk via the shared utility — EDA intentionally not used in alerts.
       const risk = calculateSweatRisk(
         w.temperature,
         w.humidity,
         w.uvIndex,
-        2.5, // default EDA — real EDA from edaManager available if needed
-        false
+        0,
+        false,
+        w.sky,
       );
 
       // ── Reverse geocode city name ─────────────────────────────────────────
