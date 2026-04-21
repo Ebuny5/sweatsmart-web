@@ -2,7 +2,10 @@
 export interface WeatherData {
   temperature: number;
   humidity: number;
-  uvIndex: number;
+  /** Real UV index from API. null when API didn't return one — no fake fallback. */
+  uvIndex: number | null;
+  /** Sky condition derived server-side from cloud cover + weather code. */
+  sky?: 'sunny' | 'partly_cloudy' | 'overcast' | 'unknown';
   lastUpdated?: number;
   description?: string;
   location?: string;

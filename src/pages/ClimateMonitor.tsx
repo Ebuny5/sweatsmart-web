@@ -480,25 +480,9 @@ const ClimateMonitor = () => {
     return () => window.removeEventListener('sweatsmart-log-reminder', handler);
   }, [arePermissionsGranted]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (nextLogTime && Date.now() >= nextLogTime && arePermissionsGranted) {
-        playAlertSound('REMINDER');
-        if ('serviceWorker' in navigator && notificationPermission === 'granted') {
-          navigator.serviceWorker.ready.then(reg => {
-            reg.showNotification('⏰ Time to Log', {
-              body: 'Please record your sweat level for the last 4 hours.',
-              icon: '/icon-192.png', badge: '/icon-192.png', tag: 'log-reminder',
-              requireInteraction: true, data: { url: '/climate' }
-            } as NotificationOptions).catch(console.error);
-          });
-        }
-        setIsLoggingModalOpen(true);
-        updateNextLogTime();
-      }
-    }, LOG_CHECK_INTERVAL);
-    return () => clearInterval(interval);
-  }, [nextLogTime, arePermissionsGranted, playAlertSound, notificationPermission, updateNextLogTime]);
+  // Log reminders are handled globally by LoggingReminderService — we no longer
+  // duplicate that loop here. ClimateMonitor only listens for the
+  // 'sweatsmart-log-reminder' event to open the in-app logging modal.
 
   const requestNotificationPermission = async () => {
     if (locationPermission !== 'granted') return;
