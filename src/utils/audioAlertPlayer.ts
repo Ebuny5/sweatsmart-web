@@ -70,24 +70,6 @@ function resolveVoicePath(kind: AlertKind, gender: VoiceGender): string {
   return FEMALE_VOICES[kind];
 }
 
-function vibrateForKind(kind: AlertKind) {
-  // Vibration is now handled by native notifications if backgrounded.
-  // For foreground, we only keep it for extreme/high climate alerts.
-  if (!('vibrate' in navigator)) return;
-
-  if (kind !== 'extreme' && kind !== 'high') return;
-
-  const pattern: number[] =
-    kind === 'extreme'
-      ? [800, 200, 800, 200, 800]
-      : [600, 150, 600];
-  try {
-    navigator.vibrate(pattern);
-  } catch {
-    /* ignore */
-  }
-}
-
 class AudioAlertPlayer {
   private static instance: AudioAlertPlayer;
   private current: HTMLAudioElement | null = null;
@@ -138,7 +120,7 @@ class AudioAlertPlayer {
 
   /**
    * Play a single audio file and resolve when it ends (or on error).
-   * Capped to ~6s so the water cue stays short.
+   * Capped to ~8s so the water cue stays short.
    */
   private playClip(src: string, maxMs = 8000): Promise<void> {
     return new Promise((resolve) => {
@@ -180,8 +162,6 @@ class AudioAlertPlayer {
    */
   async playAlert(kind: AlertKind): Promise<void> {
     if (!isSoundEnabled()) return;
-
-    vibrateForKind(kind);
 
     // 1. Short water cue (truncated to ~1.5s so it really is "in a jiffy")
     await this.playClip(WATER_SOUND_PATH, 1500);

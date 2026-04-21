@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { loggingReminderService } from '@/services/LoggingReminderService';
 import { notificationManager } from '@/services/NotificationManager';
+import { climateAlertService } from '@/services/ClimateAlertService';
 
 type InAppNotificationDetail = {
   title: string;
@@ -17,11 +18,15 @@ const NotificationListener = () => {
     // Accessing notificationManager.getInstance() ensures listeners are attached
     notificationManager;
 
+    // Initialize background services
+    climateAlertService.initialize();
+
     // Initial check for any missed log reminders
     loggingReminderService.forceCheck();
 
     return () => {
       loggingReminderService.cleanup();
+      climateAlertService.cleanup();
     };
   }, []);
 

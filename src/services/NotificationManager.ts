@@ -78,6 +78,41 @@ class NotificationManager {
     this.initClickListeners();
   }
 
+  /**
+   * Request permission for both native and web notifications.
+   */
+  async requestPermission(): Promise<boolean> {
+    let nativeGranted = false;
+    let webGranted = false;
+
+    if (this.isCapacitor) {
+      try {
+        const { display } = await LocalNotifications.requestPermissions();
+        nativeGranted = display === 'granted';
+      } catch (err) {
+        console.warn('📱 Capacitor permission request failed:', err);
+      }
+    }
+
+    if ('Notification' in window) {
+      try {
+        const status = await Notification.requestPermission();
+        webGranted = status === 'granted';
+      } catch (err) {
+        console.warn('📱 Web permission request failed:', err);
+      }
+    }
+
+    return nativeGranted || webGranted;
+  }
+
+  getPermissionStatus(): 'granted' | 'denied' | 'default' {
+    if ('Notification' in window) {
+      return Notification.permission;
+    }
+    return 'default';
+  }
+
   static getInstance(): NotificationManager {
     if (!NotificationManager.instance) {
       NotificationManager.instance = new NotificationManager();
@@ -91,16 +126,6 @@ class NotificationManager {
         const url = action.notification.extra?.url || '/';
         console.log('📱 Capacitor notification clicked, navigating to:', url);
         window.location.href = url;
-      });
-    }
-
-    // Listen for SW messages in PWA mode
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data?.type === 'NAVIGATE' && event.data?.url) {
-          console.log('📱 SW navigate message received:', event.data.url);
-          window.location.href = event.data.url;
-        }
       });
     }
   }
@@ -151,7 +176,7 @@ class NotificationManager {
       /* ignore audio errors */
     });
 
-    // b) System notification (Capacitor or SW)
+    // b) System notification (Capacitor ONLY)
     void this.showSystemNotification(req);
 
     // c) In-app toast event for foreground listeners
@@ -199,8 +224,7 @@ class NotificationManager {
         console.error('📅 Native reminder scheduling failed:', err);
       }
     } else {
-      console.log('📅 PWA reminder scheduling (fallback to localStorage):', at.toLocaleString());
-      // For PWA, we rely on the service worker or LoggingReminderService's background checks
+      console.log('📅 PWA reminder scheduling fallback (system notification only):', at.toLocaleString());
     }
   }
 
@@ -223,29 +247,8 @@ class NotificationManager {
       } catch (err) {
         console.warn('Capacitor notification failed:', err);
       }
-      return;
-    }
-
-    if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
-    if (Notification.permission !== 'granted') return;
-
-    try {
-      const registration = await navigator.serviceWorker.ready;
-      await registration.showNotification(req.title, {
-        body: req.body,
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
-        tag: `sweatsmart-${req.channel}-${req.kind}`,
-        renotify: false,
-        requireInteraction: req.kind === 'extreme',
-        data: {
-          url: req.url ?? '/',
-          channel: req.channel,
-          kind: req.kind,
-        },
-      } as NotificationOptions);
-    } catch (err) {
-      console.warn('System notification failed:', err);
+    } else {
+      console.log('📱 Browser notification suppressed (Capacitor only mode active)');
     }
   }
 

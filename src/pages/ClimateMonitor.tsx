@@ -313,18 +313,13 @@ const ClimateMonitor = () => {
 
   const checkPermissions = useCallback(async () => {
     if ('permissions' in navigator) {
-      const [notifStatus, geoStatus] = await Promise.all([
-        navigator.permissions.query({ name: 'notifications' }),
-        navigator.permissions.query({ name: 'geolocation' })
-      ]);
-      setNotificationPermission(notifStatus.state);
+      const geoStatus = await navigator.permissions.query({ name: 'geolocation' });
       setLocationPermission(geoStatus.state);
-      notifStatus.onchange = () => setNotificationPermission(notifStatus.state);
       geoStatus.onchange = () => setLocationPermission(geoStatus.state);
-    } else {
-      const perm = Notification.permission;
-      setNotificationPermission(perm === 'default' ? 'prompt' : perm);
     }
+
+    const notifStatus = notificationManager.getPermissionStatus();
+    setNotificationPermission(notifStatus === 'default' ? 'prompt' : notifStatus);
   }, []);
 
   useEffect(() => {
@@ -486,8 +481,9 @@ const ClimateMonitor = () => {
 
   const requestNotificationPermission = async () => {
     if (locationPermission !== 'granted') return;
-    const permission = await Notification.requestPermission();
-    setNotificationPermission(permission === 'default' ? 'prompt' : permission);
+    const granted = await notificationManager.requestPermission();
+    const status = notificationManager.getPermissionStatus();
+    setNotificationPermission(status === 'default' ? 'prompt' : status);
   };
 
   const handleRequestLocation = () => {

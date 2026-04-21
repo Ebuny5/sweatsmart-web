@@ -6,14 +6,12 @@ import { Bell, Save, Info, CloudSun, Database, TestTube } from 'lucide-react';
 import { toast } from 'sonner';
 import { notificationManager } from '@/services/NotificationManager';
 import { SettingsPanel } from '@/components/climate/SettingsPanel';
-import { WebPushSettings } from '@/components/climate/WebPushSettings';
 import type { Thresholds } from '@/types';
 
 const Settings = () => {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [soundAlerts, setSoundAlerts] = useState(true);
   const [dataRetention, setDataRetention] = useState(30);
-  const [alertFrequency, setAlertFrequency] = useState(4);
   const [thresholds, setThresholds] = useState<Thresholds>(() => {
     const saved = localStorage.getItem('sweatSmartThresholds');
     return saved ? JSON.parse(saved) : { temperature: 28, humidity: 70, uvIndex: 6 };
@@ -26,7 +24,6 @@ const Settings = () => {
       setAutoRefresh(parsed.autoRefresh ?? true);
       setSoundAlerts(parsed.soundAlerts ?? true);
       setDataRetention(parsed.dataRetention ?? 30);
-      setAlertFrequency(parsed.alertFrequency ?? 4);
     }
   }, []);
 
@@ -34,8 +31,7 @@ const Settings = () => {
     const settings = {
       autoRefresh,
       soundAlerts,
-      dataRetention,
-      alertFrequency
+      dataRetention
     };
     localStorage.setItem('climateAppSettings', JSON.stringify(settings));
     localStorage.setItem('sweatSmartThresholds', JSON.stringify(thresholds));
@@ -64,14 +60,14 @@ const Settings = () => {
               <Bell className="w-6 h-6 text-primary" />
             </div>
             <div className="flex-1">
-              <h2 className="text-lg font-semibold">App Alerts (Required)</h2>
-              <p className="text-sm text-muted-foreground">A check‑in alert will be sent every 4 hours to help you log episodes.</p>
+              <h2 className="text-lg font-semibold">App Alerts (Native)</h2>
+              <p className="text-sm text-muted-foreground">A check‑in alert is sent every 4 hours after your last log to help you track episodes.</p>
               <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-green-500/10 text-green-600 px-3 py-1 text-xs font-medium">
-                <span className="h-2 w-2 rounded-full bg-green-500" /> Active
+                <span className="h-2 w-2 rounded-full bg-green-500" /> Active (Capacitor)
               </div>
             </div>
           </div>
-          <p className="mt-4 text-xs text-muted-foreground">These alerts are always on. If prompted, please allow notifications so they can appear even when you're not on this page.</p>
+          <p className="mt-4 text-xs text-muted-foreground">These alerts work in the background. If prompted, please allow notifications so they can appear even when the app is closed.</p>
         </Card>
 
         {/* Climate Alert Settings */}
@@ -88,7 +84,7 @@ const Settings = () => {
               <div className="flex-1">
                 <div className="font-medium">Auto-Refresh Weather</div>
                 <div className="text-sm text-muted-foreground">
-                  Automatically update weather data every 5 minutes
+                  Automatically update weather data every 15 minutes
                 </div>
               </div>
               <Switch
@@ -101,7 +97,7 @@ const Settings = () => {
               <div className="flex-1">
                 <div className="font-medium">Sound Alerts</div>
                 <div className="text-sm text-muted-foreground">
-                  Play a sound when risk conditions are detected
+                  Play a "water + voice" sequence when risk conditions are detected
                 </div>
               </div>
               <Switch
@@ -115,10 +111,6 @@ const Settings = () => {
                 thresholds={thresholds}
                 onThresholdChange={handleThresholdChange}
               />
-            </div>
-
-            <div className="border-t pt-6 mt-6">
-              <WebPushSettings thresholds={thresholds} />
             </div>
           </div>
         </Card>
@@ -152,29 +144,6 @@ const Settings = () => {
                 <span>90 days</span>
               </div>
             </div>
-
-            <div>
-              <label className="flex justify-between text-sm font-medium mb-3">
-                <span>Check Interval</span>
-                <span className="font-bold">Every {alertFrequency} hours</span>
-              </label>
-              <input 
-                type="range" 
-                min="1" 
-                max="12" 
-                step="1"
-                value={alertFrequency} 
-                onChange={(e) => setAlertFrequency(+e.target.value)} 
-                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                <span>1 hour</span>
-                <span>12 hours</span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                How often to check weather conditions and trigger alerts
-              </p>
-            </div>
           </div>
         </Card>
 
@@ -200,7 +169,7 @@ const Settings = () => {
               <h2 className="text-xl font-bold">Developer Tools</h2>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Trigger a test notification to verify delivery on your device.
+              Trigger a test notification to verify Capacitor delivery.
             </p>
             <Button
               variant="outline"
