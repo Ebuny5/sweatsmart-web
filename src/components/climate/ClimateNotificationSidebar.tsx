@@ -146,7 +146,7 @@ const ClimateNotificationSidebar: React.FC<ClimateNotificationSidebarProps> = ({
   const [isLoggingModalOpen, setIsLoggingModalOpen] = useState(false);
   const [nextLogTime, setNextLogTime] = useState<number | null>(null);
   const [lastLogTime, setLastLogTime] = useState<number | null>(() => {
-    const s = localStorage.getItem('climateLastLogTime');
+    const s = localStorage.getItem('sweatsmart_last_log_time');
     return s ? parseInt(s, 10) : null;
   });
   const [alertStatus, setAlertStatus] = useState("Waiting for data...");
@@ -222,7 +222,7 @@ const ClimateNotificationSidebar: React.FC<ClimateNotificationSidebarProps> = ({
   // Next log time anchored to lastLogTime
   const updateNextLogTime = useCallback((anchor?: number) => {
     const base = anchor
-      ?? (parseInt(localStorage.getItem('climateLastLogTime') || '0', 10)
+      ?? (parseInt(localStorage.getItem('sweatsmart_last_log_time') || '0', 10)
       || Date.now());
     const next = base + LOG_INTERVAL;
     setNextLogTime(next);
@@ -257,7 +257,7 @@ const ClimateNotificationSidebar: React.FC<ClimateNotificationSidebarProps> = ({
   const handleLogSubmit = (level: HDSSLevel) => {
     const now = Date.now();
     setLogs(prev => [...prev, { id: new Date().toISOString(), timestamp: now, hdssLevel: level, weather: weatherData, physiologicalData }]);
-    localStorage.setItem('climateLastLogTime', now.toString());
+    localStorage.setItem('sweatsmart_last_log_time', now.toString());
     setLastLogTime(now);
     updateNextLogTime(now);
     setIsLoggingModalOpen(false);
