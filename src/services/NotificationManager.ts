@@ -133,7 +133,8 @@ class NotificationManager {
     }
 
     // 3. Global min-gap so audio cues never overlap
-    if (now - state.lastGlobal < GLOBAL_MIN_GAP_MS) {
+    // Bypass for 'system' channel (testing)
+    if (req.channel !== 'system' && now - state.lastGlobal < GLOBAL_MIN_GAP_MS) {
       console.log(`🔕 [${req.channel}] suppressed (global min-gap)`);
       return false;
     }
