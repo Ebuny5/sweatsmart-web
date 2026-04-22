@@ -90,7 +90,7 @@ class NotificationManager {
   }
 
   private initClickListeners() {
-    if (this.isCapacitor) {
+    if (this.isNative) {
       LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
         const url = action.notification.extra?.url || '/';
         console.log('📱 Capacitor notification clicked, navigating to:', url);
