@@ -33,18 +33,18 @@ const thresholdInfo = {
 
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({ thresholds, onThresholdChange }) => {
     return (
-        <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-4 space-y-4">
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 space-y-4">
             <div>
-                <h3 className="text-lg font-bold text-cyan-300">Personal Alert Thresholds</h3>
-                <p className="text-xs text-gray-400 mt-1">
+                <h3 className="text-lg font-bold text-zinc-100">Personal Alert Thresholds</h3>
+                <p className="text-xs text-zinc-400 mt-1">
                     Customize when you receive alerts. Based on hyperhidrosis research.
                 </p>
             </div>
             <div className="space-y-4">
                 <div>
-                    <label className="flex justify-between text-sm font-medium text-gray-300">
+                    <label className="flex justify-between text-sm font-medium text-zinc-300">
                         <span>{thresholdInfo.temperature.label}</span>
-                        <span className="font-bold text-white">{thresholds.temperature}°C</span>
+                        <span className="font-bold text-zinc-100">{thresholds.temperature}°C</span>
                     </label>
                     <input 
                         type="range" 
@@ -52,14 +52,14 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ thresholds, onThre
                         max={thresholdInfo.temperature.max} 
                         value={thresholds.temperature} 
                         onChange={(e) => onThresholdChange('temperature', +e.target.value)} 
-                        className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer" 
+                        className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-primary"
                     />
-                    <p className="text-xs text-gray-500 mt-1">{thresholdInfo.temperature.description}</p>
+                    <p className="text-xs text-zinc-500 mt-1">{thresholdInfo.temperature.description}</p>
                 </div>
                 <div>
-                    <label className="flex justify-between text-sm font-medium text-gray-300">
+                    <label className="flex justify-between text-sm font-medium text-zinc-300">
                         <span>{thresholdInfo.humidity.label}</span>
-                        <span className="font-bold text-white">{thresholds.humidity}%</span>
+                        <span className="font-bold text-zinc-100">{thresholds.humidity}%</span>
                     </label>
                     <input 
                         type="range" 
@@ -67,14 +67,14 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ thresholds, onThre
                         max={thresholdInfo.humidity.max} 
                         value={thresholds.humidity} 
                         onChange={(e) => onThresholdChange('humidity', +e.target.value)} 
-                        className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer" 
+                        className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-primary"
                     />
-                    <p className="text-xs text-gray-500 mt-1">{thresholdInfo.humidity.description}</p>
+                    <p className="text-xs text-zinc-500 mt-1">{thresholdInfo.humidity.description}</p>
                 </div>
                 <div>
-                    <label className="flex justify-between text-sm font-medium text-gray-300">
+                    <label className="flex justify-between text-sm font-medium text-zinc-300">
                         <span>{thresholdInfo.uvIndex.label}</span>
-                        <span className="font-bold text-white">{thresholds.uvIndex}</span>
+                        <span className="font-bold text-zinc-100">{thresholds.uvIndex}</span>
                     </label>
                     <input 
                         type="range" 
@@ -83,9 +83,9 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ thresholds, onThre
                         step="1" 
                         value={thresholds.uvIndex} 
                         onChange={(e) => onThresholdChange('uvIndex', +e.target.value)} 
-                        className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer" 
+                        className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-primary"
                     />
-                    <p className="text-xs text-gray-500 mt-1">{thresholdInfo.uvIndex.description}</p>
+                    <p className="text-xs text-zinc-500 mt-1">{thresholdInfo.uvIndex.description}</p>
                 </div>
             </div>
         </div>

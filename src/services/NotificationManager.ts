@@ -127,28 +127,33 @@ class NotificationManager {
     const state = readState();
     const cooldown = req.cooldownMs ?? DEFAULT_COOLDOWN_MS[req.channel];
 
-    // 1. Dedup by stable key
-    const lastForKey = state.lastByKey[req.dedupKey] ?? 0;
-    if (now - lastForKey < cooldown) {
-      console.log(
-        `🔕 [${req.channel}] suppressed dedup "${req.dedupKey}" (${Math.round(
-          (cooldown - (now - lastForKey)) / 1000,
-        )}s remaining)`,
-      );
-      return false;
-    }
+    // Bypass cooldowns for system channel (used for testing)
+    const isTest = req.channel === 'system';
 
-    // 2. Per-channel cooldown
-    const lastForChannel = state.lastByChannel[req.channel] ?? 0;
-    if (now - lastForChannel < cooldown / 2) {
-      console.log(`🔕 [${req.channel}] suppressed (channel cooldown)`);
-      return false;
-    }
+    if (!isTest) {
+      // 1. Dedup by stable key
+      const lastForKey = state.lastByKey[req.dedupKey] ?? 0;
+      if (now - lastForKey < cooldown) {
+        console.log(
+          `🔕 [${req.channel}] suppressed dedup "${req.dedupKey}" (${Math.round(
+            (cooldown - (now - lastForKey)) / 1000,
+          )}s remaining)`,
+        );
+        return false;
+      }
 
-    // 3. Global min-gap so audio cues never overlap
-    if (now - state.lastGlobal < GLOBAL_MIN_GAP_MS) {
-      console.log(`🔕 [${req.channel}] suppressed (global min-gap)`);
-      return false;
+      // 2. Per-channel cooldown
+      const lastForChannel = state.lastByChannel[req.channel] ?? 0;
+      if (now - lastForChannel < cooldown / 2) {
+        console.log(`🔕 [${req.channel}] suppressed (channel cooldown)`);
+        return false;
+      }
+
+      // 3. Global min-gap so audio cues never overlap
+      if (now - state.lastGlobal < GLOBAL_MIN_GAP_MS) {
+        console.log(`🔕 [${req.channel}] suppressed (global min-gap)`);
+        return false;
+      }
     }
 
     // ── Deliver ──
@@ -235,8 +240,14 @@ class NotificationManager {
       } catch (err) {
         console.warn('Capacitor notification failed:', err);
       }
+    } else if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification(req.title, { body: req.body });
+      } catch (err) {
+        console.warn('Browser notification failed:', err);
+      }
     } else {
-      console.log('📱 Browser notification suppressed (Capacitor only mode active)');
+      console.log('📱 Browser notification suppressed (Permissions not granted or not in Capacitor)');
     }
   }
 

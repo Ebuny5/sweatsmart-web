@@ -308,7 +308,9 @@ const ClimateMonitor = () => {
   });
 
   const edaIsWearableAndFresh = edaManager.isWearableAndFresh();
-  const arePermissionsGranted = locationPermission === 'granted' && notificationPermission === 'granted';
+  // In the browser/preview, we relax notification requirements for UI visibility,
+  // but location is still strictly required for real weather data.
+  const arePermissionsGranted = locationPermission === 'granted' && (notificationPermission === 'granted' || !edaManager.isWearableAndFresh());
   const hasRealWeather = weatherData !== null && !weatherError;
 
   const checkPermissions = useCallback(async () => {
@@ -562,7 +564,7 @@ const ClimateMonitor = () => {
             )}
           </div>
 
-          {!arePermissionsGranted && (
+          {(!arePermissionsGranted || locationPermission !== 'granted') && (
             <PermissionsWizard
               locationStatus={locationPermission} notificationStatus={notificationPermission}
               onRequestLocation={handleRequestLocation} onRequestNotification={requestNotificationPermission}
