@@ -33,7 +33,7 @@ export interface NotificationRequest {
 const DEFAULT_COOLDOWN_MS: Record<NotificationChannel, number> = {
   climate: 30 * 60 * 1000, // climate alerts: 30 minutes
   reminder: 15 * 60 * 1000, // reminders: 15 minutes
-  system: 5 * 60 * 1000, // misc: 5 minutes
+  system: 0, // system/test: always fire
 };
 
 // Hard min-gap between ANY two alerts so they don't collide audibly.
@@ -220,6 +220,7 @@ class NotificationManager {
               title: req.title,
               body: req.body,
               schedule: { at: new Date(Date.now() + 100) },
+              sound: 'water_sound.mp3',
               extra: { url: req.url || '/' }
             }
           ]
@@ -240,7 +241,7 @@ class NotificationManager {
         icon: '/favicon.ico',
         badge: '/favicon.ico',
         tag: `sweatsmart-${req.channel}-${req.kind}`,
-        renotify: false,
+        renotify: true,
         requireInteraction: req.kind === 'extreme',
         data: {
           url: req.url ?? '/',

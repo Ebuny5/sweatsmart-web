@@ -633,7 +633,6 @@ const ClimateMonitor = () => {
                   <>
                     <Button
                       onClick={async () => {
-                        playAlertSound('WARNING');
                         await notificationManager.send({
                           channel: 'system',
                           kind: 'reminder',

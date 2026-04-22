@@ -5,6 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { Bell, Save, Info, CloudSun, Database, TestTube } from 'lucide-react';
 import { toast } from 'sonner';
 import { notificationManager } from '@/services/NotificationManager';
+import { audioAlertPlayer } from '@/utils/audioAlertPlayer';
 import { SettingsPanel } from '@/components/climate/SettingsPanel';
 import { WebPushSettings } from '@/components/climate/WebPushSettings';
 import type { Thresholds } from '@/types';
@@ -30,6 +31,10 @@ const Settings = () => {
     }
   }, []);
 
+  useEffect(() => {
+    audioAlertPlayer.setSoundEnabled(soundAlerts);
+  }, [soundAlerts]);
+
   const handleSaveSettings = () => {
     const settings = {
       autoRefresh,
@@ -39,6 +44,7 @@ const Settings = () => {
     };
     localStorage.setItem('climateAppSettings', JSON.stringify(settings));
     localStorage.setItem('sweatSmartThresholds', JSON.stringify(thresholds));
+    audioAlertPlayer.setSoundEnabled(soundAlerts);
     toast.success('Settings saved successfully!');
   };
 
