@@ -53,96 +53,98 @@ const Settings = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 pb-24">
+    <div className="min-h-screen bg-black pb-24 text-zinc-100">
       {/* Header */}
-      <header className="bg-card border-b sticky top-0 z-10 shadow-sm">
+      <header className="bg-zinc-900 border-b border-zinc-800 sticky top-0 z-10 shadow-sm">
         <div className="max-w-2xl mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold">Settings</h1>
-          <p className="text-sm text-muted-foreground">Manage your app preferences</p>
+          <h1 className="text-2xl font-black tracking-tight text-white">Settings</h1>
+          <p className="text-sm text-zinc-400">Manage your clinical preferences</p>
         </div>
       </header>
 
       <div className="max-w-2xl mx-auto p-4 space-y-4">
         {/* Compulsory 4-hour App Alerts */}
-        <Card className="p-6">
+        <Card className="p-6 bg-zinc-900 border-zinc-800">
           <div className="flex items-start gap-4">
             <div className="p-3 rounded-lg bg-primary/10">
               <Bell className="w-6 h-6 text-primary" />
             </div>
             <div className="flex-1">
-              <h2 className="text-lg font-semibold">App Alerts (Required)</h2>
-              <p className="text-sm text-muted-foreground">A check‑in alert will be sent every 4 hours to help you log episodes.</p>
-              <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-green-500/10 text-green-600 px-3 py-1 text-xs font-medium">
-                <span className="h-2 w-2 rounded-full bg-green-500" /> Active
+              <h2 className="text-lg font-bold text-white">App Alerts (Required)</h2>
+              <p className="text-sm text-zinc-400 leading-relaxed">A check‑in alert will be sent every 4 hours to help you log episodes.</p>
+              <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-green-500/10 text-green-400 px-3 py-1 text-xs font-bold">
+                <span className="h-2 w-2 rounded-full bg-green-400" /> Active
               </div>
             </div>
           </div>
-          <p className="mt-4 text-xs text-muted-foreground">These alerts are always on. If prompted, please allow notifications so they can appear even when you're not on this page.</p>
+          <p className="mt-4 text-xs text-zinc-500 italic">These alerts are always on. If prompted, please allow notifications so they can appear even when you're not on this page.</p>
         </Card>
 
         {/* Climate Alert Settings */}
-        <Card className="p-6">
+        <Card className="p-6 bg-zinc-900 border-zinc-800">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-primary/10 rounded-lg">
               <CloudSun className="w-6 h-6 text-primary" />
             </div>
-            <h2 className="text-xl font-bold">Climate Alerts</h2>
+            <h2 className="text-xl font-black text-white uppercase tracking-wider">Climate Alerts</h2>
           </div>
 
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <div className="font-medium">Auto-Refresh Weather</div>
-                <div className="text-sm text-muted-foreground">
-                  Automatically update weather data every 5 minutes
+                <div className="font-bold text-zinc-200">Auto-Refresh Weather</div>
+                <div className="text-sm text-zinc-400">
+                  Automatically update weather data every 15 minutes
                 </div>
               </div>
               <Switch
                 checked={autoRefresh}
                 onCheckedChange={setAutoRefresh}
+                className="data-[state=checked]:bg-primary"
               />
             </div>
 
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <div className="font-medium">Sound Alerts</div>
-                <div className="text-sm text-muted-foreground">
-                  Play a sound when risk conditions are detected
+                <div className="font-bold text-zinc-200">Sound Alerts</div>
+                <div className="text-sm text-zinc-400">
+                  Play a clinical sound when risk conditions are detected
                 </div>
               </div>
               <Switch
                 checked={soundAlerts}
                 onCheckedChange={setSoundAlerts}
+                className="data-[state=checked]:bg-primary"
               />
             </div>
 
-            <div className="border-t pt-6 mt-6">
+            <div className="border-t border-zinc-800 pt-6 mt-6">
               <SettingsPanel
                 thresholds={thresholds}
                 onThresholdChange={handleThresholdChange}
               />
             </div>
 
-            <div className="border-t pt-6 mt-6">
+            <div className="border-t border-zinc-800 pt-6 mt-6">
               <WebPushSettings thresholds={thresholds} />
             </div>
           </div>
         </Card>
 
         {/* Data Management */}
-        <Card className="p-6">
+        <Card className="p-6 bg-zinc-900 border-zinc-800">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-primary/10 rounded-lg">
               <Database className="w-6 h-6 text-primary" />
             </div>
-            <h2 className="text-xl font-bold">Data Management</h2>
+            <h2 className="text-xl font-black text-white uppercase tracking-wider">Data Management</h2>
           </div>
           
           <div className="space-y-6">
             <div>
-              <label className="flex justify-between text-sm font-medium mb-3">
+              <label className="flex justify-between text-sm font-bold mb-3 text-zinc-200">
                 <span>Log Retention Period</span>
-                <span className="font-bold">{dataRetention} days</span>
+                <span className="text-primary">{dataRetention} days</span>
               </label>
               <input 
                 type="range" 
@@ -151,18 +153,18 @@ const Settings = () => {
                 step="7"
                 value={dataRetention} 
                 onChange={(e) => setDataRetention(+e.target.value)} 
-                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-primary"
               />
-              <div className="flex justify-between text-xs text-muted-foreground mt-2">
+              <div className="flex justify-between text-xs text-zinc-500 mt-2 font-medium uppercase">
                 <span>7 days</span>
                 <span>90 days</span>
               </div>
             </div>
 
             <div>
-              <label className="flex justify-between text-sm font-medium mb-3">
+              <label className="flex justify-between text-sm font-bold mb-3 text-zinc-200">
                 <span>Check Interval</span>
-                <span className="font-bold">Every {alertFrequency} hours</span>
+                <span className="text-primary">Every {alertFrequency} hours</span>
               </label>
               <input 
                 type="range" 
@@ -171,13 +173,13 @@ const Settings = () => {
                 step="1"
                 value={alertFrequency} 
                 onChange={(e) => setAlertFrequency(+e.target.value)} 
-                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-primary"
               />
-              <div className="flex justify-between text-xs text-muted-foreground mt-2">
+              <div className="flex justify-between text-xs text-zinc-500 mt-2 font-medium uppercase">
                 <span>1 hour</span>
                 <span>12 hours</span>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-zinc-400 mt-2 italic">
                 How often to check weather conditions and trigger alerts
               </p>
             </div>
@@ -185,61 +187,59 @@ const Settings = () => {
         </Card>
 
         {/* Privacy Notice */}
-        <Card className="p-6 bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
-          <h3 className="font-semibold mb-2 flex items-center gap-2">
-            <Info className="w-5 h-5 text-blue-600" />
+        <Card className="p-6 bg-blue-900/10 border-blue-900/30">
+          <h3 className="font-bold mb-2 flex items-center gap-2 text-blue-400">
+            <Info className="w-5 h-5" />
             Privacy Notice
           </h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-zinc-400 leading-relaxed">
             All your data is stored locally on your device. We do not collect or transmit any personal information. 
             Your location is only used to fetch weather data and is never shared with third parties.
           </p>
         </Card>
 
         {/* Test Notifications */}
-        {import.meta.env.DEV && (
-          <Card className="p-6 border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/20">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-amber-500/10 rounded-lg">
-                <TestTube className="w-6 h-6 text-amber-600" />
-              </div>
-              <h2 className="text-xl font-bold">Developer Tools</h2>
+        <Card className="p-6 border-amber-900/30 bg-amber-900/10">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-amber-500/10 rounded-lg">
+              <TestTube className="w-6 h-6 text-amber-500" />
             </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Trigger a test notification to verify delivery on your device.
-            </p>
-            <Button
-              variant="outline"
-              className="w-full border-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40"
-              onClick={async () => {
-                toast.info("Triggering test notification...");
-                await notificationManager.send({
-                  channel: 'system',
-                  kind: 'reminder',
-                  title: "SweatSmart Test",
-                  body: "This is a test notification to verify Capacitor delivery! 💧",
-                  dedupKey: `test-${Date.now()}`
-                });
-              }}
-            >
-              Send Test Notification
-            </Button>
-          </Card>
-        )}
+            <h2 className="text-xl font-black text-white uppercase tracking-wider">Diagnostics</h2>
+          </div>
+          <p className="text-sm text-zinc-400 mb-4 leading-relaxed">
+            Verify alert delivery, sound synchronization, and notification reliability.
+          </p>
+          <Button
+            variant="outline"
+            className="w-full border-amber-500/30 hover:bg-amber-500/20 text-amber-500 font-bold"
+            onClick={async () => {
+              toast.info("Triggering test sequence...");
+              await notificationManager.send({
+                channel: 'system',
+                kind: 'reminder',
+                title: "🔊 Voice & Water Test",
+                body: "This verifies that your audio alerts and notifications are synced correctly! 💧",
+                dedupKey: `test-${Date.now()}`
+              });
+            }}
+          >
+            Run Voice & Water Test
+          </Button>
+        </Card>
 
         {/* App Information */}
-        <Card className="p-6">
-          <h3 className="text-lg font-bold mb-4">About SweatSmart</h3>
-          <div className="space-y-3 text-sm text-muted-foreground">
+        <Card className="p-6 bg-zinc-900 border-zinc-800">
+          <h3 className="text-lg font-bold mb-4 text-white uppercase tracking-wider">About SweatSmart</h3>
+          <div className="space-y-3 text-sm text-zinc-400">
             <p>
-              <strong className="text-foreground">Version:</strong> 1.0.0
+              <strong className="text-zinc-200">Version:</strong> 1.0.0
             </p>
             <p>
-              <strong className="text-foreground">Purpose:</strong> Monitor real-time climate conditions 
-              and provide personalized alerts for hyperhidrosis management.
+              <strong className="text-zinc-200">Purpose:</strong> Monitor real-time clinical conditions
+              and provide personalized alerts for hyperhidrosis warriors.
             </p>
             <p>
-              <strong className="text-foreground">Data Sources:</strong> OpenWeatherMap API, 
+              <strong className="text-zinc-200">Data Sources:</strong> OpenWeatherMap API,
               simulated EDA sensor readings
             </p>
           </div>
@@ -247,11 +247,11 @@ const Settings = () => {
       </div>
 
       {/* Save Button - Fixed at bottom */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-zinc-900 border-t border-zinc-800">
         <div className="max-w-2xl mx-auto">
           <Button
             onClick={handleSaveSettings}
-            className="w-full"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-black uppercase tracking-widest"
             size="lg"
           >
             <Save className="mr-2 h-5 w-5" />
