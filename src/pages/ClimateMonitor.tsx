@@ -629,32 +629,30 @@ const ClimateMonitor = () => {
             <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-4 space-y-4">
               <p className="text-sm font-semibold text-purple-200">Testing & Debug</p>
               <div className="flex flex-wrap gap-2">
-                {import.meta.env.DEV && (
-                  <>
-                    <Button
-                      onClick={async () => {
-                        playAlertSound('WARNING');
-                        await notificationManager.send({
-                          channel: 'system',
-                          kind: 'reminder',
-                          title: '✅ Test Alert',
-                          body: 'Your alerts are working correctly! 🎉',
-                          dedupKey: `test-${Date.now()}`
-                        });
-                      }}
-                      className="bg-white/20 hover:bg-white/30 border border-white/30 text-white"
-                    >Test Alert</Button>
-                    <Button
-                      onClick={() => {
-                        const testTime = Date.now() + 10000;
-                        // Use the new last log key
-                        localStorage.setItem('sweatsmart_last_log_time', (Date.now() - (4 * 60 * 60 * 1000) + 10000).toString());
-                        alert('Timer reset! Log reminder will trigger in ~10 seconds.');
-                      }}
-                      className="bg-yellow-500/30 hover:bg-yellow-500/50 border border-yellow-400/40 text-yellow-200"
-                    >🧪 Trigger in 10s</Button>
-                  </>
-                )}
+                <Button
+                  onClick={async () => {
+                    playAlertSound('WARNING');
+                    const { enhancedMobileNotificationService } = await import('@/services/EnhancedMobileNotificationService');
+                    await enhancedMobileNotificationService.showNotification('✅ Test Alert', 'Your alerts are working correctly! 🎉', 'success');
+                    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                      navigator.serviceWorker.controller.postMessage({ type: 'TEST_NOTIFICATION' });
+                    }
+                  }}
+                  className="bg-white/20 hover:bg-white/30 border border-white/30 text-white"
+                >Test Alert</Button>
+                <Button
+                  onClick={() => {
+                    const testTime = Date.now() + 10000;
+                    localStorage.setItem('climateNextLogTime', testTime.toString());
+                    localStorage.removeItem('lastLogAlertTime');
+                    setNextLogTime(testTime);
+                    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                      navigator.serviceWorker.controller.postMessage({ type: 'SYNC_LOG_REMINDER', nextLogTime: testTime });
+                    }
+                    alert('Timer reset! Log reminder will trigger in ~10 seconds.');
+                  }}
+                  className="bg-yellow-500/30 hover:bg-yellow-500/50 border border-yellow-400/40 text-yellow-200"
+                >🧪 Trigger in 10s</Button>
               </div>
               <p className="text-xs text-purple-200/60">Test Alert verifies sound/notifications. "Trigger in 10s" tests the log reminder system.</p>
             </div>

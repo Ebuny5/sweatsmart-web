@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, TrendingUp, Calendar, Smartphone, Bug } from "lucide-react";
+import { enhancedMobileNotificationService } from "@/services/EnhancedMobileNotificationService";
 
 interface Episode {
   id: string;
@@ -23,7 +24,7 @@ const MobileTriggerSummary = ({ episodes }: MobileTriggerSummaryProps) => {
   const [loading, setLoading] = useState(true);
   const [debugInfo, setDebugInfo] = useState<any>({});
 
-  const isMobileApp = (window as any).Capacitor !== undefined || window.matchMedia('(display-mode: standalone)').matches;
+  const isMobileApp = enhancedMobileNotificationService.isMedianApp();
 
   useEffect(() => {
     console.log('📊 MobileTriggerSummary: Component mounted');
@@ -39,6 +40,11 @@ const MobileTriggerSummary = ({ episodes }: MobileTriggerSummaryProps) => {
       timestamp: new Date().toISOString()
     });
 
+    // Cache episodes for trigger analysis
+    if (episodes.length > 0) {
+      enhancedMobileNotificationService.cacheEpisodesForAnalysis(episodes);
+    }
+    
     // Simulate loading to test mobile rendering
     setTimeout(() => {
       setIsVisible(true);

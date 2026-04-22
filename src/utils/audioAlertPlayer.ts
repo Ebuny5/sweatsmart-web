@@ -71,16 +71,17 @@ function resolveVoicePath(kind: AlertKind, gender: VoiceGender): string {
 }
 
 function vibrateForKind(kind: AlertKind) {
-  // Vibration is now handled by native notifications if backgrounded.
-  // For foreground, we only keep it for extreme/high climate alerts.
   if (!('vibrate' in navigator)) return;
-
-  if (kind !== 'extreme' && kind !== 'high') return;
-
   const pattern: number[] =
     kind === 'extreme'
       ? [800, 200, 800, 200, 800]
-      : [600, 150, 600];
+      : kind === 'high'
+        ? [600, 150, 600]
+        : kind === 'moderate'
+          ? [400, 120, 400]
+          : kind === 'reminder' || kind === 'checkin'
+            ? [300, 100, 300]
+            : [200, 100, 200];
   try {
     navigator.vibrate(pattern);
   } catch {

@@ -1,16 +1,17 @@
 /**
  * NotificationManager — single pipeline for foreground / background / closed-app
  * alerts. Handles:
- *   - Native Capacitor LocalNotifications (for background/closed app)
  *   - Deduplication (same dedupKey within cooldown window is skipped)
  *   - Per-channel cooldowns (climate vs reminder are independent)
  *   - Audio sequence: water sound → voice clip via AudioAlertPlayer
+ *   - System notification via ServiceWorkerRegistration.showNotification (PWA-safe)
  *   - In-app toast event for foreground UI
- *   - Centralized click navigation logic
+ *
+ * Climate alerts and log reminders are kept on SEPARATE cooldowns so they
+ * never block each other.
  */
 
 import { audioAlertPlayer, type AlertKind } from '@/utils/audioAlertPlayer';
-import { LocalNotifications } from '@capacitor/local-notifications';
 
 export type NotificationChannel = 'climate' | 'reminder' | 'system';
 
@@ -21,7 +22,7 @@ export interface NotificationRequest {
   body: string;
   /** Stable key used for dedup. Same key inside cooldown is dropped. */
   dedupKey: string;
-  /** Optional URL for tap action. Defaults to '/' or '/log-episode' for reminders. */
+  /** Optional URL for tap action. */
   url?: string;
   /** Toast variant for in-app fallback. */
   toastVariant?: 'default' | 'destructive';
@@ -38,7 +39,7 @@ const DEFAULT_COOLDOWN_MS: Record<NotificationChannel, number> = {
 // Hard min-gap between ANY two alerts so they don't collide audibly.
 const GLOBAL_MIN_GAP_MS = 8 * 1000;
 
-const STORAGE_KEY = 'sweatsmart_notif_state_v2';
+const STORAGE_KEY = 'sweatsmart_notif_state_v1';
 
 interface PersistedState {
   lastByKey: Record<string, number>;
@@ -71,38 +72,12 @@ function writeState(state: PersistedState): void {
 
 class NotificationManager {
   private static instance: NotificationManager;
-  private isCapacitor: boolean;
-
-  private constructor() {
-    this.isCapacitor = (window as any).Capacitor !== undefined;
-    this.initClickListeners();
-  }
 
   static getInstance(): NotificationManager {
     if (!NotificationManager.instance) {
       NotificationManager.instance = new NotificationManager();
     }
     return NotificationManager.instance;
-  }
-
-  private initClickListeners() {
-    if (this.isCapacitor) {
-      LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
-        const url = action.notification.extra?.url || '/';
-        console.log('📱 Capacitor notification clicked, navigating to:', url);
-        window.location.href = url;
-      });
-    }
-
-    // Listen for SW messages in PWA mode
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data?.type === 'NAVIGATE' && event.data?.url) {
-          console.log('📱 SW navigate message received:', event.data.url);
-          window.location.href = event.data.url;
-        }
-      });
-    }
   }
 
   /**
@@ -151,7 +126,7 @@ class NotificationManager {
       /* ignore audio errors */
     });
 
-    // b) System notification (Capacitor or SW)
+    // b) System notification via service worker (PWA-safe)
     void this.showSystemNotification(req);
 
     // c) In-app toast event for foreground listeners
@@ -172,60 +147,8 @@ class NotificationManager {
     return true;
   }
 
-  /**
-   * Schedules a future reminder using native local notifications.
-   * This ensures the alert fires even if the app is closed.
-   */
-  async scheduleReminder(at: Date, title: string, body: string, url: string): Promise<void> {
-    if (this.isCapacitor) {
-      try {
-        // Clear any existing reminders with this ID (we use a fixed ID for the next log reminder)
-        await LocalNotifications.cancel({ notifications: [{ id: 4004 }] });
-
-        await LocalNotifications.schedule({
-          notifications: [
-            {
-              id: 4004,
-              title,
-              body,
-              schedule: { at },
-              sound: 'water_sound.mp3', // Map to android/app/src/main/res/raw/water_sound.mp3
-              extra: { url }
-            }
-          ]
-        });
-        console.log('📅 Scheduled native reminder for:', at.toLocaleString());
-      } catch (err) {
-        console.error('📅 Native reminder scheduling failed:', err);
-      }
-    } else {
-      console.log('📅 PWA reminder scheduling (fallback to localStorage):', at.toLocaleString());
-      // For PWA, we rely on the service worker or LoggingReminderService's background checks
-    }
-  }
-
   private async showSystemNotification(req: NotificationRequest): Promise<void> {
     if (typeof window === 'undefined') return;
-
-    if (this.isCapacitor) {
-      try {
-        await LocalNotifications.schedule({
-          notifications: [
-            {
-              id: Math.floor(Math.random() * 100000),
-              title: req.title,
-              body: req.body,
-              schedule: { at: new Date(Date.now() + 100) },
-              extra: { url: req.url || '/' }
-            }
-          ]
-        });
-      } catch (err) {
-        console.warn('Capacitor notification failed:', err);
-      }
-      return;
-    }
-
     if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
     if (Notification.permission !== 'granted') return;
 
@@ -233,8 +156,8 @@ class NotificationManager {
       const registration = await navigator.serviceWorker.ready;
       await registration.showNotification(req.title, {
         body: req.body,
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
         tag: `sweatsmart-${req.channel}-${req.kind}`,
         renotify: false,
         requireInteraction: req.kind === 'extreme',
