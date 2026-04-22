@@ -11,7 +11,6 @@
 
 import { audioAlertPlayer, type AlertKind } from '@/utils/audioAlertPlayer';
 import { LocalNotifications } from '@capacitor/local-notifications';
-import { Capacitor } from '@capacitor/core';
 
 export type NotificationChannel = 'climate' | 'reminder' | 'system';
 
@@ -72,14 +71,34 @@ function writeState(state: PersistedState): void {
 
 class NotificationManager {
   private static instance: NotificationManager;
-  private isNative: boolean;
+  private isCapacitor: boolean;
 
   private constructor() {
-    // Capacitor.isNativePlatform() returns true ONLY on real iOS/Android,
-    // not in the web preview where window.Capacitor is also defined.
-    this.isNative = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform?.() === true;
-    console.log(`🔔 NotificationManager: platform = ${this.isNative ? 'native' : 'web/PWA'}`);
+    this.isCapacitor = (window as any).Capacitor !== undefined;
     this.initClickListeners();
+  }
+
+  /**
+   * Request permission for native notifications.
+   */
+  async requestPermission(): Promise<boolean> {
+    if (this.isCapacitor) {
+      try {
+        const { display } = await LocalNotifications.requestPermissions();
+        return display === 'granted';
+      } catch (err) {
+        console.warn('📱 Capacitor permission request failed:', err);
+      }
+    }
+    return false;
+  }
+
+  async getPermissionStatus(): Promise<'granted' | 'denied' | 'prompt' | 'prompt-with-rationale'> {
+    if (this.isCapacitor) {
+      const status = await LocalNotifications.checkPermissions();
+      return status.display;
+    }
+    return 'denied';
   }
 
   static getInstance(): NotificationManager {
@@ -90,21 +109,11 @@ class NotificationManager {
   }
 
   private initClickListeners() {
-    if (this.isNative) {
+    if (this.isCapacitor) {
       LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
         const url = action.notification.extra?.url || '/';
         console.log('📱 Capacitor notification clicked, navigating to:', url);
         window.location.href = url;
-      });
-    }
-
-    // Listen for SW messages in PWA mode
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data?.type === 'NAVIGATE' && event.data?.url) {
-          console.log('📱 SW navigate message received:', event.data.url);
-          window.location.href = event.data.url;
-        }
       });
     }
   }
@@ -118,28 +127,33 @@ class NotificationManager {
     const state = readState();
     const cooldown = req.cooldownMs ?? DEFAULT_COOLDOWN_MS[req.channel];
 
-    // 1. Dedup by stable key
-    const lastForKey = state.lastByKey[req.dedupKey] ?? 0;
-    if (now - lastForKey < cooldown) {
-      console.log(
-        `🔕 [${req.channel}] suppressed dedup "${req.dedupKey}" (${Math.round(
-          (cooldown - (now - lastForKey)) / 1000,
-        )}s remaining)`,
-      );
-      return false;
-    }
+    // Bypass cooldowns for system channel (used for testing)
+    const isTest = req.channel === 'system';
 
-    // 2. Per-channel cooldown
-    const lastForChannel = state.lastByChannel[req.channel] ?? 0;
-    if (now - lastForChannel < cooldown / 2) {
-      console.log(`🔕 [${req.channel}] suppressed (channel cooldown)`);
-      return false;
-    }
+    if (!isTest) {
+      // 1. Dedup by stable key
+      const lastForKey = state.lastByKey[req.dedupKey] ?? 0;
+      if (now - lastForKey < cooldown) {
+        console.log(
+          `🔕 [${req.channel}] suppressed dedup "${req.dedupKey}" (${Math.round(
+            (cooldown - (now - lastForKey)) / 1000,
+          )}s remaining)`,
+        );
+        return false;
+      }
 
-    // 3. Global min-gap so audio cues never overlap
-    if (now - state.lastGlobal < GLOBAL_MIN_GAP_MS) {
-      console.log(`🔕 [${req.channel}] suppressed (global min-gap)`);
-      return false;
+      // 2. Per-channel cooldown
+      const lastForChannel = state.lastByChannel[req.channel] ?? 0;
+      if (now - lastForChannel < cooldown / 2) {
+        console.log(`🔕 [${req.channel}] suppressed (channel cooldown)`);
+        return false;
+      }
+
+      // 3. Global min-gap so audio cues never overlap
+      if (now - state.lastGlobal < GLOBAL_MIN_GAP_MS) {
+        console.log(`🔕 [${req.channel}] suppressed (global min-gap)`);
+        return false;
+      }
     }
 
     // ── Deliver ──
@@ -155,7 +169,7 @@ class NotificationManager {
       /* ignore audio errors */
     });
 
-    // b) System notification (Capacitor or SW)
+    // b) System notification (Capacitor ONLY)
     void this.showSystemNotification(req);
 
     // c) In-app toast event for foreground listeners
@@ -181,7 +195,7 @@ class NotificationManager {
    * This ensures the alert fires even if the app is closed.
    */
   async scheduleReminder(at: Date, title: string, body: string, url: string): Promise<void> {
-    if (this.isNative) {
+    if (this.isCapacitor) {
       try {
         // Clear any existing reminders with this ID (we use a fixed ID for the next log reminder)
         await LocalNotifications.cancel({ notifications: [{ id: 4004 }] });
@@ -203,15 +217,16 @@ class NotificationManager {
         console.error('📅 Native reminder scheduling failed:', err);
       }
     } else {
-      console.log('📅 PWA reminder scheduling (fallback to localStorage):', at.toLocaleString());
-      // For PWA, we rely on the service worker or LoggingReminderService's background checks
+      console.log('📅 PWA reminder scheduling fallback (system notification only):', at.toLocaleString());
     }
   }
 
   private async showSystemNotification(req: NotificationRequest): Promise<void> {
     if (typeof window === 'undefined') return;
 
-    if (this.isNative) {
+    // Only allow Capacitor-based native notifications.
+    // Legacy browser-based notifications are removed as per requirements.
+    if (this.isCapacitor) {
       try {
         await LocalNotifications.schedule({
           notifications: [
@@ -220,7 +235,7 @@ class NotificationManager {
               title: req.title,
               body: req.body,
               schedule: { at: new Date(Date.now() + 100) },
-              sound: 'water_sound.mp3',
+              sound: 'water_sound.mp3', // Map to android/app/src/main/res/raw/water_sound.mp3
               extra: { url: req.url || '/' }
             }
           ]
@@ -228,29 +243,8 @@ class NotificationManager {
       } catch (err) {
         console.warn('Capacitor notification failed:', err);
       }
-      return;
-    }
-
-    if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
-    if (Notification.permission !== 'granted') return;
-
-    try {
-      const registration = await navigator.serviceWorker.ready;
-      await registration.showNotification(req.title, {
-        body: req.body,
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
-        tag: `sweatsmart-${req.channel}-${req.kind}`,
-        renotify: true,
-        requireInteraction: req.kind === 'extreme',
-        data: {
-          url: req.url ?? '/',
-          channel: req.channel,
-          kind: req.kind,
-        },
-      } as NotificationOptions);
-    } catch (err) {
-      console.warn('System notification failed:', err);
+    } else {
+      console.log('📱 System notification suppressed (Not in Capacitor environment)');
     }
   }
 
