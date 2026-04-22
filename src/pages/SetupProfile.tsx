@@ -73,15 +73,8 @@ const SetupProfile = () => {
 
   const requestNotifications = async () => {
     try {
-      // Use Capacitor for native mobile support
-      const { display } = await LocalNotifications.requestPermissions();
-      const granted = display === 'granted';
+      const granted = await notificationManager.requestPermission();
       setNotifGranted(granted);
-
-      // Also attempt standard web notification permission for PWA fallback
-      if ("Notification" in window && Notification.permission !== 'granted') {
-        await Notification.requestPermission();
-      }
     } catch (err) {
       console.error("Error requesting notification permissions:", err);
     }

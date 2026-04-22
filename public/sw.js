@@ -1,8 +1,8 @@
 // Professional Service Worker for SweatSmart App
-// Handles persistent push notifications for PWA users
-// Version control for cache busting
-const CACHE_VERSION = 'v2.5.0';
-const CACHE_NAME = `sweatsmart-${CACHE_VERSION}`;
+// Handles caching and basic PWA navigation.
+// Notification logic is now handled natively by Capacitor.
+const CACHE_VERSION = 'v2.5.1';
+const CACHE_NAME = 'sweatsmart-' + CACHE_VERSION;
 
 const OFFLINE_FALLBACK_URL = '/offline.html';
 
@@ -45,81 +45,26 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('message', async (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
   if (event.data && event.data.type === 'GET_VERSION') event.ports[0].postMessage({ version: CACHE_VERSION });
-
-  if (event.data && event.data.type === 'SET_BADGE') {
-    if ('setAppBadge' in self.navigator) self.navigator.setAppBadge(event.data.count || 1);
-  }
-  if (event.data && event.data.type === 'CLEAR_BADGE') {
-    if ('clearAppBadge' in self.navigator) self.navigator.clearAppBadge();
-  }
-
-  if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
-    const { title, options } = event.data;
-    await self.registration.showNotification(title, {
-      icon: '/favicon.ico',
-      badge: '/favicon.ico',
-      ...options
-    });
-  }
 });
 
-// ============= NOTIFICATION CLICK HANDLER =============
+// ============= NOTIFICATION CLICK HANDLER (PWA FALLBACK) =============
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const urlToOpen = event.notification.data?.url || '/';
+  const urlToOpen = (event.notification && event.notification.data && event.notification.data.url) || '/';
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
-        if (client.url.includes(urlToOpen) && 'focus' in client) {
+        if (client.url.indexOf(urlToOpen) !== -1 && 'focus' in client) {
           client.focus();
-          client.postMessage({ type: 'NAVIGATE', url: urlToOpen });
+          if (client.postMessage) {
+            client.postMessage({ type: 'NAVIGATE', url: urlToOpen });
+          }
           return;
         }
       }
       if (self.clients.openWindow) return self.clients.openWindow(urlToOpen);
     })
-  );
-});
-
-// ============= PUSH NOTIFICATIONS =============
-self.addEventListener('push', (event) => {
-  console.log('📱 [SW] Push event received!');
-
-  event.waitUntil(
-    (async () => {
-      try {
-        let data = {};
-        if (event.data) {
-          try {
-            data = event.data.json();
-          } catch (e) {
-            data = { title: 'SweatSmart', body: event.data.text() };
-          }
-        }
-
-        const title = data.title || 'SweatSmart';
-        const tag = data.tag || 'sweatsmart-push';
-        const url = data.url || '/';
-
-        await self.registration.showNotification(title, {
-          body: data.body || '',
-          icon: '/favicon.ico',
-          badge: '/favicon.ico',
-          tag: tag,
-          data: { url, timestamp: Date.now() },
-        });
-
-        // Notify open clients to handle navigation or audio
-        const clients = await self.clients.matchAll({ type: 'window' });
-        for (const client of clients) {
-          client.postMessage({ type: 'PUSH_RECEIVED', data });
-        }
-
-      } catch (error) {
-        console.error('📱 [SW] Push error:', error);
-      }
-    })()
   );
 });
 

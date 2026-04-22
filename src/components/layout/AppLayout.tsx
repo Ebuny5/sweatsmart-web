@@ -5,7 +5,6 @@ import Sidebar from "./Sidebar";
 import MobileBottomNav from "./MobileBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { NotificationPermissionModal } from "@/components/climate/NotificationPermissionModal";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -47,7 +46,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, isAuthenticated }) => {
           </main>
         </div>
         {authenticated && isMobile && <MobileBottomNav />}
-        {authenticated && <NotificationPermissionModal />}
       </div>
     </SidebarProvider>
   );
