@@ -288,10 +288,6 @@ const ClimateMonitor = () => {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [lastWeatherFetch, setLastWeatherFetch] = useState<number | null>(null);
   const [physiologicalData, setPhysiologicalData] = useState<PhysiologicalData>({ eda: 2.5 });
-  const [thresholds, setThresholds] = useState<Thresholds>(() => {
-    const saved = localStorage.getItem('sweatSmartThresholds');
-    return saved ? JSON.parse(saved) : { temperature: 28, humidity: 70, uvIndex: 6 };
-  });
   const [logs, setLogs] = useState<LogEntry[]>(() => {
     const saved = localStorage.getItem('sweatSmartLogs');
     return saved ? JSON.parse(saved) : [];
@@ -299,9 +295,6 @@ const ClimateMonitor = () => {
   const [isLoggingModalOpen, setIsLoggingModalOpen] = useState(false);
   const [nextLogTime, setNextLogTime] = useState<number | null>(null);
   const [alertStatus, setAlertStatus] = useState("Waiting for real weather data...");
-  const [lastAlertType, setLastAlertType] = useState<string | null>(() =>
-    localStorage.getItem('climateLastAlertType')
-  );
   const [lastLogTime, setLastLogTime] = useState<number | null>(() => {
     const s = localStorage.getItem('climateLastLogTime');
     return s ? parseInt(s, 10) : null;
@@ -352,7 +345,6 @@ const ClimateMonitor = () => {
     }
   }, []);
 
-  useEffect(() => { localStorage.setItem('sweatSmartThresholds', JSON.stringify(thresholds)); }, [thresholds]);
   useEffect(() => { localStorage.setItem('sweatSmartLogs', JSON.stringify(logs)); }, [logs]);
 
   const fetchWeatherData = useCallback(async (coords: GeolocationCoordinates) => {
@@ -397,34 +389,10 @@ const ClimateMonitor = () => {
     }, []
   );
 
-  // All climate alerts now go through the central NotificationManager so they
-  // share dedup/cooldown with reminders and never collide.
-  const sendClimateAlert = useCallback(
-    async (
-      title: string,
-      body: string,
-      kind: 'low' | 'moderate' | 'high' | 'extreme',
-      dedupKey: string,
-    ) => {
-      await notificationManager.send({
-        channel: 'climate',
-        kind,
-        title,
-        body,
-        dedupKey,
-        url: '/climate',
-        toastVariant: kind === 'extreme' || kind === 'high' ? 'destructive' : 'default',
-      });
-    },
-    [],
-  );
-
   useEffect(() => {
     if (!arePermissionsGranted) { setAlertStatus("Complete setup to begin."); return; }
     if (!hasRealWeather || !weatherData) { setAlertStatus("Waiting for real weather data..."); return; }
 
-    const settings = localStorage.getItem('climateAppSettings');
-    const soundEnabled = settings ? JSON.parse(settings).soundAlerts !== false : true;
     // Pass UV through unmodified — calculator handles 11+ correctly.
     const risk = calculateSweatRisk(
       weatherData.temperature,
@@ -435,37 +403,8 @@ const ClimateMonitor = () => {
       (weatherData as any).sky ?? 'unknown',
     );
 
-    const riskToAlertType: Record<SweatRiskLevel, string> = {
-      safe: 'optimal', low: 'optimal', moderate: 'moderate', high: 'high', extreme: 'extreme',
-    };
-    const currentAlertType = riskToAlertType[risk.level];
-
     setAlertStatus(`${risk.message}: ${risk.description}`);
-
-    // Only fire on real escalations (not safe/low) — manager handles cooldowns.
-    if (
-      soundEnabled &&
-      currentAlertType !== lastAlertType &&
-      currentAlertType !== 'optimal'
-    ) {
-      const uvLabel =
-        weatherData.uvIndex == null
-          ? 'N/A'
-          : weatherData.uvIndex > 11
-            ? '11+'
-            : weatherData.uvIndex.toFixed(1);
-      void sendClimateAlert(
-        `SweatSmart Alert — ${risk.message}`,
-        `${risk.description} (Temp ${weatherData.temperature.toFixed(1)}°C, Humidity ${weatherData.humidity.toFixed(0)}%, UV ${uvLabel})`,
-        risk.level as 'low' | 'moderate' | 'high' | 'extreme',
-        `climate:${risk.level}:${new Date().toISOString().slice(0, 13)}`,
-      );
-    }
-
-    localStorage.setItem('climateLastAlertType', currentAlertType);
-    localStorage.setItem('climateLastAlertTimestamp', Date.now().toString());
-    setLastAlertType(currentAlertType);
-  }, [weatherData, sendClimateAlert, arePermissionsGranted, lastAlertType, hasRealWeather]);
+  }, [weatherData, arePermissionsGranted, hasRealWeather]);
 
   const updateNextLogTime = useCallback((anchor?: number) => {
     const base = anchor ?? (parseInt(localStorage.getItem('climateLastLogTime') || '0', 10) || Date.now());
@@ -512,10 +451,6 @@ const ClimateMonitor = () => {
       },
       (error) => { if (error.code === error.PERMISSION_DENIED) setLocationPermission('denied'); }
     );
-  };
-
-  const handleThresholdChange = (key: keyof Thresholds, value: number) => {
-    setThresholds(prev => ({ ...prev, [key]: value }));
   };
 
   const handleLogSubmit = (level: HDSSLevel) => {

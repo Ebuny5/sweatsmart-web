@@ -224,6 +224,8 @@ class NotificationManager {
   private async showSystemNotification(req: NotificationRequest): Promise<void> {
     if (typeof window === 'undefined') return;
 
+    // Only allow Capacitor-based native notifications.
+    // Legacy browser-based notifications are removed as per requirements.
     if (this.isCapacitor) {
       try {
         await LocalNotifications.schedule({
@@ -233,6 +235,7 @@ class NotificationManager {
               title: req.title,
               body: req.body,
               schedule: { at: new Date(Date.now() + 100) },
+              sound: 'water_sound.mp3', // Map to android/app/src/main/res/raw/water_sound.mp3
               extra: { url: req.url || '/' }
             }
           ]
@@ -240,14 +243,8 @@ class NotificationManager {
       } catch (err) {
         console.warn('Capacitor notification failed:', err);
       }
-    } else if ('Notification' in window && Notification.permission === 'granted') {
-      try {
-        new Notification(req.title, { body: req.body });
-      } catch (err) {
-        console.warn('Browser notification failed:', err);
-      }
     } else {
-      console.log('📱 Browser notification suppressed (Permissions not granted or not in Capacitor)');
+      console.log('📱 System notification suppressed (Not in Capacitor environment)');
     }
   }
 
