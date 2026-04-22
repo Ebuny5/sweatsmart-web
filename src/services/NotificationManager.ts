@@ -11,6 +11,7 @@
 
 import { audioAlertPlayer, type AlertKind } from '@/utils/audioAlertPlayer';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { Capacitor } from '@capacitor/core';
 
 export type NotificationChannel = 'climate' | 'reminder' | 'system';
 
@@ -71,10 +72,13 @@ function writeState(state: PersistedState): void {
 
 class NotificationManager {
   private static instance: NotificationManager;
-  private isCapacitor: boolean;
+  private isNative: boolean;
 
   private constructor() {
-    this.isCapacitor = (window as any).Capacitor !== undefined;
+    // Capacitor.isNativePlatform() returns true ONLY on real iOS/Android,
+    // not in the web preview where window.Capacitor is also defined.
+    this.isNative = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform?.() === true;
+    console.log(`🔔 NotificationManager: platform = ${this.isNative ? 'native' : 'web/PWA'}`);
     this.initClickListeners();
   }
 
@@ -86,7 +90,7 @@ class NotificationManager {
   }
 
   private initClickListeners() {
-    if (this.isCapacitor) {
+    if (this.isNative) {
       LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
         const url = action.notification.extra?.url || '/';
         console.log('📱 Capacitor notification clicked, navigating to:', url);
@@ -177,7 +181,7 @@ class NotificationManager {
    * This ensures the alert fires even if the app is closed.
    */
   async scheduleReminder(at: Date, title: string, body: string, url: string): Promise<void> {
-    if (this.isCapacitor) {
+    if (this.isNative) {
       try {
         // Clear any existing reminders with this ID (we use a fixed ID for the next log reminder)
         await LocalNotifications.cancel({ notifications: [{ id: 4004 }] });
@@ -207,7 +211,7 @@ class NotificationManager {
   private async showSystemNotification(req: NotificationRequest): Promise<void> {
     if (typeof window === 'undefined') return;
 
-    if (this.isCapacitor) {
+    if (this.isNative) {
       try {
         await LocalNotifications.schedule({
           notifications: [
