@@ -179,6 +179,8 @@ class AudioAlertPlayer {
    * Fire-and-forget safe — never throws.
    */
   async playAlert(kind: AlertKind): Promise<void> {
+    this.stop();
+
     if (!isSoundEnabled()) return;
 
     vibrateForKind(kind);
