@@ -11,6 +11,7 @@
 
 import { audioAlertPlayer, type AlertKind } from '@/utils/audioAlertPlayer';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { Capacitor } from '@capacitor/core';
 
 export type NotificationChannel = 'climate' | 'reminder' | 'system';
 
