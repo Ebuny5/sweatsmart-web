@@ -72,10 +72,13 @@ function writeState(state: PersistedState): void {
 
 class NotificationManager {
   private static instance: NotificationManager;
-  private isCapacitor: boolean;
+  private isNative: boolean;
 
   private constructor() {
-    this.isCapacitor = (window as any).Capacitor !== undefined;
+    // Capacitor.isNativePlatform() returns true ONLY on real iOS/Android,
+    // not in the web preview where window.Capacitor is also defined.
+    this.isNative = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform?.() === true;
+    console.log(`🔔 NotificationManager: platform = ${this.isNative ? 'native' : 'web/PWA'}`);
     this.initClickListeners();
   }
 
