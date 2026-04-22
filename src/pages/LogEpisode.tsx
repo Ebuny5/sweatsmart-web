@@ -19,7 +19,6 @@ import { CalendarIcon, Clock, Loader2, CheckCircle2, LayoutDashboard, History, P
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { generateFallbackInsights } from "@/services/EpisodeInsightGenerator";
-import { loggingReminderService } from "@/services/LoggingReminderService";
 
 // ── Section wrapper ──────────────────────────────────────────────────────────
 const Section = ({
@@ -114,9 +113,6 @@ const LogEpisode = () => {
       });
 
       if (error) throw error;
-
-      // Reschedule the next reminder 4 hours from now
-      loggingReminderService.handleLogSaved();
 
       toast({ title: "Episode logged successfully", description: "Generating personalized insights..." });
 

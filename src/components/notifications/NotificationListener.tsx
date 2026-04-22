@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { loggingReminderService } from '@/services/LoggingReminderService';
-import { notificationManager } from '@/services/NotificationManager';
+import { enhancedMobileNotificationService } from '@/services/EnhancedMobileNotificationService';
 
 type InAppNotificationDetail = {
   title: string;
@@ -11,21 +11,23 @@ type InAppNotificationDetail = {
 
 const NotificationListener = () => {
   useEffect(() => {
-    // Initialize the unified notification and reminder services
+    // Initialize the logging reminder service (runs globally)
     console.log('🔔 NotificationListener: Initializing global notification services...');
 
-    // Accessing notificationManager.getInstance() ensures listeners are attached
-    notificationManager;
-
-    // Initial check for any missed log reminders
+    // Force an initial check for any missed log reminders
     loggingReminderService.forceCheck();
 
+    // Enhanced notification service is already a singleton that initializes on import
+    console.log('🔔 NotificationListener: Services initialized');
+
     return () => {
+      // Cleanup on unmount (though this component stays mounted)
       loggingReminderService.cleanup();
+      enhancedMobileNotificationService.cleanup();
     };
   }, []);
 
-  // Render in-app toasts for notifications
+  // Render in-app toasts for notifications when system notifications are blocked/denied.
   useEffect(() => {
     const handleInAppNotification = (event: Event) => {
       const detail = (event as CustomEvent<InAppNotificationDetail>).detail;

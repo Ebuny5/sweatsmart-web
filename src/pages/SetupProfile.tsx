@@ -11,7 +11,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { audioAlertPlayer } from "@/utils/audioAlertPlayer";
 import { User, Sparkles, MapPin, Bell, CheckCircle2 } from "lucide-react";
-import { LocalNotifications } from '@capacitor/local-notifications';
 
 type Step = "name" | "location" | "notifications" | "voice";
 
@@ -72,18 +71,15 @@ const SetupProfile = () => {
   };
 
   const requestNotifications = async () => {
+    if (!("Notification" in window)) {
+      setStep("voice");
+      return;
+    }
     try {
-      // Use Capacitor for native mobile support
-      const { display } = await LocalNotifications.requestPermissions();
-      const granted = display === 'granted';
-      setNotifGranted(granted);
-
-      // Also attempt standard web notification permission for PWA fallback
-      if ("Notification" in window && Notification.permission !== 'granted') {
-        await Notification.requestPermission();
-      }
-    } catch (err) {
-      console.error("Error requesting notification permissions:", err);
+      const perm = await Notification.requestPermission();
+      setNotifGranted(perm === "granted");
+    } catch {
+      /* ignore */
     }
     setStep("voice");
   };
