@@ -9,6 +9,7 @@ import type { WeatherData, PhysiologicalData, Thresholds, LogEntry, HDSSLevel } 
 import { soundManager } from '@/utils/soundManager';
 import { calculateSweatRisk, getRiskSeverity, type SweatRiskLevel } from '@/utils/sweatRiskCalculator';
 import { notificationManager } from '@/services/NotificationManager';
+import { loggingReminderService } from '@/services/LoggingReminderService';
 
 // --- Realistic Icons matching Gemini mockup ---
 
@@ -303,7 +304,7 @@ const ClimateMonitor = () => {
     localStorage.getItem('climateLastAlertType')
   );
   const [lastLogTime, setLastLogTime] = useState<number | null>(() => {
-    const s = localStorage.getItem('climateLastLogTime');
+    const s = localStorage.getItem('sweatsmart_last_log_time');
     return s ? parseInt(s, 10) : null;
   });
 
@@ -435,10 +436,11 @@ const ClimateMonitor = () => {
 
     setAlertStatus(`${risk.message}: ${risk.description}`);
 
-    // Only fire on real escalations (not safe/low) — manager handles cooldowns.
+    // Fire alerts on real escalations (not safe/low).
+    // We let notificationManager handle the 30min cooldown via dedupKey,
+    // so we can re-attempt delivery every time the weather data refreshes (15m).
     if (
       soundEnabled &&
-      currentAlertType !== lastAlertType &&
       currentAlertType !== 'optimal'
     ) {
       const uvLabel =
@@ -461,7 +463,7 @@ const ClimateMonitor = () => {
   }, [weatherData, sendClimateAlert, arePermissionsGranted, lastAlertType, hasRealWeather]);
 
   const updateNextLogTime = useCallback((anchor?: number) => {
-    const base = anchor ?? (parseInt(localStorage.getItem('climateLastLogTime') || '0', 10) || Date.now());
+    const base = anchor ?? (parseInt(localStorage.getItem('sweatsmart_last_log_time') || '0', 10) || Date.now());
     const nextTime = base + 4 * 60 * 60 * 1000;
     setNextLogTime(nextTime);
     localStorage.setItem('climateNextLogTime', nextTime.toString());
@@ -514,7 +516,7 @@ const ClimateMonitor = () => {
       physiologicalData,
     };
     setLogs(prev => [...prev, newLog]);
-    localStorage.setItem('climateLastLogTime', now.toString());
+    localStorage.setItem('sweatsmart_last_log_time', now.toString());
     setLastLogTime(now);
     updateNextLogTime(now);
     setIsLoggingModalOpen(false);
@@ -643,10 +645,17 @@ const ClimateMonitor = () => {
                 >Run Voice & Water Test</Button>
                 <Button
                   onClick={() => {
-                    const testTime = Date.now() + 10000;
-                    // Use the new last log key
-                    localStorage.setItem('sweatsmart_last_log_time', (Date.now() - (4 * 60 * 60 * 1000) + 10000).toString());
-                    alert('Timer reset! Log reminder will trigger in ~10 seconds.');
+                    // Set last log time to 4 hours ago PLUS 10 seconds,
+                    // so the "next" scheduled reminder is in 10 seconds.
+                    const tenSecondsFromNow = Date.now() + 10000;
+                    const fourHoursAgoPlusTen = tenSecondsFromNow - (4 * 60 * 60 * 1000);
+
+                    localStorage.setItem('sweatsmart_last_log_time', fourHoursAgoPlusTen.toString());
+
+                    // Force service to re-read localStorage and reschedule native notification
+                    loggingReminderService.forceCheck();
+
+                    alert('Log reminder system reset! A native notification is scheduled for ~10 seconds from now.');
                   }}
                   className="bg-yellow-500/30 hover:bg-yellow-500/50 border border-yellow-400/40 text-yellow-200"
                 >🧪 Trigger in 10s</Button>
