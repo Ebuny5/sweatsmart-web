@@ -76,6 +76,26 @@ class NotificationManager {
   private constructor() {
     this.isCapacitor = (window as any).Capacitor !== undefined;
     this.initClickListeners();
+    this.createNotificationChannel();
+  }
+
+  private async createNotificationChannel() {
+    if (this.isCapacitor) {
+      try {
+        await LocalNotifications.createChannel({
+          id: 'sweatsmart',
+          name: 'SweatSmart Alerts',
+          description: 'Critical climate and check-in reminders',
+          importance: 5,
+          visibility: 1,
+          sound: 'water_sound.mp3',
+          vibration: true,
+        });
+        console.log('📱 Created high-importance notification channel');
+      } catch (err) {
+        console.warn('📱 Failed to create notification channel:', err);
+      }
+    }
   }
 
   /**
@@ -180,6 +200,7 @@ class NotificationManager {
             title: req.title,
             body: req.body,
             type: req.toastVariant === 'destructive' ? 'destructive' : 'info',
+            channel: req.channel,
           },
         }),
       );
@@ -207,7 +228,8 @@ class NotificationManager {
               title,
               body,
               schedule: { at },
-              sound: 'water_sound.mp3', // Map to android/app/src/main/res/raw/water_sound.mp3
+              sound: 'water_sound', // Remove .mp3 extension for Android resource lookup
+              channelId: 'sweatsmart',
               extra: { url }
             }
           ]
@@ -235,7 +257,8 @@ class NotificationManager {
               title: req.title,
               body: req.body,
               schedule: { at: new Date(Date.now() + 100) },
-              sound: 'water_sound.mp3', // Map to android/app/src/main/res/raw/water_sound.mp3
+              sound: 'water_sound', // Remove .mp3 extension for Android resource lookup
+              channelId: 'sweatsmart',
               extra: { url: req.url || '/' }
             }
           ]

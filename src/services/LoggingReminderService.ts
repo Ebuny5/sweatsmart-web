@@ -56,9 +56,10 @@ class LoggingReminderService {
    */
   getNextScheduledTime(): number {
     const lastLog = parseInt(localStorage.getItem(LAST_LOG_TIME_KEY) || '0', 10);
-    const onboarding = parseInt(localStorage.getItem(ONBOARDING_TIME_KEY) || Date.now().toString(), 10);
+    const onboarding = parseInt(localStorage.getItem(ONBOARDING_TIME_KEY) || '0', 10);
 
-    const baseline = Math.max(lastLog, onboarding);
+    // Prioritize lastLog. If neither exists, use now as baseline.
+    const baseline = lastLog || onboarding || Date.now();
     let nextTime = baseline + PRODUCTION_INTERVAL_MS;
 
     // If nextTime is in the past, find the next 4-hour slot from now

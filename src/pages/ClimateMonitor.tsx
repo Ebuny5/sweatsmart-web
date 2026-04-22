@@ -477,9 +477,13 @@ const ClimateMonitor = () => {
   }, [updateNextLogTime]);
 
   useEffect(() => {
-    const handler = () => { if (arePermissionsGranted) setIsLoggingModalOpen(true); };
-    window.addEventListener('sweatsmart-log-reminder', handler);
-    return () => window.removeEventListener('sweatsmart-log-reminder', handler);
+    const handler = (e: any) => {
+      if (arePermissionsGranted && e.detail?.channel === 'reminder') {
+        setIsLoggingModalOpen(true);
+      }
+    };
+    window.addEventListener('sweatsmart-notification', handler);
+    return () => window.removeEventListener('sweatsmart-notification', handler);
   }, [arePermissionsGranted]);
 
   // Log reminders are handled globally by LoggingReminderService — we no longer
@@ -645,17 +649,29 @@ const ClimateMonitor = () => {
                 >Run Voice & Water Test</Button>
                 <Button
                   onClick={() => {
-                    // Set last log time to 4 hours ago PLUS 10 seconds,
-                    // so the "next" scheduled reminder is in 10 seconds.
-                    const tenSecondsFromNow = Date.now() + 10000;
-                    const fourHoursAgoPlusTen = tenSecondsFromNow - (4 * 60 * 60 * 1000);
+                    // Set both times to 4 hours ago PLUS 10.5 seconds.
+                    // This ensures the logic uses this baseline regardless of which is max.
+                    const tenSecondsFromNow = Date.now() + 10500;
+                    const baseline = tenSecondsFromNow - (4 * 60 * 60 * 1000);
 
-                    localStorage.setItem('sweatsmart_last_log_time', fourHoursAgoPlusTen.toString());
+                    localStorage.setItem('sweatsmart_last_log_time', baseline.toString());
+                    localStorage.setItem('sweatsmart_onboarding_time', baseline.toString());
 
                     // Force service to re-read localStorage and reschedule native notification
                     loggingReminderService.forceCheck();
 
-                    alert('Log reminder system reset! A native notification is scheduled for ~10 seconds from now.');
+                    toast.success('Log reminder system reset! Scheduling for 10s...');
+
+                    // Add a foreground fallback to trigger the modal/voice in 10.5s for immediate verification
+                    setTimeout(() => {
+                      notificationManager.send({
+                        channel: 'reminder',
+                        kind: 'reminder',
+                        title: '⏰ Time to Check In',
+                        body: 'This is your scheduled check-in alert! 💧',
+                        dedupKey: `manual-test-${Date.now()}`
+                      });
+                    }, 10500);
                   }}
                   className="bg-yellow-500/30 hover:bg-yellow-500/50 border border-yellow-400/40 text-yellow-200"
                 >🧪 Trigger in 10s</Button>
