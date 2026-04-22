@@ -211,7 +211,7 @@ class NotificationManager {
   private async showSystemNotification(req: NotificationRequest): Promise<void> {
     if (typeof window === 'undefined') return;
 
-    if (this.isCapacitor) {
+    if (this.isNative) {
       try {
         await LocalNotifications.schedule({
           notifications: [
