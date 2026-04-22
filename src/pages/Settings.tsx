@@ -209,22 +209,41 @@ const Settings = () => {
           <p className="text-sm text-zinc-400 mb-4 leading-relaxed">
             Verify alert delivery, sound synchronization, and notification reliability.
           </p>
-          <Button
-            variant="outline"
-            className="w-full border-amber-500/30 hover:bg-amber-500/20 text-amber-500 font-bold"
-            onClick={async () => {
-              toast.info("Triggering test sequence...");
-              await notificationManager.send({
-                channel: 'system',
-                kind: 'reminder',
-                title: "🔊 Voice & Water Test",
-                body: "This verifies that your audio alerts and notifications are synced correctly! 💧",
-                dedupKey: `test-${Date.now()}`
-              });
-            }}
-          >
-            Run Voice & Water Test
-          </Button>
+          <div className="grid grid-cols-1 gap-3">
+            <Button
+              variant="outline"
+              className="w-full border-blue-500/30 hover:bg-blue-500/20 text-blue-400 font-bold"
+              onClick={async () => {
+                toast.info("Testing Log Reminder...");
+                await notificationManager.send({
+                  channel: 'system',
+                  kind: 'reminder',
+                  title: "⏰ Log Reminder Test",
+                  body: "Time to check in. Log your sweat level for the past 4 hours. 💧",
+                  dedupKey: `test-rem-${Date.now()}`
+                });
+              }}
+            >
+              Test Log Reminder Voice
+            </Button>
+
+            <Button
+              variant="outline"
+              className="w-full border-amber-500/30 hover:bg-amber-500/20 text-amber-500 font-bold"
+              onClick={async () => {
+                toast.info("Testing Climate Alert...");
+                await notificationManager.send({
+                  channel: 'system',
+                  kind: 'high',
+                  title: "🔥 High Risk Alert Test",
+                  body: "Heat and humidity are rising. Hydrate and find shade! 💧",
+                  dedupKey: `test-cli-${Date.now()}`
+                });
+              }}
+            >
+              Test Climate Alert Voice
+            </Button>
+          </div>
         </Card>
 
         {/* App Information */}

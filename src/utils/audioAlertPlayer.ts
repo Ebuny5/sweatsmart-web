@@ -181,11 +181,16 @@ class AudioAlertPlayer {
   async playAlert(kind: AlertKind): Promise<void> {
     this.stop();
 
-    if (!isSoundEnabled()) return;
+    if (!isSoundEnabled()) {
+      console.log('🔊 Audio suppressed: sound is disabled in settings');
+      return;
+    }
 
+    console.log(`🔊 Playing alert sequence for kind: ${kind}`);
     vibrateForKind(kind);
 
     // 1. Short water cue (truncated to ~1.5s so it really is "in a jiffy")
+    console.log(`🔊 Playing water sound: ${WATER_SOUND_PATH}`);
     await this.playClip(WATER_SOUND_PATH, 1500);
 
     // Tiny gap for clarity between cue and voice
@@ -193,6 +198,7 @@ class AudioAlertPlayer {
 
     // 2. Voice clip matching the alert kind
     const voicePath = resolveVoicePath(kind, getGender());
+    console.log(`🔊 Playing voice clip: ${voicePath} (Gender: ${getGender()})`);
     await this.playClip(voicePath, 12000);
   }
 }
