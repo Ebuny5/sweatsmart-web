@@ -18,7 +18,7 @@ import { SeverityLevel, BodyArea, Trigger } from "@/types";
 import { CalendarIcon, Clock, Loader2, CheckCircle2, LayoutDashboard, History, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { generateFallbackInsights } from "@/services/EpisodeInsightGenerator";
+import { generateFallbackInsights } from "@/engine/recommendationEngine";
 import { loggingReminderService } from "@/services/LoggingReminderService";
 
 // ── Section wrapper ──────────────────────────────────────────────────────────
@@ -118,28 +118,36 @@ const LogEpisode = () => {
       // Reschedule the next reminder 4 hours from now
       loggingReminderService.handleLogSaved();
 
-      toast({ title: "Episode logged successfully", description: "Generating personalized insights..." });
+      toast({ title: "Episode logged successfully", description: "Generating your personalised insights..." });
 
+      // Generate insights using the deterministic recommendation engine
       setIsLoadingInsights(true);
       try {
-        const triggerData = triggers.map((t) => ({ type: t.type, value: t.value, label: t.label }));
-        const { data: insightsData, error: insightsError } = await supabase.functions.invoke(
-          "generate-episode-insights",
-          { body: { severity, bodyAreas, triggers: triggerData, notes } }
+        const triggerData = triggers.map(t => ({
+          type: t.type,
+          value: t.value,
+          label: t.label,
+        }));
+
+        const insights = generateFallbackInsights(
+          severity,
+          bodyAreas,
+          triggerData,
+          notes,
         );
 
-        if (insightsError || !insightsData?.insights) {
-          const fallbackInsights = generateFallbackInsights(severity, bodyAreas, triggerData, notes);
-          setAiInsights(fallbackInsights);
-          toast({ title: "Insights generated", description: "Your personalized insights are ready." });
-        } else {
-          setAiInsights(insightsData.insights);
-        }
+        setAiInsights(insights);
+        toast({
+          title: "Insights ready",
+          description: "Your personalised insights are below.",
+        });
       } catch (insightError) {
-        const triggerData = triggers.map((t) => ({ type: t.type, value: t.value, label: t.label }));
-        const fallbackInsights = generateFallbackInsights(severity, bodyAreas, triggerData, notes);
-        setAiInsights(fallbackInsights);
-        toast({ title: "Insights generated", description: "Your personalized insights are ready." });
+        console.error("Insight generation error:", insightError);
+        toast({
+          title: "Insights unavailable",
+          description: "Episode saved. Insights could not be generated.",
+          variant: "destructive",
+        });
       } finally {
         setIsLoadingInsights(false);
         setShowInsights(true);
