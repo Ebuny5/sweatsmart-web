@@ -402,12 +402,12 @@ const SweatSmartLanding = () => {
     .avatar:first-child { margin-left: 0; }
 
     .proof-text {
-      font-size: 15px;
+      font-size: 17px;
       color: var(--text-muted);
       line-height: 1.5;
     }
     .proof-text strong {
-      color: #f5f3ff;
+      color: #ffffff;
       font-weight: 600;
     }
 
@@ -429,15 +429,54 @@ const SweatSmartLanding = () => {
     .hero-visual {
       position: relative;
     }
-
+    .hero-visual::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(124,58,237,0.2) 0%, transparent 70%);
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+    }
     .mock-phone {
       background: linear-gradient(135deg, rgba(124,58,237,0.1), rgba(217,70,239,0.1));
-      border: 1px solid rgba(167,139,250,0.2);
-      border-radius: 24px;
+      border: 1px solid rgba(167,139,250,0.25);
+      border-radius: 28px;
       overflow: hidden;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      box-shadow:
+        0 30px 90px rgba(0,0,0,0.5),
+        0 0 0 1px rgba(167,139,250,0.1),
+        0 0 60px rgba(124,58,237,0.4),
+        0 0 120px rgba(217,70,239,0.2);
       max-width: 500px;
       margin: 0 auto;
+      transform: translateY(-10px);
+      position: relative;
+      z-index: 1;
+      animation: float 6s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(-10px);
+        box-shadow:
+          0 30px 90px rgba(0,0,0,0.5),
+          0 0 0 1px rgba(167,139,250,0.1),
+          0 0 60px rgba(124,58,237,0.4),
+          0 0 120px rgba(217,70,239,0.2);
+      }
+      50% {
+        transform: translateY(-20px);
+        box-shadow:
+          0 40px 110px rgba(0,0,0,0.6),
+          0 0 0 1px rgba(167,139,250,0.15),
+          0 0 80px rgba(124,58,237,0.6),
+          0 0 160px rgba(217,70,239,0.3);
+      }
     }
 
     .mock-header {
@@ -1071,7 +1110,7 @@ const SweatSmartLanding = () => {
             <div className="mock-phone">
               <div className="mock-header">
                 <div className="mock-greeting">SWEATSMART · GOOD EVENING</div>
-                <div className="mock-title">Timi's Dashboard 💧</div>
+                <div className="mock-title">Tyla's Dashboard 💧</div>
                 <div className="mock-stats">
                   <div className="mock-stat">
                     <div className="mock-stat-val">32</div>

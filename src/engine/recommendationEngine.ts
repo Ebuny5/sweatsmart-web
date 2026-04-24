@@ -645,7 +645,7 @@ function buildTreatments(
   // ── Iontophoresis for palmoplantar non-severe
   if (p.hasPalmoplantar && !sv.isBotoxLevel && options.length < 2) {
     options.push(pick([
-      `A treatment using gentle electrical currents in water to temporarily quieten overactive sweat glands — highly effective specifically for hands and feet, with around 80–90% of people seeing clear improvement. You rest hands or feet in a shallow water tray for 20–30 minutes while a painless current passes through. Initial treatment: 3–4 sessions a week for 2–3 weeks. Home devices are available (£200–£500) and are much more cost-effective long-term than most alternatives at your level.`,
+      `A treatment using gentle electrical currents in water (iontophoresis) to temporarily quieten overactive sweat glands — highly effective specifically for hands and feet, with around 80–90% of people seeing clear improvement. You rest hands or feet in a shallow water tray for 20–30 minutes while a painless current passes through. Initial treatment: 3–4 sessions a week for 2–3 weeks. Home devices are available (£200–£500) and are much more cost-effective long-term than most alternatives at your level.`,
       `Iontophoresis — a treatment where gentle electrical currents in water calm overactive sweat glands — is particularly effective for the hands and feet. 3–4 sessions a week for a few weeks produces results for the majority of people who try it, then weekly maintenance keeps the effect going. Home devices make this practical and affordable long-term.`,
     ], seed + 1));
   }
