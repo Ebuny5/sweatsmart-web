@@ -457,9 +457,9 @@ function buildRelief(
   // ── Palmoplantar
   if (p.hasPalmoplantar) {
     items.push(pick([
-      `Run cool (not ice-cold) water over your wrists and hands for 4–5 minutes. The blood vessels there sit very close to the surface — cooling them sends a rapid signal that your temperature is dropping, which dials back the sweat response in your ${areaPhrase(p.palmList)} within minutes. It's discreet and works faster than most people expect.`,
-      `Hold your wrists under cool running water for 4 minutes. Your body reads wrist temperature as a proxy for core temperature — cooling this area tells your heat-regulation system to ease up on the sweat signal, giving your ${areaPhrase(p.palmList)} a chance to settle.`,
-      `Cool your ${areaPhrase(p.palmList)} and wrists under running water for 4–5 minutes. The large blood vessels near the wrist surface make this one of the fastest ways to communicate "cooling achieved" to your body, which reduces sweat production quickly.`,
+      `Run cool (not ice-cold) water over your wrists and hands for 4–5 minutes. The blood vessels there sit very close to the surface — cooling them sends a rapid signal that your temperature is dropping, which dials back the sweat response in ${areaPhrase(p.palmList)} within minutes. It's discreet and works faster than most people expect.`,
+      `Hold your wrists under cool running water for 4 minutes. Your body reads wrist temperature as a proxy for core temperature — cooling this area tells your heat-regulation system to ease up on the sweat signal, giving ${areaPhrase(p.palmList)} a chance to settle.`,
+      `Cool ${areaPhrase(p.palmList)} and wrists under running water for 4–5 minutes. The large blood vessels near the wrist surface make this one of the fastest ways to communicate "cooling achieved" to your body, which reduces sweat production quickly.`,
     ], seed));
   }
 
@@ -484,9 +484,9 @@ function buildRelief(
   // ── Truncal / back / chest
   if (p.hasTruncal && !p.hasPalmoplantar && !p.hasAxillary) {
     items.push(pick([
-      `Get airflow across your ${areaPhrase(p.truncList)} immediately — a fan, open window, or any available breeze. ${isHumid ? "In high humidity, moving air is more effective than cooling because it actually evaporates the sweat rather than just lowering the temperature." : "Moving air helps sweat evaporate and tells your body the cooling is working, which dials back the signal to produce more."}`,
-      `Move to a well-ventilated space and direct airflow across your ${areaPhrase(p.truncList)}. Your body's cooling system relies on evaporation — once that's happening efficiently, the drive to keep sweating reduces significantly.`,
-      `Find a fan or open a window and let air move across your ${areaPhrase(p.truncList)}. ${isHumid ? "Humid air slows evaporation, but moving air forces it — this is the fastest way to break the cycle in these conditions." : "Airflow completes the cooling cycle your sweat started, signalling to your body that it can ease up."}`,
+      `Get airflow across ${areaPhrase(p.truncList)} immediately — a fan, open window, or any available breeze. ${isHumid ? "In high humidity, moving air is more effective than cooling because it actually evaporates the sweat rather than just lowering the temperature." : "Moving air helps sweat evaporate and tells your body the cooling is working, which dials back the signal to produce more."}`,
+      `Move to a well-ventilated space and direct airflow across ${areaPhrase(p.truncList)}. Your body's cooling system relies on evaporation — once that's happening efficiently, the drive to keep sweating reduces significantly.`,
+      `Find a fan or open a window and let air move across ${areaPhrase(p.truncList)}. ${isHumid ? "Humid air slows evaporation, but moving air forces it — this is the fastest way to break the cycle in these conditions." : "Airflow completes the cooling cycle your sweat started, signalling to your body that it can ease up."}`,
     ], seed + 1));
   }
 
@@ -721,9 +721,9 @@ function buildLifestyle(
   // ── Fabric advice (area-specific)
   if (p.hasAxillary || p.hasTruncal) {
     mods.push(pick([
-      `Switch clothing that sits against your ${p.hasAxillary ? "underarms and upper body" : areaPhrase(p.truncList)} to moisture-wicking fabrics — bamboo, merino wool, or technical athletic blends. Wet fabric against skin sends a continuous "still overheating" signal that prolongs episodes. Looser cuts in lighter colours also reduce heat absorption and give sweat glands less to react to.`,
-      `Move to bamboo or merino wool for clothing against your ${p.hasAxillary ? "underarms and torso" : areaPhrase(p.truncList)}. These fabrics move moisture away from the skin rather than absorbing it — this breaks the feedback loop that keeps sweating going long after the trigger has passed.`,
-      `Replace synthetic fabrics in clothing against your ${p.hasAxillary ? "upper body" : areaPhrase(p.truncList)} with breathable natural or wicking materials. Synthetic fibres trap heat and moisture, compounding every other trigger — it's one of the highest-leverage fabric changes you can make.`,
+      `Switch clothing that sits against ${p.hasAxillary ? "your underarms and upper body" : areaPhrase(p.truncList)} to moisture-wicking fabrics — bamboo, merino wool, or technical athletic blends. Wet fabric against skin sends a continuous "still overheating" signal that prolongs episodes. Looser cuts in lighter colours also reduce heat absorption and give sweat glands less to react to.`,
+      `Move to bamboo or merino wool for clothing against ${p.hasAxillary ? "your underarms and torso" : areaPhrase(p.truncList)}. These fabrics move moisture away from the skin rather than absorbing it — this breaks the feedback loop that keeps sweating going long after the trigger has passed.`,
+      `Replace synthetic fabrics in clothing against ${p.hasAxillary ? "your upper body" : areaPhrase(p.truncList)} with breathable natural or wicking materials. Synthetic fibres trap heat and moisture, compounding every other trigger — it's one of the highest-leverage fabric changes you can make.`,
     ], seed));
   }
 
@@ -816,7 +816,7 @@ function buildLifestyle(
   }
 
   // ── Poor sleep
-  if (hasSlp(triggers) && mods.length < 3) {
+  if (hasPoorSleep(triggers) && mods.length < 3) {
     mods.push(
       `Poor sleep directly increases your sweating reactivity the following day — it lowers your stress threshold and makes every other trigger more effective. ` +
       `Treating sleep quality as part of your hyperhidrosis management (not just general health) is a legitimate strategy. ` +
