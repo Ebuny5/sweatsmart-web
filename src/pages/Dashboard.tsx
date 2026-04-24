@@ -51,8 +51,8 @@ const StatPill = ({ emoji, value, label, gradient }: {
 }) => (
   <div className={`flex flex-col items-center justify-center px-4 py-3 rounded-2xl ${gradient} min-w-[80px]`}>
     <span className="text-xl mb-0.5">{emoji}</span>
-    <span className="text-xl font-black text-[#d4f542] leading-none">{value}</span>
-    <span className="text-[10px] text-[#d4f542] font-bold text-center leading-tight mt-0.5">{label}</span>
+    <span className="text-2xl font-black text-[#ffffff] leading-none">{value}</span>
+    <span className="text-xs text-[#ffffff] font-bold text-center leading-tight mt-0.5">{label}</span>
   </div>
 );
 
@@ -285,9 +285,6 @@ const Dashboard = () => {
         <div className="bg-gradient-to-br from-violet-600 via-purple-500 to-pink-500 px-6 pt-8 pb-14 rounded-b-[2.5rem] shadow-lg shadow-purple-200">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <p className="text-[#1e3a8a] text-xs font-semibold uppercase tracking-widest">
-                GOOD MORNING
-              </p>
               <h1 className="text-[#1e3a8a] text-xl font-black tracking-tight leading-tight mt-0.5">
                 {firstName}'s Dashboard 💧
               </h1>
