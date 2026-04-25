@@ -33,13 +33,13 @@ const Section = ({
   subtitle?: string;
   children: React.ReactNode;
 }) => (
-  <div className="bg-purple-50 rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-    <div className="px-5 pt-5 pb-3 border-b border-gray-50">
+  <div className="bg-[#EE82EE] rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="px-5 pt-5 pb-3 border-b border-white/20">
       <div className="flex items-center gap-2">
         <span className="text-xl">{emoji}</span>
         <div>
-          <h2 className="text-base font-bold text-gray-800 leading-tight">{title}</h2>
-          {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
+          <h2 className="text-base font-bold text-white leading-tight">{title}</h2>
+          {subtitle && <p className="text-xs text-white/70 mt-0.5">{subtitle}</p>}
         </div>
       </div>
     </div>
@@ -163,7 +163,7 @@ const LogEpisode = () => {
   if (showInsights) {
     return (
       <AppLayout>
-        <div className="min-h-screen bg-purple-50">
+        <div className="min-h-screen bg-[#EE82EE]">
           <div className="max-w-lg mx-auto pb-10">
             {/* Success hero */}
             <div className="bg-gradient-to-br from-green-400 via-emerald-400 to-teal-400 px-6 pt-10 pb-12 rounded-b-[2.5rem] shadow-lg shadow-green-100 text-center mb-6">
@@ -238,7 +238,7 @@ const LogEpisode = () => {
   // ── Main log form ──────────────────────────────────────────────────────────
   return (
     <AppLayout>
-      <div className="min-h-screen bg-purple-50">
+      <div className="min-h-screen bg-[#EE82EE]">
         <div className="max-w-lg mx-auto pb-10">
 
           {/* ── GRADIENT HERO HEADER ──────────────────────────────────────── */}
@@ -286,7 +286,7 @@ const LogEpisode = () => {
               <div className="space-y-4">
                 {/* Date picker */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="date" className="text-sm font-semibold text-gray-700">Date</Label>
+                  <Label htmlFor="date" className="text-sm font-semibold text-white">Date</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <button
@@ -318,7 +318,7 @@ const LogEpisode = () => {
 
                 {/* Time picker */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="time" className="text-sm font-semibold text-gray-700">Time</Label>
+                  <Label htmlFor="time" className="text-sm font-semibold text-white">Time</Label>
                   <div className="flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-gray-200 bg-gray-50 hover:border-blue-300 focus-within:border-blue-400 focus-within:bg-blue-50 transition-all min-h-[48px]">
                     <Clock className="h-5 w-5 text-blue-400 shrink-0" />
                     <Input
@@ -337,19 +337,19 @@ const LogEpisode = () => {
             <Section emoji="🩺" title="Symptom Details" subtitle="How would you describe this episode?">
               <div className="space-y-6">
                 <div>
-                  <p className="text-sm font-bold text-gray-700 mb-3">Episode Severity</p>
+                  <p className="text-sm font-bold text-white mb-3">Episode Severity</p>
                   <SeveritySelector value={severity} onChange={setSeverity} />
                 </div>
 
-                <div className="border-t border-gray-50 pt-5">
-                  <p className="text-sm font-bold text-gray-700 mb-3">Affected Body Areas</p>
+                <div className="border-t border-white/20 pt-5">
+                  <p className="text-sm font-bold text-white mb-3">Affected Body Areas</p>
                   <BodyAreaSelector selectedAreas={bodyAreas} onChange={setBodyAreas} />
                 </div>
 
-                <div className="border-t border-gray-50 pt-5 space-y-1.5">
-                  <Label htmlFor="notes" className="text-sm font-bold text-gray-700">
+                <div className="border-t border-white/20 pt-5 space-y-1.5">
+                  <Label htmlFor="notes" className="text-sm font-bold text-white">
                     Additional Notes
-                    <span className="ml-1 text-xs font-normal text-gray-400">— Optional</span>
+                    <span className="ml-1 text-xs font-normal text-white/60">— Optional</span>
                   </Label>
                   <Textarea
                     id="notes"
