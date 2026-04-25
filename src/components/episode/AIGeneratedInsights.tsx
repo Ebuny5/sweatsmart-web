@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Lightbulb, Stethoscope, Heart, Activity, AlertCircle, Copy, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
 
 interface AIInsightsProps {
@@ -21,6 +22,7 @@ interface AIInsightsProps {
 
 const AIGeneratedInsights: React.FC<AIInsightsProps> = ({ insights }) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleCopyInsights = async () => {
     const insightsText = `
@@ -356,7 +358,7 @@ Disclaimer: These insights are AI-generated and for educational purposes only. A
                 {insights.cta}
               </p>
               <Button
-                onClick={() => window.location.href = '/hydro-ally'}
+                onClick={() => navigate('/hyper-ai')}
                 className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl px-8"
               >
                 Continue in HidroAlly Chat

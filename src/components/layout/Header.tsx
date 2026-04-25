@@ -66,10 +66,10 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated }) => {
               <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white shadow-sm" />
             </div>
             <div>
-              <h1 className="text-green-400 text-lg font-black tracking-tight leading-none">
+              <h1 className="text-green-400 text-xl font-black tracking-tight leading-none">
                 SweatSmart
               </h1>
-              <p className="text-green-300 text-[10px] font-medium leading-none mt-0.5">
+              <p className="text-green-300 text-xs font-bold leading-none mt-0.5">
                 Hyperhidrosis Tracker
               </p>
             </div>
