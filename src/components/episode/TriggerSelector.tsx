@@ -419,7 +419,7 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
                     ${
                       isSelected
                         ? `${group.selectedBg} ${group.selectedBorder} shadow-sm`
-                        : "bg-gray-50 border-gray-200 hover:border-gray-300 hover:bg-gray-100"
+                        : "bg-blue-50 border-gray-200 hover:border-gray-300 hover:bg-gray-100"
                     }`}
                 >
                   {isSelected && (
@@ -437,8 +437,8 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
                   )}
                   <span className="text-lg leading-none">{trigger.emoji}</span>
                   <span
-                    className={`text-sm font-medium ${
-                      isSelected ? "text-gray-900" : "text-gray-600"
+                    className={`text-sm font-bold ${
+                      isSelected ? "text-black" : "text-black"
                     }`}
                   >
                     {trigger.label}

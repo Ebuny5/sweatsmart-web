@@ -213,7 +213,7 @@ const BodyAreaSelector: React.FC<BodyAreaSelectorProps> = ({
                       ${
                         isSelected
                           ? "bg-blue-50 border-blue-400 shadow-sm"
-                          : "bg-gray-50 border-gray-200 hover:border-gray-300 hover:bg-gray-100"
+                          : "bg-blue-50 border-gray-200 hover:border-gray-300 hover:bg-gray-100"
                       }`}
                   >
                     {isSelected && (
@@ -231,8 +231,8 @@ const BodyAreaSelector: React.FC<BodyAreaSelectorProps> = ({
                     )}
                     <span className="text-xl leading-none">{option.emoji}</span>
                     <span
-                      className={`text-sm font-medium ${
-                        isSelected ? "text-blue-700" : "text-gray-700"
+                      className={`text-sm font-bold ${
+                        isSelected ? "text-black" : "text-black"
                       }`}
                     >
                       {option.label}

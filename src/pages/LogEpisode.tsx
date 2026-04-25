@@ -27,19 +27,23 @@ const Section = ({
   title,
   subtitle,
   children,
+  className,
+  headerClassName,
 }: {
   emoji: string;
   title: string;
   subtitle?: string;
   children: React.ReactNode;
+  className?: string;
+  headerClassName?: string;
 }) => (
-  <div className="bg-[#EE82EE] rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-    <div className="px-5 pt-5 pb-3 border-b border-white/20">
+  <div className={cn("bg-[#EE82EE] rounded-2xl shadow-sm border border-gray-100 overflow-hidden", className)}>
+    <div className={cn("px-5 pt-5 pb-3 border-b border-white/20", headerClassName)}>
       <div className="flex items-center gap-2">
         <span className="text-xl">{emoji}</span>
         <div>
-          <h2 className="text-base font-bold text-white leading-tight">{title}</h2>
-          {subtitle && <p className="text-xs text-white/70 mt-0.5">{subtitle}</p>}
+          <h2 className="text-base font-bold text-black leading-tight">{title}</h2>
+          {subtitle && <p className="text-xs text-black mt-0.5 font-bold">{subtitle}</p>}
         </div>
       </div>
     </div>
@@ -67,6 +71,16 @@ const LogEpisode = () => {
   const [showInsights, setShowInsights] = useState<boolean>(false);
   const [aiInsights, setAiInsights] = useState<any>(null);
   const [isLoadingInsights, setIsLoadingInsights] = useState<boolean>(false);
+  const [lastLoggedDisplay, setLastLoggedDisplay] = useState<string>("");
+
+  useEffect(() => {
+    const lastLogTime = localStorage.getItem("sweatsmart_last_log_time");
+    if (lastLogTime) {
+      setLastLoggedDisplay(format(new Date(parseInt(lastLogTime)), "MMM d, h:mm a"));
+    } else {
+      setLastLoggedDisplay("First time logging");
+    }
+  }, []);
 
   useEffect(() => {
     if (isNow) {
@@ -242,7 +256,7 @@ const LogEpisode = () => {
         <div className="max-w-lg mx-auto pb-10">
 
           {/* ── GRADIENT HERO HEADER ──────────────────────────────────────── */}
-        <div className="bg-gradient-to-br from-blue-500 via-blue-400 to-cyan-400 px-6 pt-8 pb-8 rounded-b-[2.5rem] shadow-lg shadow-blue-200 mb-6">
+        <div className="bg-gradient-to-br from-fuchsia-600 via-pink-600 to-rose-600 px-6 pt-8 pb-8 rounded-b-[2.5rem] shadow-lg shadow-pink-200 mb-6">
           <div className="flex items-start justify-between mb-2">
             <div>
               <p className="text-blue-100 text-xs font-semibold uppercase tracking-widest mb-1">
@@ -282,11 +296,25 @@ const LogEpisode = () => {
           <div className="space-y-4 px-4">
 
             {/* Date & Time */}
-            <Section emoji="📅" title="Date & Time" subtitle="When did this episode occur?">
+            <Section
+              emoji="📅"
+              title="Date & Time"
+              subtitle="When did this episode occur?"
+              className="bg-[#C71585]"
+            >
               <div className="space-y-4">
+                {/* Last Logged Info */}
+                <div className="mb-2 p-3 bg-white/20 rounded-xl border border-white/30">
+                  <div className="flex items-center gap-2">
+                    <History className="h-4 w-4 text-black" />
+                    <span className="text-[11px] font-bold text-black uppercase tracking-wider">Last Logged</span>
+                  </div>
+                  <p className="text-sm font-bold text-black mt-0.5">{lastLoggedDisplay}</p>
+                </div>
+
                 {/* Date picker */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="date" className="text-sm font-semibold text-white">Date</Label>
+                  <Label htmlFor="date" className="text-sm font-bold text-black">Date</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <button
@@ -318,7 +346,7 @@ const LogEpisode = () => {
 
                 {/* Time picker */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="time" className="text-sm font-semibold text-white">Time</Label>
+                  <Label htmlFor="time" className="text-sm font-bold text-black">Time</Label>
                   <div className="flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-gray-200 bg-gray-50 hover:border-blue-300 focus-within:border-blue-400 focus-within:bg-blue-50 transition-all min-h-[48px]">
                     <Clock className="h-5 w-5 text-blue-400 shrink-0" />
                     <Input
@@ -337,19 +365,19 @@ const LogEpisode = () => {
             <Section emoji="🩺" title="Symptom Details" subtitle="How would you describe this episode?">
               <div className="space-y-6">
                 <div>
-                  <p className="text-sm font-bold text-white mb-3">Episode Severity</p>
+                  <p className="text-sm font-bold text-black mb-3">Episode Severity</p>
                   <SeveritySelector value={severity} onChange={setSeverity} />
                 </div>
 
                 <div className="border-t border-white/20 pt-5">
-                  <p className="text-sm font-bold text-white mb-3">Affected Body Areas</p>
+                  <p className="text-sm font-bold text-black mb-3">Affected Body Areas</p>
                   <BodyAreaSelector selectedAreas={bodyAreas} onChange={setBodyAreas} />
                 </div>
 
                 <div className="border-t border-white/20 pt-5 space-y-1.5">
-                  <Label htmlFor="notes" className="text-sm font-bold text-white">
+                  <Label htmlFor="notes" className="text-sm font-bold text-black">
                     Additional Notes
-                    <span className="ml-1 text-xs font-normal text-white/60">— Optional</span>
+                    <span className="ml-1 text-xs font-normal text-black/60">— Optional</span>
                   </Label>
                   <Textarea
                     id="notes"

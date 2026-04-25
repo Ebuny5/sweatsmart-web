@@ -880,7 +880,7 @@ function buildLifestyle(
   // ── Logging habit
   if (mods.length < 3) {
     mods.push(pick([
-      `Continue logging consistently, including the notes field — the contextual information you provide there is the most personalised input the engine has. After fifteen to twenty logged episodes, pattern analysis reveals correlations that are invisible from any single entry: specific weather thresholds, trigger combinations that individually would not cause an episode, time-of-day patterns, and more. This data is also the foundation of any productive clinical conversation about treatment escalation.`,
+      `Continue logging consistently, including the notes field — the contextual information you provide there is the most personalised input I have to work with. After fifteen to twenty logged episodes, pattern analysis reveals correlations that are invisible from any single entry: specific weather thresholds, trigger combinations that individually would not cause an episode, time-of-day patterns, and more. This data is also the foundation of any productive clinical conversation about treatment escalation.`,
       `Use the notes field every time you log — not just on severe episodes. The contextual data (what you were doing, where you were, how you felt before and after) is what converts a symptom log into a clinical picture. Consistent logging over six to eight weeks produces a pattern analysis that is genuinely useful in a medical appointment.`,
     ], seed+3));
   }
@@ -947,14 +947,14 @@ function buildMedical(
 function buildCTA(ni: NotesIntelligence, seed: number): string {
   if (ni.expressesEmbarrassment || ni.expressesFrustration) {
     return pick([
-      `💬 I know this is hard. If you want to go deeper — explore the science behind what happened today, talk through how to approach a doctor's appointment, or just ask questions — I'm here in the HidroAlly chat, any time. I've been trained on the most comprehensive clinical manual on hyperhidrosis in existence. Let's use it together.`,
+      `💬 I know this is hard. If you want to go deeper — explore the science behind what happened today, talk through how to approach a doctor's appointment, or just ask questions — I'm here in the HidroAlly chat, any time. My guidance is based on the most comprehensive clinical knowledge of hyperhidrosis. Let's use it together.`,
       `💬 You don't have to figure this out alone. The HidroAlly chat is here whenever you want a deeper conversation — about today's episode, about what to say to a doctor, or about anything else you're navigating with this condition. I'm ready when you are.`,
     ], seed);
   }
   return pick([
     `💬 Want to go deeper on any part of this analysis? I can walk through the clinical detail behind today's episode, help you prepare for a medical appointment, or explore your full episode history to find patterns you might have missed. Find me in the HidroAlly chat — I'm available any time. 🙏`,
     `💬 If you'd like a more detailed discussion of what happened today — or want to explore your broader episode pattern — continue in the HidroAlly chat. I can pull up your full history, explain the clinical science behind your specific triggers, and help you build a clear picture to bring to your next appointment. 💙`,
-    `💬 This analysis is a starting point. For a deeper clinical conversation — your trigger patterns over time, the latest evidence on treatments for your specific profile, or help preparing for a dermatologist visit — come find me in the HidroAlly chat. I'm built for exactly this. 💙`,
+    `💬 This analysis is a starting point. For a deeper clinical conversation — your trigger patterns over time, the latest evidence on treatments for your specific profile, or help preparing for a dermatologist visit — come find me in the HidroAlly chat. I'm here to support you with exactly this. 💙`,
   ], seed);
 }
 
@@ -972,8 +972,8 @@ function wrapWithHidroAlly(
     : `Hi, this is HidroAlly 👋`;
 
   const opener = pick([
-    `${greeting} — your personal hyperhidrosis clinical companion, here to help you make sense of what your body just went through. I've analysed your episode data alongside your notes, and here is what I can tell you. 🔍`,
-    `${greeting} — SweatSmart's clinical AI companion. I've reviewed your episode, your triggers, and everything you noted. Here is a full analysis. 🔍`,
+    `${greeting} — your personal hyperhidrosis clinical guide, here to help you make sense of what your body just went through. I've analysed your episode data alongside your notes, and here is what I can tell you. 🔍`,
+    `${greeting} — SweatSmart's clinical companion. I've reviewed your episode, your triggers, and everything you noted. Here is a full analysis. 🔍`,
   ], seed);
 
   const emotionalOpener = getEmotionalOpener(ni, seed);
