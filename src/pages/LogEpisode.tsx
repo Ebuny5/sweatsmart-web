@@ -33,7 +33,7 @@ const Section = ({
   subtitle?: string;
   children: React.ReactNode;
 }) => (
-  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+  <div className="bg-purple-50 rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
     <div className="px-5 pt-5 pb-3 border-b border-gray-50">
       <div className="flex items-center gap-2">
         <span className="text-xl">{emoji}</span>
@@ -163,9 +163,10 @@ const LogEpisode = () => {
   if (showInsights) {
     return (
       <AppLayout>
-        <div className="max-w-lg mx-auto pb-10">
-          {/* Success hero */}
-          <div className="bg-gradient-to-br from-green-400 via-emerald-400 to-teal-400 px-6 pt-10 pb-12 rounded-b-[2.5rem] shadow-lg shadow-green-100 text-center mb-6">
+        <div className="min-h-screen bg-purple-50">
+          <div className="max-w-lg mx-auto pb-10">
+            {/* Success hero */}
+            <div className="bg-gradient-to-br from-green-400 via-emerald-400 to-teal-400 px-6 pt-10 pb-12 rounded-b-[2.5rem] shadow-lg shadow-green-100 text-center mb-6">
             <div className="w-16 h-16 rounded-full bg-white/30 flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
               <CheckCircle2 className="h-9 w-9 text-white" />
             </div>
@@ -229,6 +230,7 @@ const LogEpisode = () => {
             </div>
           </div>
         </div>
+      </div>
       </AppLayout>
     );
   }
@@ -236,9 +238,10 @@ const LogEpisode = () => {
   // ── Main log form ──────────────────────────────────────────────────────────
   return (
     <AppLayout>
-      <div className="max-w-lg mx-auto pb-10">
+      <div className="min-h-screen bg-purple-50">
+        <div className="max-w-lg mx-auto pb-10">
 
-        {/* ── GRADIENT HERO HEADER ──────────────────────────────────────── */}
+          {/* ── GRADIENT HERO HEADER ──────────────────────────────────────── */}
         <div className="bg-gradient-to-br from-blue-500 via-blue-400 to-cyan-400 px-6 pt-8 pb-8 rounded-b-[2.5rem] shadow-lg shadow-blue-200 mb-6">
           <div className="flex items-start justify-between mb-2">
             <div>
@@ -394,6 +397,7 @@ const LogEpisode = () => {
           </div>
         </form>
       </div>
+    </div>
     </AppLayout>
   );
 };
