@@ -79,8 +79,8 @@ const Login = () => {
   };
 
   return (
-    <AppLayout isAuthenticated={false}>
-      <div className="flex justify-center items-center min-h-[80vh] bg-purple-50">
+    <AppLayout isAuthenticated={false} mainClassName="bg-[#9400D3]">
+      <div className="flex justify-center items-center min-h-[80vh]" style={{ backgroundColor: '#9400D3' }}>
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold">Login</CardTitle>

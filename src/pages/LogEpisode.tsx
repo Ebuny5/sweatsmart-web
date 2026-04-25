@@ -33,7 +33,7 @@ const Section = ({
   subtitle?: string;
   children: React.ReactNode;
 }) => (
-  <div className="bg-purple-50 rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+  <div style={{ backgroundColor: '#EE82EE' }} className="rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
     <div className="px-5 pt-5 pb-3 border-b border-gray-50">
       <div className="flex items-center gap-2">
         <span className="text-xl">{emoji}</span>
@@ -162,8 +162,8 @@ const LogEpisode = () => {
   // ── Success / Insights screen ──────────────────────────────────────────────
   if (showInsights) {
     return (
-      <AppLayout>
-        <div className="min-h-screen bg-purple-50">
+      <AppLayout mainClassName="bg-[#EE82EE]">
+        <div className="min-h-screen" style={{ backgroundColor: '#EE82EE' }}>
           <div className="max-w-lg mx-auto pb-10">
             {/* Success hero */}
             <div className="bg-gradient-to-br from-green-400 via-emerald-400 to-teal-400 px-6 pt-10 pb-12 rounded-b-[2.5rem] shadow-lg shadow-green-100 text-center mb-6">
@@ -237,8 +237,8 @@ const LogEpisode = () => {
 
   // ── Main log form ──────────────────────────────────────────────────────────
   return (
-    <AppLayout>
-      <div className="min-h-screen bg-purple-50">
+    <AppLayout mainClassName="bg-[#EE82EE]">
+      <div className="min-h-screen" style={{ backgroundColor: '#EE82EE' }}>
         <div className="max-w-lg mx-auto pb-10">
 
           {/* ── GRADIENT HERO HEADER ──────────────────────────────────────── */}

@@ -1,5 +1,6 @@
 import React from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 import MobileBottomNav from "./MobileBottomNav";
@@ -10,9 +11,10 @@ import { NotificationPermissionModal } from "@/components/climate/NotificationPe
 interface AppLayoutProps {
   children: React.ReactNode;
   isAuthenticated?: boolean;
+  mainClassName?: string;
 }
 
-const AppLayout: React.FC<AppLayoutProps> = ({ children, isAuthenticated }) => {
+const AppLayout: React.FC<AppLayoutProps> = ({ children, isAuthenticated, mainClassName }) => {
   const { user, loading } = useAuth();
   const isMobile = useIsMobile();
   const authenticated = isAuthenticated ?? !!user;
@@ -42,7 +44,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, isAuthenticated }) => {
         <Header isAuthenticated={authenticated} />
         <div className="flex flex-1">
           {authenticated && !isMobile && <Sidebar />}
-          <main className={`flex-1 ${isMobile ? "px-0 py-0 pb-20" : "container py-6"}`}>
+          <main className={cn("flex-1", isMobile ? "px-0 py-0 pb-20" : "container py-6", mainClassName)}>
             {children}
           </main>
         </div>
