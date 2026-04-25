@@ -4,7 +4,7 @@
  * This is the SINGLE engine. Do not create additional engines alongside this.
  *
  * Voice: HidroAlly — warm, clinical, companion-like. Think "brilliant
- * dermatologist who also genuinely cares about you as a person."
+ * dermatologist who also genuinely cares about you as a warrior."
  *
  * Knowledge base integration:
  *   Ch.7  → Vasodilation-edema: swelling/tightness in palms/feet during episodes
@@ -333,15 +333,15 @@ function getKBInsights(
   // Ch.9 — Plantar fall risk
   if (p.hasFootAreas || ni.mentionsSlipping) {
     insights.push(pick([
-      "One practical safety note on plantar sweating: wet soles significantly change how your feet interact with surfaces — grip mechanics are altered, gait can shift to compensate, and the risk of slipping on smooth or tiled surfaces increases meaningfully. This is not overstated caution; it is a documented occupational and safety concern for people with plantar hyperhidrosis. Grip-enhancing insoles and natural-rubber soled footwear are specific tools worth considering beyond general treatment.",
-      "Plantar hyperhidrosis changes the biomechanics of how you walk — your gait subtly adapts to the moisture, which can cause changes in posture and load distribution over time. On smooth or tiled surfaces, the slip risk is genuine. Footwear with natural rubber or textured soles, and grip-oriented insoles, address this specifically and are a practical priority for everyday safety.",
+      "One practical safety note on plantar sweating: wet soles significantly change how your feet interact with surfaces — grip mechanics are altered, gait can shift to compensate, and the risk of slipping on smooth or tiled surfaces increases meaningfully. This is not overstated caution; it is a documented occupational and safety concern for warriors with plantar hyperhidrosis. Grip-enhancing insoles and natural-rubber soled footwear are specific tools worth considering beyond general treatment. 🛡️",
+      "Plantar hyperhidrosis changes the biomechanics of how you walk — your gait subtly adapts to the moisture, which can cause changes in posture and load distribution over time. On smooth or tiled surfaces, the slip risk is genuine. Footwear with natural rubber or textured soles, and grip-oriented insoles, address this specifically and are a practical priority for everyday safety. 🛡️",
     ], seed + 2));
   }
 
   // Ch.10 — Aquagenic keratoderma
   if (p.hasPalmoplantar && ni.mentionsSkinWrinkling) {
     insights.push(
-      "The rapid skin wrinkling you described on your palms or soles in contact with sweat is a condition called aquagenic keratoderma — a distinct skin response that occurs in some people with palmoplantar hyperhidrosis. It is not simply the normal wrinkling that happens after time in water; it develops within minutes and involves changes in the stratum corneum driven by sweat composition. A dermatologist can confirm this and there are specific topical management approaches worth discussing."
+      "The rapid skin wrinkling you described on your palms or soles in contact with sweat is a condition called aquagenic keratoderma — a distinct skin response that occurs in some warriors with palmoplantar hyperhidrosis. It is not simply the normal wrinkling that happens after time in water; it develops within minutes and involves changes in the stratum corneum driven by sweat composition. A dermatologist can confirm this and there are specific topical management approaches worth discussing. ✨"
     );
   }
 
@@ -375,7 +375,7 @@ function getEmotionalOpener(ni: NotesIntelligence, seed: number): string {
       "I noticed some anxiety in what you wrote. That's understandable — hyperhidrosis episodes can feel overwhelming in the moment. Let's unpack exactly what happened so the next one feels less unpredictable. 💙",
     ], seed);
   }
-  return "";
+  return "I've reviewed your episode, your triggers, and your notes. You're showing incredible strength in tracking this. 💙";
 }
 
 // ─── CLINICAL ANALYSIS ────────────────────────────────────────────────────────
@@ -492,9 +492,9 @@ function buildClinical(
 
   const mechText = mechs.length > 0
     ? pick([
-        ` With hyperhidrosis, the sweat glands in the affected areas respond far more intensely than the situation calls for. In this episode, the key drivers were: ${mechs.slice(0,4).join("; ")}.`,
-        ` In hyperhidrosis, the underlying sweat pathway is hyperreactive — it amplifies normal signals into disproportionate responses. Here, that hyperreactivity was fed by: ${mechs.slice(0,4).join("; ")}.`,
-        ` The sweat glands in these areas overreact to signals that most people's bodies would barely register. What drove this episode: ${mechs.slice(0,4).join("; ")}.`,
+        ` In hyperhidrosis, the sweat glands in the affected areas respond far more intensely than the situation calls for. In this episode, the key drivers were: ${mechs.slice(0,4).join("; ")}.`,
+        ` For a hyperhidrosis warrior, the underlying sweat pathway is hyperreactive — it amplifies normal signals into disproportionate responses. Here, that hyperreactivity was fed by: ${mechs.slice(0,4).join("; ")}.`,
+        ` The sweat glands in these areas overreact to signals that most warriors' bodies would barely register. What drove this episode: ${mechs.slice(0,4).join("; ")}.`,
       ], seed+2)
     : ` With hyperhidrosis, your sweat glands simply respond more intensely than most — amplifying normal signals into disproportionate output.`;
 
@@ -529,7 +529,9 @@ function buildClinical(
   // ── Context sentence positioning
   const contextBlock = contextSentence ? `\n\n${contextSentence}` : "";
 
-  return `${opening}${mechText}${climateNote}${contextBlock}${kbSection} ${sv.sentence}${close}`;
+  const chatCTA = "\n\nIf you need a more clinical or in-depth understanding of this specific episode, let's continue our conversation in the HidroAlly chat. 💙";
+
+  return `${opening}${mechText}${climateNote}${contextBlock}${kbSection} ${sv.sentence}${close}${chatCTA}`;
 }
 
 // ─── IMMEDIATE RELIEF ─────────────────────────────────────────────────────────
@@ -549,7 +551,7 @@ function buildRelief(
   if (p.hasPalmoplantar) {
     if (p.hasHandAreas && p.hasFootAreas) {
       items.push(pick([
-        `Run cool — not ice-cold — water over both your wrists and ankles for 4 to 5 minutes. These sites have major blood vessels positioned close to the skin surface; cooling them communicates a rapid temperature drop to your body's heat-regulation system, which reduces sweat output in both your hands and feet within minutes. The response is faster than most people expect.`,
+        `Run cool — not ice-cold — water over both your wrists and ankles for 4 to 5 minutes. These sites have major blood vessels positioned close to the skin surface; cooling them communicates a rapid temperature drop to your body's heat-regulation system, which reduces sweat output in both your hands and feet within minutes. The response is faster than most warriors expect. 🛡️`,
         `Cool your wrist pulse points under a running tap for 4 minutes. Your cardiovascular system uses wrist and ankle temperature as a proxy for core body temperature — bringing it down here sends a system-wide "cooling achieved" signal, which dials back the sweat response across your hands and feet simultaneously.`,
       ], seed));
     } else if (p.hasHandAreas) {
@@ -670,17 +672,21 @@ function buildTreatments(
 
   // ── Aluminium chloride — ONLY for palmoplantar or axillary, NEVER face
   if ((hasPalmoplantar || hasAxillary) && options.length < 2) {
+    const facialWarning = hasCraniofacial
+      ? " CRITICAL: Since you also logged facial sweating, please note that aluminium chloride should NEVER be applied to the face or scalp as it is too harsh for that skin. "
+      : "";
+
     const appNote = hasAxillary
       ? "Apply to completely dry underarm skin at bedtime — use a cool hairdryer setting on the area first if needed — and wash off in the morning. Your sweat glands are at their least active overnight, which allows deeper penetration and better efficacy."
       : `Apply to completely dry ${p.hasHandAreas ? "palms" : "soles"} at bedtime. For the hands, thin cotton gloves worn overnight improve penetration; for the soles, thin cotton socks serve the same purpose. Wash off in the morning.`;
 
     const schedule = sv.isPresThreshold
       ? "Begin with nightly application for two consecutive weeks, then reduce to every two to three nights once improvement is established."
-      : "Consistent nightly use for ten to fourteen days produces results for most people, after which maintenance every two to three nights sustains the improvement.";
+      : "Consistent nightly use for ten to fourteen days produces results for most warriors, after which maintenance every two to three nights sustains the improvement.";
 
     options.push(pick([
-      `Clinical-strength aluminium chloride antiperspirant at 20% concentration — this is the evidence-based first-line treatment for ${hasAxillary ? "axillary" : "palmoplantar"} hyperhidrosis at your severity level. It works by temporarily blocking the opening of overactive sweat gland ducts, significantly reducing output without permanent alteration. ${appNote} ${schedule} Look specifically for products labelled "clinical strength" or formulated for hyperhidrosis — standard pharmacy antiperspirants do not contain sufficient concentration to be effective for this condition.`,
-      `A 20% aluminium chloride formulation applied topically is the most studied first-line treatment for your pattern of hyperhidrosis. The mechanism is duct occlusion — not permanent, but sustained enough to meaningfully reduce daily output. ${appNote} ${schedule} Brands marketed specifically for hyperhidrosis typically disclose the aluminium chloride percentage on their packaging; anything below 15% is unlikely to provide therapeutic benefit at your severity level.`,
+      `Clinical-strength aluminium chloride antiperspirant at 20% concentration — this is the evidence-based first-line treatment for ${hasAxillary ? "axillary" : "palmoplantar"} hyperhidrosis at your severity level. ${facialWarning}It works by temporarily blocking the opening of overactive sweat gland ducts, significantly reducing output without permanent alteration. ${appNote} ${schedule} Look specifically for products labelled "clinical strength" or formulated for hyperhidrosis — standard pharmacy antiperspirants do not contain sufficient concentration to be effective for this condition. ✨`,
+      `A 20% aluminium chloride formulation applied topically is the most studied first-line treatment for your pattern of hyperhidrosis. ${facialWarning}The mechanism is duct occlusion — not permanent, but sustained enough to meaningfully reduce daily output. ${appNote} ${schedule} Brands marketed specifically for hyperhidrosis typically disclose the aluminium chloride percentage on their packaging; anything below 15% is unlikely to provide therapeutic benefit at your severity level. ✨`,
     ], seed));
   }
 
@@ -695,16 +701,16 @@ function buildTreatments(
   // ── Iontophoresis for palmoplantar, non-severe
   if (hasPalmoplantar && !sv.isBotoxLevel && options.length < 2) {
     options.push(pick([
-      `Iontophoresis — a treatment in which hands or feet rest in a shallow water tray while a painless low-level electrical current passes through — is specifically effective for palmoplantar hyperhidrosis and produces meaningful results for approximately 80 to 90% of people who complete an adequate course. Initial treatment involves three to four sessions per week over two to three weeks, followed by weekly maintenance. Home devices are available in the £200 to £500 range and are considerably more cost-effective long-term than most ongoing treatment alternatives at your severity level.`,
-      `For the pattern you have logged, iontophoresis is a particularly well-matched second-line option. The treatment temporarily quietens the sweat glands in the hands and feet through sustained mild electrical current — the mechanism is not fully understood but the clinical results are well-documented across multiple studies. It requires consistency: three to four sessions per week for the first two to three weeks, then weekly maintenance. Many people find that committing to the initial course produces results significant enough to motivate the ongoing maintenance.`,
+      `Iontophoresis — a treatment in which hands or feet rest in a shallow water tray while a painless low-level electrical current passes through — is specifically effective for palmoplantar hyperhidrosis and produces meaningful results for approximately 80 to 90% of warriors who complete an adequate course. Initial treatment involves three to four sessions per week over two to three weeks, followed by weekly maintenance. Home devices are available in the £200 to £500 range and are considerably more cost-effective long-term than most ongoing treatment alternatives at your severity level. ✨`,
+      `For the pattern you have logged, iontophoresis is a particularly well-matched second-line option. The treatment temporarily quietens the sweat glands in the hands and feet through sustained mild electrical current — the mechanism is not fully understood but the clinical results are well-documented across multiple studies. It requires consistency: three to four sessions per week for the first two to three weeks, then weekly maintenance. Many warriors find that committing to the initial course produces results significant enough to motivate the ongoing maintenance. ✨`,
     ], seed+1));
   }
 
   // ── Prescription topicals for HDSS 3
   if (sv.isPresThreshold && !sv.isBotoxLevel && options.length < 2) {
     options.push(pick([
-      `At HDSS 3, prescription-strength topical treatments are clinically appropriate and represent a meaningful step beyond what aluminium chloride can achieve. Qbrexza wipes and Sofdra gel both work by reducing the nerve signal that activates your sweat glands — a different mechanism that is more effective for many people at your severity level. Your dermatologist or general practitioner (GP) can prescribe these; bringing your SweatSmart episode log to the appointment provides objective severity and frequency data that supports the prescription request. Most people see meaningful improvement within two to four weeks of consistent use.`,
-      `Given your HDSS 3 severity, prescription topical treatments are worth pursuing rather than limiting to over-the-counter options. Glycopyrronium-based treatments such as Qbrexza or Sofdra target the activation signal to your sweat glands — a mechanism upstream of what aluminium chloride addresses. Discuss this specifically with a dermatologist; your logged episode history from this app demonstrates the frequency and impact of your condition clearly, which is exactly the kind of objective evidence that supports a prescription recommendation.`,
+      `At HDSS 3, prescription-strength topical treatments are clinically appropriate and represent a meaningful step beyond what aluminium chloride can achieve. Qbrexza wipes and Sofdra gel both work by reducing the nerve signal that activates your sweat glands — a different mechanism that is more effective for many warriors at your severity level. Your dermatologist or general practitioner (GP) can prescribe these; bringing your SweatSmart episode log to the appointment provides objective severity and frequency data that supports the prescription request. Most warriors see meaningful improvement within two to four weeks of consistent use. 🛡️`,
+      `Given your HDSS 3 severity, prescription topical treatments are worth pursuing rather than limiting to over-the-counter options. Glycopyrronium-based treatments such as Qbrexza or Sofdra target the activation signal to your sweat glands — a mechanism upstream of what aluminium chloride addresses. Discuss this specifically with a dermatologist; your logged episode history from this app demonstrates the frequency and impact of your condition clearly, which is exactly the kind of objective evidence that supports a prescription recommendation. 🛡️`,
     ], seed+1));
   }
 
@@ -718,7 +724,7 @@ function buildTreatments(
 
     options.push(pick([
       `Botulinum toxin injections for your ${btxTarget} — this is the most effective intervention at your severity level and should be pursued as a priority, not deferred. The treatment works by blocking nerve signals directly at the sweat gland, producing four to six months of dramatically reduced sweating per treatment session. It is available through NHS dermatology referral or privately. When you see your dermatologist or general practitioner (GP), be specific: "I have hyperhidrosis affecting my ${btxTarget} at HDSS 4 severity — I would like to discuss botulinum toxin treatment and a referral to dermatology." Your SweatSmart episode log is objective evidence that makes this conversation more productive.`,
-      `At HDSS 4, botulinum toxin is the clinically appropriate and most impactful treatment for your ${btxTarget}. It does not merely reduce output — for most people at this severity level, it transforms daily life during the four to six months of each treatment cycle. Do not put this off: bring your episode log to your next medical appointment and ask directly for a dermatology referral for botulinum toxin. The data you have logged makes the clinical case clearly.`,
+      `At HDSS 4, botulinum toxin is the clinically appropriate and most impactful treatment for your ${btxTarget}. It does not merely reduce output — for most warriors at this severity level, it transforms daily life during the four to six months of each treatment cycle. Do not put this off: bring your episode log to your next medical appointment and ask directly for a dermatology referral for botulinum toxin. The data you have logged makes the clinical case clearly.`,
     ], seed));
 
     if (options.length < 2) {
@@ -777,7 +783,7 @@ function buildLifestyle(
   if (ni.poorVentilation && !ni.wasCooking) {
     mods.push(pick([
       `Identify which spaces in your regular routine have poor airflow and prioritise changing them. A small USB-powered desk fan in an office or bedroom costs very little and meaningfully changes the evaporation dynamics in your immediate environment. For spaces you cannot control (certain workplaces, public transport), a handheld personal fan and moisture-wicking clothing at minimum give you some management capacity.`,
-      `Make improving airflow in your primary environments a practical priority. In enclosed or poorly ventilated spaces, sweat accumulation is self-reinforcing — evaporation cannot occur, so the sweating signal continues. Small adjustments like repositioning where you sit (closer to windows or ventilation), carrying a personal fan, and timing high-activity tasks during cooler parts of the day in those environments reduce the impact significantly.`,
+      `Make improving airflow in your primary environments a practical priority. In enclosed or poorly ventilated spaces, sweat accumulation is self-reinforcing — evaporation cannot occur, so the sweating signal continues. Small adjustments like repositioning where you sit (closer to windows or ventilation), carrying a personal fan, and timing high-activity tasks during cooler parts of the day in those environments reduce the impact significantly. ✨`,
     ], seed));
   }
 
@@ -825,8 +831,8 @@ function buildLifestyle(
   if (isFood(triggers)) {
     if (has(triggers,"spicy food","gustatory sweating")) {
       mods.push(pick([
-        `Track your spice tolerance specifically over the next two weeks — log what you ate and how soon after an episode began. The gustatory sweat response is highly individual in its threshold: some people respond to moderate spice, others only to very high heat levels. Identifying your personal threshold is more sustainable than blanket elimination and allows you to make informed choices before situations where an episode would be most impactful.`,
-        `Gustatory sweating responds to spice level more than spice type for most people. Rather than eliminating spicy food entirely, establishing your personal threshold — the point at which your sweat response activates — allows for more sustainable dietary management. Use the notes field to track type, quantity, and time-to-response across your next several food-related episodes.`,
+        `Track your spice tolerance specifically over the next two weeks — log what you ate and how soon after an episode began. The gustatory sweat response is highly individual in its threshold: some warriors respond to moderate spice, others only to very high heat levels. Identifying your personal threshold is more sustainable than blanket elimination and allows you to make informed choices before situations where an episode would be most impactful. ✨`,
+        `Gustatory sweating responds to spice level more than spice type for most warriors. Rather than eliminating spicy food entirely, establishing your personal threshold — the point at which your sweat response activates — allows for more sustainable dietary management. Use the notes field to track type, quantity, and time-to-response across your next several food-related episodes. ✨`,
       ], seed));
     }
     if (has(triggers,"caffeine","energy drink")) {
@@ -837,7 +843,7 @@ function buildLifestyle(
     }
     if (has(triggers,"alcohol")) {
       mods.push(
-        `Alcohol's effect on hyperhidrosis is primarily vasodilatory — it opens blood vessels and raises skin temperature, which lowers your sweating threshold. The effect compounds with other triggers present: on a warm evening, in a social setting, with emotional arousal, a small amount of alcohol can push you over threshold when each factor alone would not. Strategic reduction on high-risk days — rather than blanket elimination — is a sustainable approach for most people.`
+        `Alcohol's effect on hyperhidrosis is primarily vasodilatory — it opens blood vessels and raises skin temperature, which lowers your sweating threshold. The effect compounds with other triggers present: on a warm evening, in a social setting, with emotional arousal, a small amount of alcohol can push you over threshold when each factor alone would not. Strategic reduction on high-risk days — rather than blanket elimination — is a sustainable approach for most warriors. 🛡️`
       );
     }
   }
@@ -882,8 +888,8 @@ function buildLifestyle(
   // ── General fallback — rotate intelligently
   if (mods.length < 3) {
     mods.push(pick([
-      `Reduce caffeine and alcohol on days when you anticipate high-probability triggers. Both compounds lower your sweating threshold — not dramatically in isolation, but meaningfully when combined with other triggers that are already present. The cumulative effect of stacking small threshold-lowering factors is larger than most people realise, and removing one or two of them on high-risk days makes a statistically meaningful difference.`,
-      `Stay well-hydrated — not as a sweating cure, but because dehydration concentrates sweat and reduces the efficiency of your body's cooling mechanism. Well-hydrated sweat evaporates more readily, which means your body can complete the cooling cycle faster and reduce output sooner. Consistent hydration is a low-effort baseline that makes every other management strategy slightly more effective.`,
+      `Reduce caffeine and alcohol on days when you anticipate high-probability triggers. Both compounds lower your sweating threshold — not dramatically in isolation, but meaningfully when combined with other triggers that are already present. The cumulative effect of stacking small threshold-lowering factors is larger than most warriors realise, and removing one or two of them on high-risk days makes a statistically meaningful difference. 🛡️`,
+      `Stay well-hydrated — not as a sweating cure, but because dehydration concentrates sweat and reduces the efficiency of your body's cooling mechanism. Well-hydrated sweat evaporates more readily, which means your body can complete the cooling cycle faster and reduce output sooner. Consistent hydration is a low-effort baseline that makes every other management strategy slightly more effective. 🛡️`,
     ], seed));
   }
 
@@ -1020,13 +1026,17 @@ export function generateEpisodeInsights(input: EpisodeInput): EpisodeInsights & 
  * generateFallbackInsights — drop-in replacement for the old fallback.
  * Identical external signature. Zero other code changes needed.
  */
+/**
+ * generateFallbackInsights — drop-in replacement for the old fallback.
+ * Identical external signature. Now returns separate fields for emotionalOpener and cta.
+ */
 export function generateFallbackInsights(
   severity: number,
   bodyAreas: string[],
   triggers: TriggerInput[],
   notes?: string,
   climate?: ClimateInput,
-): EpisodeInsights {
+): EpisodeInsights & { emotionalOpener: string; cta: string } {
   const result = generateEpisodeInsights({
     severity,
     bodyAreas,
@@ -1035,13 +1045,7 @@ export function generateFallbackInsights(
     climate,
     episodeCount: Math.floor(Date.now() / 1000) % 50,
   });
-  return {
-    clinicalAnalysis: `${result.emotionalOpener}\n\n${result.clinicalAnalysis}`,
-    immediateRelief: result.immediateRelief,
-    treatmentOptions: result.treatmentOptions,
-    lifestyleModifications: result.lifestyleModifications,
-    medicalAttention: `${result.medicalAttention}\n\n${result.cta}`,
-  };
+  return result;
 }
 
 // ─── Empty response ───────────────────────────────────────────────────────────

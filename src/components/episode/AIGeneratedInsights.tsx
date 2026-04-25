@@ -14,6 +14,8 @@ interface AIInsightsProps {
     treatmentOptions: string[];
     lifestyleModifications: string[];
     medicalAttention: string;
+    emotionalOpener?: string;
+    cta?: string;
   };
 }
 
@@ -202,6 +204,28 @@ Disclaimer: These insights are AI-generated and for educational purposes only. A
 
   return (
     <div className="space-y-4">
+      {/* Emotional Opener / HidroAlly Greeting */}
+      {insights.emotionalOpener && (
+        <Card className="border-none bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-lg overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-4 opacity-10">
+            <Heart className="h-24 w-24 rotate-12" />
+          </div>
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                <span className="text-sm">🛡️</span>
+              </div>
+              <CardTitle className="text-lg font-bold">HidroAlly Analysis</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm leading-relaxed whitespace-pre-wrap font-medium">
+              {insights.emotionalOpener}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
         <Alert className="border-primary/20 bg-primary/5 flex-1">
           <Stethoscope className="h-4 w-4 text-primary" />
@@ -259,8 +283,8 @@ Disclaimer: These insights are AI-generated and for educational purposes only. A
         <CardContent>
           <ul className="space-y-3">
             {insights.immediateRelief.map((strategy, index) => (
-              <li key={index} className="flex items-start space-x-2">
-                <span className="text-green-600 mt-1">•</span>
+              <li key={index} className="flex gap-3">
+                <span className="text-primary mt-1 flex-shrink-0">•</span>
                 <span className="text-muted-foreground">{strategy}</span>
               </li>
             ))}
@@ -280,8 +304,8 @@ Disclaimer: These insights are AI-generated and for educational purposes only. A
         <CardContent>
           <ul className="space-y-3">
             {insights.treatmentOptions.map((option, index) => (
-              <li key={index} className="flex items-start space-x-2">
-                <span className="text-purple-600 mt-1">•</span>
+              <li key={index} className="flex gap-3">
+                <span className="text-primary mt-1 flex-shrink-0">•</span>
                 <span className="text-muted-foreground">{option}</span>
               </li>
             ))}
@@ -301,8 +325,8 @@ Disclaimer: These insights are AI-generated and for educational purposes only. A
         <CardContent>
           <ul className="space-y-3">
             {insights.lifestyleModifications.map((modification, index) => (
-              <li key={index} className="flex items-start space-x-2">
-                <span className="text-orange-600 mt-1">•</span>
+              <li key={index} className="flex gap-3">
+                <span className="text-primary mt-1 flex-shrink-0">•</span>
                 <span className="text-muted-foreground">{modification}</span>
               </li>
             ))}
@@ -322,6 +346,25 @@ Disclaimer: These insights are AI-generated and for educational purposes only. A
           <p className="text-muted-foreground">{insights.medicalAttention}</p>
         </CardContent>
       </Card>
+
+      {/* HidroAlly CTA */}
+      {insights.cta && (
+        <Card className="border-2 border-violet-200 bg-violet-50">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center text-center gap-4">
+              <p className="text-sm text-gray-700 leading-relaxed font-medium italic">
+                {insights.cta}
+              </p>
+              <Button
+                onClick={() => window.location.href = '/hydro-ally'}
+                className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl px-8"
+              >
+                Continue in HidroAlly Chat
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
