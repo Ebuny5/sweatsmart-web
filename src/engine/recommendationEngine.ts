@@ -59,6 +59,7 @@ export interface EpisodeInsights {
 const PALMOPLANTAR_KEYS = new Set([
   "palms", "hands", "hand", "palm",
   "feet & soles", "feet", "soles", "foot", "sole",
+  "feet_soles",
   "fingers", "toes", "fingertips",
 ]);
 
@@ -68,13 +69,14 @@ const AXILLARY_KEYS = new Set([
 
 const CRANIOFACIAL_KEYS = new Set([
   "face & scalp", "face", "scalp only", "scalp", "forehead",
+  "face_scalp",
   "head", "upper lip", "chin", "cheeks", "nose", "neck", "hairline",
 ]);
 
 const TRUNCAL_KEYS = new Set([
   "back", "chest", "groin", "trunk", "abdomen",
   "stomach", "buttocks", "thighs", "torso",
-  "whole body", "entire body",
+  "whole body", "entire body", "entire_body",
 ]);
 
 // ─── Pattern classifier ───────────────────────────────────────────────────────
@@ -119,7 +121,7 @@ function classify(bodyAreas: string[]): PatternResult {
   const focalCount =
     (hasPalmoplantar ? 1 : 0) + (hasAxillary ? 1 : 0) + (hasCraniofacial ? 1 : 0);
 
-  const isWholeBody       = lc.includes("whole body") || lc.includes("entire body");
+  const isWholeBody       = lc.includes("whole body") || lc.includes("entire body") || lc.includes("entire_body");
   const isTruncalOnly     = hasTruncal && focalCount === 0;
   const isWidespread      = lc.length >= 5;
   const isPossibleSecondary = isWholeBody || isTruncalOnly || (hasTruncal && isWidespread);

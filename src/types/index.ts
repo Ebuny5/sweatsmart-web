@@ -36,13 +36,19 @@ export type SeverityLevel = 1 | 2 | 3 | 4 | 5;
 
 export type BodyArea = 
   | 'palms'
+  | 'hands'
   | 'soles'
+  | 'feet'
+  | 'feet_soles'
   | 'underarms'
   | 'face'
   | 'scalp'
+  | 'face_scalp'
   | 'back'
   | 'chest'
-  | 'groin';
+  | 'trunk'
+  | 'groin'
+  | 'entire_body';
 
 export interface BodyAreaDetail {
   area: BodyArea;

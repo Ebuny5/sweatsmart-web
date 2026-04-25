@@ -95,7 +95,7 @@ const Register = () => {
 
   return (
     <AppLayout isAuthenticated={false}>
-      <div className="flex justify-center items-center min-h-[80vh]">
+      <div className="flex justify-center items-center min-h-[80vh] bg-purple-50">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
