@@ -394,7 +394,7 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
               <span>{group.categoryEmoji}</span>
               {group.title}
             </h4>
-            <p className="text-[11px] text-gray-400 leading-snug pl-5">
+            <p className="text-[11px] text-black font-bold leading-snug pl-5">
               {group.researchNote}
             </p>
           </div>

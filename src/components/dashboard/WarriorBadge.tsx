@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from "react";
-import { Download, Share2, RefreshCw } from "lucide-react";
+import { Download, Share2, RefreshCw, X, Linkedin, Instagram, Facebook, MessageCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Badge canvas renderer
@@ -419,27 +420,66 @@ const WarriorBadge = ({
     setTimeout(() => setDownloaded(false), 2000);
   };
 
+  const [showShareModal, setShowShareModal] = useState(false);
+
+  const shareText = `I just unlocked the Hyperhidrosis Warrior Badge on SweatSmart! 🛡️ Tracking my journey and turning sweat into strength. Start tracking your resilience with SweatSmart today. #MySweatDoesNotDefineMe #SweatSmartWarrior #HyperhidrosisAwareness`;
+  const shareUrl = "https://sweatsmart.app";
+
   const handleShare = async () => {
     if (!unlocked) { handleLockedTap(); return; }
     if (!canvasRef.current) return;
-    setSharing(true);
-    try {
-      canvasRef.current.toBlob(async (blob) => {
-        if (!blob) return;
-        const file = new File([blob], "sweatsmart-warrior-badge.png", { type: "image/png" });
-        if (navigator.share && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            title: "I'm a Hyperhidrosis Warrior 💧",
-            text: `I'm a Hyperhidrosis Warrior, my sweat doesn't define me. 💧${episodeCount > 0 ? ` ${episodeCount} episodes tracked and still going strong.` : ""} #HyperhidrosisWarrior #StopTheStigma #SweatSmart`,
-            files: [file],
-          });
-        } else {
-          handleDownload();
-          alert("Save the image and share it with the message:\n\n\"I'm a Hyperhidrosis Warrior, my sweat doesn't define me. 💧\"\n\n#HyperhidrosisWarrior #StopTheStigma #SweatSmart");
-        }
+
+    if (navigator.share) {
+      setSharing(true);
+      try {
+        canvasRef.current.toBlob(async (blob) => {
+          if (!blob) return;
+          const file = new File([blob], "sweatsmart-warrior-badge.png", { type: "image/png" });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              title: "SweatSmart Warrior",
+              text: shareText,
+              url: shareUrl,
+              files: [file],
+            });
+          } else {
+            setShowShareModal(true);
+          }
+          setSharing(false);
+        }, "image/png");
+      } catch {
         setSharing(false);
-      }, "image/png");
-    } catch { setSharing(false); }
+        setShowShareModal(true);
+      }
+    } else {
+      setShowShareModal(true);
+    }
+  };
+
+  const shareToPlatform = (platform: string) => {
+    let url = "";
+    const encodedText = encodeURIComponent(shareText);
+    const encodedUrl = encodeURIComponent(shareUrl);
+
+    switch (platform) {
+      case "linkedin":
+        url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
+        break;
+      case "instagram":
+        // Instagram doesn't have a direct share URL for web, usually redirect to app or site
+        url = `https://www.instagram.com/`;
+        break;
+      case "x":
+        url = `https://x.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`;
+        break;
+      case "facebook":
+        url = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`;
+        break;
+      case "whatsapp":
+        url = `https://api.whatsapp.com/send?text=${encodedText}%20${encodedUrl}`;
+        break;
+    }
+    window.open(url, "_blank");
   };
 
   const VARIANT_NAMES = ["Violet", "Rose", "Gold", "Teal"];
@@ -695,6 +735,69 @@ const WarriorBadge = ({
           #HyperhidrosisWarrior · <span className="text-purple-300 font-bold">#StopTheStigma</span> · #SweatSmart
         </p>
       </div>
+
+      <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
+        <DialogContent className="rounded-3xl max-w-[90vw] sm:max-w-md border-0 bg-[#1e1b4b] text-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black text-center text-white">Share Your Achievement</DialogTitle>
+          </DialogHeader>
+          <div className="p-4 space-y-6">
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
+              <button onClick={() => shareToPlatform('linkedin')} className="flex flex-col items-center gap-2 group">
+                <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center group-hover:bg-[#0077b5] transition-all">
+                  <Linkedin className="h-6 w-6" />
+                </div>
+                <span className="text-[10px] font-bold opacity-60">LinkedIn</span>
+              </button>
+              <button onClick={() => shareToPlatform('instagram')} className="flex flex-col items-center gap-2 group">
+                <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center group-hover:bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] transition-all">
+                  <Instagram className="h-6 w-6" />
+                </div>
+                <span className="text-[10px] font-bold opacity-60">Instagram</span>
+              </button>
+              <button onClick={() => shareToPlatform('x')} className="flex flex-col items-center gap-2 group">
+                <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center group-hover:bg-black transition-all">
+                  <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                </div>
+                <span className="text-[10px] font-bold opacity-60">X</span>
+              </button>
+              <button onClick={() => shareToPlatform('facebook')} className="flex flex-col items-center gap-2 group">
+                <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center group-hover:bg-[#1877f2] transition-all">
+                  <Facebook className="h-6 w-6" />
+                </div>
+                <span className="text-[10px] font-bold opacity-60">Facebook</span>
+              </button>
+              <button onClick={() => shareToPlatform('whatsapp')} className="flex flex-col items-center gap-2 group">
+                <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center group-hover:bg-[#25d366] transition-all">
+                  <MessageCircle className="h-6 w-6" />
+                </div>
+                <span className="text-[10px] font-bold opacity-60">WhatsApp</span>
+              </button>
+            </div>
+
+            <div className="bg-white/5 rounded-2xl p-4 space-y-2 border border-white/10">
+              <p className="text-xs font-bold text-purple-300 uppercase tracking-widest">Share Text</p>
+              <p className="text-sm text-white/80 leading-snug italic">"{shareText}"</p>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(shareText);
+                  alert("Copied to clipboard!");
+                }}
+                className="text-[10px] font-black text-purple-400 hover:text-purple-300 uppercase tracking-widest pt-2"
+              >
+                📋 Copy Text
+              </button>
+            </div>
+
+            <button
+              onClick={() => setShowShareModal(false)}
+              className="w-full py-3 rounded-2xl bg-white/10 text-white font-bold text-sm hover:bg-white/20 transition-all"
+            >
+              Close
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

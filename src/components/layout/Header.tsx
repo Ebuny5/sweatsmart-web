@@ -38,7 +38,7 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated }) => {
 
   const handleLogout = async () => {
     await signOut();
-    navigate("/");
+    navigate("/login");
   };
 
   const userName = profile?.display_name || user?.email || "";

@@ -1,4 +1,4 @@
-                    import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -18,6 +18,7 @@ import { SeverityLevel, BodyArea, Trigger } from "@/types";
 import { CalendarIcon, Clock, Loader2, CheckCircle2, LayoutDashboard, History, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEpisodes } from "@/hooks/useEpisodes";
 import { generateFallbackInsights } from "@/engine/recommendationEngine";
 import { loggingReminderService } from "@/services/LoggingReminderService";
 
@@ -57,6 +58,7 @@ const LogEpisode = () => {
   const location = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { episodes } = useEpisodes();
   const searchParams = new URLSearchParams(location.search);
   const isNow = searchParams.get("now") === "true";
 
@@ -88,6 +90,14 @@ const LogEpisode = () => {
       setTime(format(new Date(), "HH:mm"));
     }
   }, [isNow]);
+
+  const episodesThisWeek = useMemo(() => {
+    if (!episodes) return 0;
+    return episodes.filter(e => {
+      const diff = (Date.now() - new Date(e.datetime).getTime()) / (1000 * 60 * 60 * 24);
+      return diff <= 7;
+    }).length;
+  }, [episodes]);
 
   // ── All original logic — untouched ─────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
@@ -256,7 +266,7 @@ const LogEpisode = () => {
         <div className="max-w-lg mx-auto pb-10">
 
           {/* ── GRADIENT HERO HEADER ──────────────────────────────────────── */}
-        <div className="bg-gradient-to-br from-fuchsia-600 via-pink-600 to-rose-600 px-6 pt-8 pb-8 rounded-b-[2.5rem] shadow-lg shadow-pink-200 mb-6">
+        <div className="bg-[#000080] px-6 pt-8 pb-8 rounded-b-[2.5rem] shadow-lg shadow-pink-200 mb-6">
           <div className="flex items-start justify-between mb-2">
             <div>
               <p className="text-blue-100 text-xs font-semibold uppercase tracking-widest mb-1">
@@ -396,29 +406,36 @@ const LogEpisode = () => {
             </Section>
 
             {/* Action buttons */}
-            <div className="flex gap-3 pt-2 pb-6">
+            <div className="flex flex-col gap-3 pt-2 pb-6 px-4">
+              <div className="flex items-center gap-3">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-[2] py-3.5 rounded-xl bg-[#4B0082] hover:opacity-90 disabled:opacity-60 text-white font-bold transition-all shadow-md text-sm flex items-center justify-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Saving…
+                    </>
+                  ) : (
+                    <>
+                      💾 Save Episode
+                    </>
+                  )}
+                </button>
+                <div className="flex-1 text-center">
+                  <span className="text-[10px] text-black font-bold leading-tight block">
+                    {episodesThisWeek} episode{episodesThisWeek !== 1 ? 's' : ''} logged this week
+                  </span>
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={() => navigate("/home")}
-                className="flex-1 py-3.5 rounded-xl border-2 border-gray-200 text-gray-600 font-semibold hover:bg-gray-50 transition-all text-sm"
+                className="w-full py-3.5 rounded-xl border-2 border-gray-200 text-gray-600 font-semibold hover:bg-gray-50 transition-all text-sm"
               >
                 Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex-1 py-3.5 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:opacity-60 text-white font-bold transition-all shadow-md shadow-blue-100 text-sm flex items-center justify-center gap-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Saving…
-                  </>
-                ) : (
-                  <>
-                    💾 Save Episode
-                  </>
-                )}
               </button>
             </div>
 
