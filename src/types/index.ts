@@ -37,8 +37,10 @@ export type SeverityLevel = 1 | 2 | 3 | 4 | 5;
 export type BodyArea = 
   | 'palms'
   | 'hands'
+  | 'fingers'
   | 'soles'
   | 'feet'
+  | 'toes'
   | 'feet_soles'
   | 'underarms'
   | 'face'
