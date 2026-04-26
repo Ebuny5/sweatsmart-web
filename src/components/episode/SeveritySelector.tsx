@@ -140,7 +140,7 @@ const SeveritySelector: React.FC<SeveritySelectorProps> = ({ value, onChange }) 
 
       {/* Droplet scale */}
       <div className="flex items-center justify-between px-1 pt-1">
-        <span className="text-[11px] text-gray-400">Never noticeable</span>
+        <span className="text-[11px] text-black font-bold">Never noticeable</span>
         <div className="flex items-end gap-1.5">
           {hdssLevels.map((lvl) => (
             <div
@@ -152,10 +152,10 @@ const SeveritySelector: React.FC<SeveritySelectorProps> = ({ value, onChange }) 
             />
           ))}
         </div>
-        <span className="text-[11px] text-gray-400">Intolerable</span>
+        <span className="text-[11px] text-black font-bold">Intolerable</span>
       </div>
 
-      <p className="text-[11px] text-center text-gray-400">
+      <p className="text-[11px] text-center text-black font-bold">
         Severity based on the clinically validated Hyperhidrosis Disease Severity Scale (HDSS)
       </p>
     </div>

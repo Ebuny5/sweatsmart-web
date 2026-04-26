@@ -54,6 +54,16 @@ const bodyAreaOptions: (BodyAreaDetail & {
     priority: "High",
   },
   {
+    area: "toes",
+    name: "toes",
+    label: "Toes",
+    icon: "foot",
+    emoji: "🦶",
+    clinicalName: "Plantar Hyperhidrosis",
+    complication: "Toe grip, moisture between toes, fungal risk",
+    priority: "High",
+  },
+  {
     area: "soles",
     name: "soles",
     label: "Soles",
@@ -81,6 +91,16 @@ const bodyAreaOptions: (BodyAreaDetail & {
     emoji: "🤚",
     clinicalName: "Palmar Hyperhidrosis",
     complication: "Touchscreen difficulty, slippery grip, social anxiety",
+    priority: "High",
+  },
+  {
+    area: "fingers",
+    name: "fingers",
+    label: "Fingers",
+    icon: "hand",
+    emoji: "🖐️",
+    clinicalName: "Palmar Hyperhidrosis",
+    complication: "Fine motor tasks, fingerprint sensors, social touch",
     priority: "High",
   },
   {
@@ -198,8 +218,8 @@ const BodyAreaSelector: React.FC<BodyAreaSelectorProps> = ({
         return (
           <div key={group.priority} className="space-y-2">
             <div className="flex items-baseline gap-2">
-              <h4 className="text-sm font-semibold text-gray-700">{group.label}</h4>
-              <span className="text-[11px] text-gray-400">{group.description}</span>
+              <h4 className="text-sm font-bold text-black">{group.label}</h4>
+              <span className="text-[11px] font-bold text-black">{group.description}</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {options.map((option) => {
