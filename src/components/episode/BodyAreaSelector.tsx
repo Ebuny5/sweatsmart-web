@@ -1,179 +1,12 @@
-import { BodyArea, BodyAreaDetail } from "@/types";
+import { BodyArea } from "@/types";
 import { useCallback } from "react";
+import { BODY_AREA_OPTIONS } from "@/constants/episodeData";
 
 interface BodyAreaSelectorProps {
   selectedAreas: BodyArea[];
   onChange: (areas: BodyArea[]) => void;
+  highlightedAreas?: BodyArea[];
 }
-
-// Each area includes its clinical classification name from dermatology
-const bodyAreaOptions: (BodyAreaDetail & {
-  emoji: string;
-  clinicalName: string;
-  complication: string;
-  priority: "High" | "Medium";
-})[] = [
-  {
-    area: "face",
-    name: "face",
-    label: "Face",
-    icon: "smile",
-    emoji: "😰",
-    clinicalName: "Craniofacial Hyperhidrosis",
-    complication: "Visible sweating, social anxiety, skin irritation",
-    priority: "High",
-  },
-  {
-    area: "scalp",
-    name: "scalp",
-    label: "Scalp",
-    icon: "brain",
-    emoji: "🧢",
-    clinicalName: "Craniofacial Hyperhidrosis",
-    complication: "Wet hair, scalp odor, hair product interference",
-    priority: "High",
-  },
-  {
-    area: "face_scalp",
-    name: "face_scalp",
-    label: "Face & Scalp",
-    icon: "smile",
-    emoji: "😰",
-    clinicalName: "Craniofacial Hyperhidrosis",
-    complication: "Vision interference, makeup challenges, social withdrawal",
-    priority: "High",
-  },
-  {
-    area: "feet",
-    name: "feet",
-    label: "Feet",
-    icon: "foot",
-    emoji: "🦶",
-    clinicalName: "Plantar Hyperhidrosis",
-    complication: "Fungal infections, odor, shoe damage",
-    priority: "High",
-  },
-  {
-    area: "toes",
-    name: "toes",
-    label: "Toes",
-    icon: "foot",
-    emoji: "🦶",
-    clinicalName: "Plantar Hyperhidrosis",
-    complication: "Toe grip, moisture between toes, fungal risk",
-    priority: "High",
-  },
-  {
-    area: "soles",
-    name: "soles",
-    label: "Soles",
-    icon: "foot",
-    emoji: "🦶",
-    clinicalName: "Plantar Hyperhidrosis",
-    complication: "Slippery grip on floor, fungal risk, discomfort",
-    priority: "High",
-  },
-  {
-    area: "feet_soles",
-    name: "feet_soles",
-    label: "Feet & Soles",
-    icon: "foot",
-    emoji: "🦶",
-    clinicalName: "Plantar Hyperhidrosis",
-    complication: "Fungal infections, odor, shoe damage",
-    priority: "High",
-  },
-  {
-    area: "palms",
-    name: "palms",
-    label: "Palms",
-    icon: "hand",
-    emoji: "🤚",
-    clinicalName: "Palmar Hyperhidrosis",
-    complication: "Touchscreen difficulty, slippery grip, social anxiety",
-    priority: "High",
-  },
-  {
-    area: "fingers",
-    name: "fingers",
-    label: "Fingers",
-    icon: "hand",
-    emoji: "🖐️",
-    clinicalName: "Palmar Hyperhidrosis",
-    complication: "Fine motor tasks, fingerprint sensors, social touch",
-    priority: "High",
-  },
-  {
-    area: "hands",
-    name: "hands",
-    label: "Hands",
-    icon: "hand",
-    emoji: "🤚",
-    clinicalName: "Palmar Hyperhidrosis",
-    complication: "Shaking hands difficulty, social anxiety, grip issues",
-    priority: "High",
-  },
-  {
-    area: "underarms",
-    name: "underarms",
-    label: "Armpits",
-    icon: "user",
-    emoji: "💪",
-    clinicalName: "Axillary Hyperhidrosis",
-    complication: "Visible stains, skin irritation, bromhidrosis",
-    priority: "High",
-  },
-  {
-    area: "entire_body",
-    name: "entire_body",
-    label: "Entire Body",
-    icon: "user",
-    emoji: "👤",
-    clinicalName: "Generalized Hyperhidrosis",
-    complication: "Severe dehydration, multiple clothing changes, exhaustion",
-    priority: "Medium",
-  },
-  {
-    area: "trunk",
-    name: "trunk",
-    label: "Trunk",
-    icon: "shirt",
-    emoji: "👕",
-    clinicalName: "Truncal Hyperhidrosis",
-    complication: "Clothing adherence, rapid dehydration, torso discomfort",
-    priority: "Medium",
-  },
-  {
-    area: "chest",
-    name: "chest",
-    label: "Chest",
-    icon: "heart",
-    emoji: "🫀",
-    clinicalName: "Truncal Hyperhidrosis",
-    complication: "Frequent clothing changes, dehydration risk",
-    priority: "Medium",
-  },
-  {
-    area: "back",
-    name: "back",
-    label: "Back",
-    icon: "body",
-    emoji: "🔙",
-    clinicalName: "Truncal Hyperhidrosis",
-    complication: "Rapid dehydration, frequent clothing changes",
-    priority: "Medium",
-  },
-  {
-    area: "groin",
-    name: "groin",
-    label: "Groin",
-    icon: "user",
-    emoji: "🩲",
-    clinicalName: "Inguinal Hyperhidrosis",
-    complication: "Jock itch, physical discomfort, intimate relationship stress",
-    priority: "Medium",
-  },
-];
 
 const priorityGroups = [
   {
@@ -191,6 +24,7 @@ const priorityGroups = [
 const BodyAreaSelector: React.FC<BodyAreaSelectorProps> = ({
   selectedAreas,
   onChange,
+  highlightedAreas = [],
 }) => {
   const handleAreaToggle = useCallback(
     (area: BodyArea) => {
@@ -203,7 +37,7 @@ const BodyAreaSelector: React.FC<BodyAreaSelectorProps> = ({
     [selectedAreas, onChange]
   );
 
-  const selectedDetails = bodyAreaOptions.filter((o) =>
+  const selectedDetails = BODY_AREA_OPTIONS.filter((o) =>
     selectedAreas.includes(o.area)
   );
 
@@ -214,7 +48,7 @@ const BodyAreaSelector: React.FC<BodyAreaSelectorProps> = ({
       </p>
 
       {priorityGroups.map((group) => {
-        const options = bodyAreaOptions.filter((o) => o.priority === group.priority);
+        const options = BODY_AREA_OPTIONS.filter((o) => o.priority === group.priority);
         return (
           <div key={group.priority} className="space-y-2">
             <div className="flex items-baseline gap-2">
@@ -224,6 +58,7 @@ const BodyAreaSelector: React.FC<BodyAreaSelectorProps> = ({
             <div className="flex flex-wrap gap-2">
               {options.map((option) => {
                 const isSelected = selectedAreas.includes(option.area);
+                const isHighlighted = highlightedAreas.includes(option.area);
                 return (
                   <button
                     key={option.area}
@@ -234,7 +69,9 @@ const BodyAreaSelector: React.FC<BodyAreaSelectorProps> = ({
                         isSelected
                           ? "bg-blue-50 border-blue-400 shadow-sm"
                           : "bg-blue-50 border-gray-200 hover:border-gray-300 hover:bg-gray-100"
-                      }`}
+                      }
+                      ${isHighlighted ? "match-pulse-animation border-blue-600 ring-2 ring-blue-300" : ""}
+                    `}
                   >
                     {isSelected && (
                       <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center shadow-sm">

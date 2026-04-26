@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -15,12 +15,13 @@ import BodyAreaSelector from "@/components/episode/BodyAreaSelector";
 import TriggerSelector from "@/components/episode/TriggerSelector";
 import AIGeneratedInsights from "@/components/episode/AIGeneratedInsights";
 import { SeverityLevel, BodyArea, Trigger } from "@/types";
-import { CalendarIcon, Clock, Loader2, CheckCircle2, LayoutDashboard, History, Plus } from "lucide-react";
+import { CalendarIcon, Clock, Loader2, CheckCircle2, LayoutDashboard, History, Plus, Mic, MicOff, Droplets, Square } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEpisodes } from "@/hooks/useEpisodes";
 import { generateFallbackInsights } from "@/engine/recommendationEngine";
 import { loggingReminderService } from "@/services/LoggingReminderService";
+import { useVoiceLogging } from "@/hooks/useVoiceLogging";
 
 // ── Section wrapper ──────────────────────────────────────────────────────────
 const Section = ({
@@ -62,7 +63,7 @@ const LogEpisode = () => {
   const searchParams = new URLSearchParams(location.search);
   const isNow = searchParams.get("now") === "true";
 
-  // ── All original state — untouched ─────────────────────────────────────────
+  // ── All original state ─────────────────────────────────────────────────────
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [time, setTime] = useState<string>(format(new Date(), "HH:mm"));
   const [severity, setSeverity] = useState<SeverityLevel>(3);
@@ -74,6 +75,9 @@ const LogEpisode = () => {
   const [aiInsights, setAiInsights] = useState<any>(null);
   const [isLoadingInsights, setIsLoadingInsights] = useState<boolean>(false);
   const [lastLoggedDisplay, setLastLoggedDisplay] = useState<string>("");
+  const [lastSavedEpisodeId, setLastSavedEpisodeId] = useState<string | null>(null);
+
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     const lastLogTime = localStorage.getItem("sweatsmart_last_log_time");
@@ -99,9 +103,9 @@ const LogEpisode = () => {
     }).length;
   }, [episodes]);
 
-  // ── All original logic — untouched ─────────────────────────────────────────
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // ── All original logic ─────────────────────────────────────────────────────
+  const handleSubmit = useCallback(async (e?: React.FormEvent, manualNotes?: string) => {
+    if (e) e.preventDefault();
 
     if (!user) {
       toast({ title: "Authentication required", description: "Please log in to save episodes.", variant: "destructive" });
@@ -123,21 +127,27 @@ const LogEpisode = () => {
     const datetime = new Date(date);
     datetime.setHours(hours, minutes);
 
+    const finalNotes = manualNotes !== undefined ? manualNotes : notes;
+
     try {
       const triggerStrings = triggers.map((trigger) =>
         JSON.stringify({ type: trigger.type, value: trigger.value, label: trigger.label })
       );
 
-      const { error } = await supabase.from("episodes").insert({
+      const { data, error } = await supabase.from("episodes").insert({
         user_id: user.id,
         severity: severity,
         body_areas: bodyAreas,
         triggers: triggerStrings,
-        notes: notes || null,
+        notes: finalNotes || null,
         date: datetime.toISOString(),
-      });
+      }).select();
 
       if (error) throw error;
+
+      if (data && data[0]) {
+        setLastSavedEpisodeId(data[0].id);
+      }
 
       // Reschedule the next reminder 4 hours from now
       loggingReminderService.handleLogSaved();
@@ -157,7 +167,7 @@ const LogEpisode = () => {
           severity,
           bodyAreas,
           triggerData,
-          notes,
+          finalNotes,
         );
 
         setAiInsights(insights);
@@ -181,7 +191,80 @@ const LogEpisode = () => {
     } finally {
       setIsSubmitting(false);
     }
+  }, [user, date, time, severity, bodyAreas, triggers, notes, navigate, toast]);
+
+  const handleUndo = async () => {
+    if (!lastSavedEpisodeId) return;
+
+    try {
+      const { error } = await supabase
+        .from("episodes")
+        .delete()
+        .eq("id", lastSavedEpisodeId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Episode deleted",
+        description: "The last logged episode has been removed.",
+      });
+
+      setLastSavedEpisodeId(null);
+      setShowInsights(false);
+      setAiInsights(null);
+    } catch (error) {
+      console.error("Undo failed:", error);
+      toast({
+        title: "Undo failed",
+        description: "Could not delete the episode. Please check your history.",
+        variant: "destructive",
+      });
+    }
   };
+
+  // ── Voice logging integration ──────────────────────────────────────────────
+  const {
+    isListening,
+    startListening,
+    stopListening,
+    transcript,
+    highlightedAreas,
+    highlightedTriggers,
+    canUndo,
+  } = useVoiceLogging({
+    onBodyAreaMatch: (area) => {
+      setBodyAreas(prev => prev.includes(area) ? prev : [...prev, area]);
+    },
+    onTriggerMatch: (trigger) => {
+      setTriggers(prev => prev.some(t => t.label === trigger.label) ? prev : [...prev, trigger]);
+    },
+    onTranscriptUpdate: (newTranscript) => {
+      const timestamp = format(new Date(), "h:mm a");
+      const entry = notes ? `\n\n[Voice log - ${timestamp}]: ${newTranscript}` : `[Voice log - ${timestamp}]: ${newTranscript}`;
+      setNotes(prev => prev + entry);
+    },
+    onAutoSave: (finalTranscript) => {
+      let finalNotes = notes;
+      if (finalTranscript) {
+        const timestamp = format(new Date(), "h:mm a");
+        finalNotes = notes ? `${notes}\n\n[Voice log - ${timestamp}]: ${finalTranscript}` : `[Voice log - ${timestamp}]: ${finalTranscript}`;
+        setNotes(finalNotes);
+      }
+      handleSubmit(undefined, finalNotes);
+    },
+    onUndo: handleUndo,
+    isSubmitting,
+  });
+
+  useEffect(() => {
+    if (canUndo) {
+      toast({
+        title: "Episode saved",
+        description: "Say 'undo' within 10 seconds to delete.",
+        duration: 10000,
+      });
+    }
+  }, [canUndo, toast]);
 
   // ── Success / Insights screen ──────────────────────────────────────────────
   if (showInsights) {
@@ -262,7 +345,7 @@ const LogEpisode = () => {
   // ── Main log form ──────────────────────────────────────────────────────────
   return (
     <AppLayout>
-      <div className="min-h-screen bg-[#EE82EE]">
+      <div className="min-h-screen bg-[#EE82EE] relative">
         <div className="max-w-lg mx-auto pb-10">
 
           {/* ── GRADIENT HERO HEADER ──────────────────────────────────────── */}
@@ -302,7 +385,7 @@ const LogEpisode = () => {
         </div>
 
         {/* ── FORM ─────────────────────────────────────────────────────── */}
-        <form onSubmit={handleSubmit}>
+        <form ref={formRef} onSubmit={handleSubmit}>
           <div className="space-y-4 px-4">
 
             {/* Date & Time */}
@@ -381,7 +464,11 @@ const LogEpisode = () => {
 
                 <div className="border-t border-white/20 pt-5">
                   <p className="text-sm font-bold text-black mb-3">Affected Body Areas</p>
-                  <BodyAreaSelector selectedAreas={bodyAreas} onChange={setBodyAreas} />
+                  <BodyAreaSelector
+                    selectedAreas={bodyAreas}
+                    onChange={setBodyAreas}
+                    highlightedAreas={highlightedAreas}
+                  />
                 </div>
 
                 <div className="border-t border-white/20 pt-5 space-y-1.5">
@@ -402,7 +489,11 @@ const LogEpisode = () => {
 
             {/* Triggers */}
             <Section emoji="🔍" title="Potential Triggers" subtitle="What may have caused or contributed to this episode?">
-              <TriggerSelector triggers={triggers} onTriggersChange={setTriggers} />
+              <TriggerSelector
+                triggers={triggers}
+                onTriggersChange={setTriggers}
+                highlightedTriggers={highlightedTriggers}
+              />
             </Section>
 
             {/* Action buttons */}
@@ -441,6 +532,38 @@ const LogEpisode = () => {
 
           </div>
         </form>
+
+        {/* Floating Microphone Action Button */}
+        <div className="fixed bottom-24 right-6 z-50 flex flex-col items-center gap-3">
+          {isListening && (
+            <div className="bg-white/90 backdrop-blur-md border border-blue-200 rounded-2xl p-4 shadow-xl mb-2 max-w-[200px] animate-in fade-in slide-in-from-bottom-4">
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">Listening...</span>
+              </div>
+              <p className="text-xs text-gray-600 italic line-clamp-3">
+                {transcript || "Speak naturally about your triggers and affected areas..."}
+              </p>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={startListening}
+            className={cn(
+              "w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all active:scale-95",
+              isListening
+                ? "bg-red-500 text-white listening-animation"
+                : "bg-blue-500 text-white voice-pulse-animation hover:bg-blue-600"
+            )}
+          >
+            {isListening ? (
+              <Square className="h-6 w-6 fill-current" />
+            ) : (
+              <Droplets className="h-8 w-8" />
+            )}
+          </button>
+        </div>
       </div>
     </div>
     </AppLayout>

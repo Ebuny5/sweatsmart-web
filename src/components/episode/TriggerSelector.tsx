@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus, X } from "lucide-react";
 import { Trigger } from "@/types";
+import { TRIGGER_GROUPS, TriggerCategory } from "@/constants/episodeData";
 
 type UserGender = "male" | "female" | "non-binary" | "prefer-not-to-say";
 
@@ -10,302 +11,17 @@ interface TriggerSelectorProps {
   triggers: Trigger[];
   onTriggersChange: (triggers: Trigger[]) => void;
   userGender?: UserGender;
+  highlightedTriggers?: string[];
 }
-
-type TriggerCategory = "environmental" | "emotional" | "dietary" | "physical";
-
-interface TriggerOption {
-  label: string;
-  emoji: string;
-  type: TriggerCategory;
-  tip?: string; // clinical or community insight shown on selection
-}
-
-// ─── RESEARCH-BACKED TRIGGER TAXONOMY ─────────────────────────────────────────
-// Sources: HDSS clinical guidelines, patient forums, dermatological studies
-// as documented in SweatSmart UX Research v1
-const triggerGroups: {
-  category: TriggerCategory;
-  title: string;
-  categoryEmoji: string;
-  researchNote: string;
-  selectedBg: string;
-  selectedBorder: string;
-  triggers: Omit<TriggerOption, "type">[];
-}[] = [
-  // ── 1. ENVIRONMENTAL & SITUATIONAL ───────────────────────────────────────────
-  {
-    category: "environmental",
-    title: "Environment & Situation",
-    categoryEmoji: "🌡️",
-    researchNote:
-      "Physical + social environments combine to amplify sympathetic nervous system response",
-    selectedBg: "bg-orange-50",
-    selectedBorder: "border-orange-400",
-    triggers: [
-      {
-        label: "Hot Temperature",
-        emoji: "☀️",
-        tip: "Direct heat activates eccrine glands across the body",
-      },
-      {
-        label: "High Humidity",
-        emoji: "🌫️",
-        tip: "Evaporative cooling fails in humid air, worsening sweating",
-      },
-      {
-        label: "Crowded Spaces",
-        emoji: "👥",
-        tip: "Combines ambient heat with social anxiety — a common hybrid trigger",
-      },
-      {
-        label: "Bright Lights",
-        emoji: "💡",
-        tip: "Sensory overstimulation can activate the sympathetic nervous system",
-      },
-      {
-        label: "Loud Noises",
-        emoji: "🔊",
-        tip: "Acoustic stress triggers CNS arousal and sweating response",
-      },
-      {
-        label: "Transitional Temperature",
-        emoji: "🌡️",
-        tip: "Moving from AC to heat (or vice versa) rapidly can trigger an episode",
-      },
-      {
-        label: "Synthetic Fabrics",
-        emoji: "👕",
-        tip: "Polyester and nylon trap heat and restrict evaporation",
-      },
-      {
-        label: "Outdoor Sun Exposure",
-        emoji: "🏖️",
-        tip: "Radiant heat from sun exposure combined with UV stress",
-      },
-    ],
-  },
-
-  // ── 2. PSYCHOLOGICAL & COGNITIVE ─────────────────────────────────────────────
-  {
-    category: "emotional",
-    title: "Emotional & Cognitive",
-    categoryEmoji: "🧠",
-    researchNote:
-      "Emotional triggers initiate the sympathetic 'fight or flight' response. The 'anticipatory sweat' loop is a documented hyperhidrosis-specific feedback cycle.",
-    selectedBg: "bg-purple-50",
-    selectedBorder: "border-purple-400",
-    triggers: [
-      {
-        label: "Stress",
-        emoji: "😫",
-        tip: "Chronic or acute stress directly activates the sympathetic nervous system, triggering palmar and axillary sweating",
-      },
-      {
-        label: "Anxiety",
-        emoji: "😰",
-        tip: "Anxiety creates a hyperarousal state that activates eccrine glands — especially in palms, soles, and underarms",
-      },
-      {
-        label: "Anticipatory Sweating",
-        emoji: "💭",
-        tip: "Thinking about sweating triggers the episode you feared — a feedback loop unique to hyperhidrosis",
-      },
-      {
-        label: "Embarrassment",
-        emoji: "😳",
-        tip: "Social shame activates the sympathetic nervous system immediately",
-      },
-      {
-        label: "Excitement",
-        emoji: "⚡",
-        tip: "Even positive excitement can trigger the same sympathetic pathway",
-      },
-      {
-        label: "Anger",
-        emoji: "😤",
-        tip: "Emotional arousal elevates sympathetic tone and can trigger episodes",
-      },
-      {
-        label: "Nervousness",
-        emoji: "😬",
-        tip: "Low-grade chronic nervousness sustains sweating even without a clear event",
-      },
-      {
-        label: "Public Speaking",
-        emoji: "🎤",
-        tip: "Combines performance anxiety with social visibility — highly reported trigger",
-      },
-      {
-        label: "Social Interaction",
-        emoji: "🤝",
-        tip: "Handshakes, meetings, physical proximity — especially problematic for palmar hyperhidrosis",
-      },
-      {
-        label: "Work Pressure",
-        emoji: "📋",
-        tip: "Deadline stress and professional performance anxiety",
-      },
-      {
-        label: "Exam / Test Situation",
-        emoji: "📝",
-        tip: "High-stakes performance environments with no escape option",
-      },
-    ],
-  },
-
-  // ── 3. DIETARY & GUSTATORY ───────────────────────────────────────────────────
-  {
-    category: "dietary",
-    title: "Food, Drink & Gustatory",
-    categoryEmoji: "🍽️",
-    researchNote:
-      "Gustatory sweating occurs when eating triggers sweating, beyond just spicy foods. Caffeine directly stimulates the sympathetic nervous system.",
-    selectedBg: "bg-green-50",
-    selectedBorder: "border-green-400",
-    triggers: [
-      {
-        label: "Spicy Food",
-        emoji: "🌶️",
-        tip: "Capsaicin stimulates trigeminal nerve — a classic gustatory sweating trigger",
-      },
-      {
-        label: "Caffeine",
-        emoji: "☕",
-        tip: "CNS stimulant — directly activates sympathetic nervous system, even in small amounts",
-      },
-      {
-        label: "Alcohol",
-        emoji: "🍷",
-        tip: "Causes vasodilation and body temperature spike, worsening sweating",
-      },
-      {
-        label: "Hot Drinks",
-        emoji: "🍵",
-        tip: "Raises core body temperature regardless of content",
-      },
-      {
-        label: "Heavy Meals",
-        emoji: "🍽️",
-        tip: "Postprandial thermogenesis — digesting large meals generates internal heat",
-      },
-      {
-        label: "Gustatory Sweating",
-        emoji: "😋",
-        tip: "Sweating triggered by eating in general, not a specific food — often linked to nerve damage",
-      },
-      {
-        label: "Energy Drinks",
-        emoji: "⚡",
-        tip: "High caffeine + stimulant combinations amplify sympathetic response",
-      },
-    ],
-  },
-
-  // ── 4. PHARMACOLOGICAL ───────────────────────────────────────────────────────
-  {
-    category: "physical",
-    title: "Medications & Supplements",
-    categoryEmoji: "💊",
-    researchNote:
-      "Pharmacological triggers are a major cause of secondary hyperhidrosis. SSRIs, opioids, and NSAIDs all have excessive sweating as a documented side effect.",
-    selectedBg: "bg-red-50",
-    selectedBorder: "border-red-400",
-    triggers: [
-      {
-        label: "SSRIs / Antidepressants",
-        emoji: "💊",
-        tip: "Serotonergic thermoregulatory disruption — one of the most common drug-induced causes",
-      },
-      {
-        label: "Opioids / Pain Medication",
-        emoji: "💉",
-        tip: "Opioids directly stimulate sweat glands through CNS pathways",
-      },
-      {
-        label: "NSAIDs (Aspirin, Ibuprofen)",
-        emoji: "🩺",
-        tip: "Common over-the-counter pain relievers with sweating as a documented side effect",
-      },
-      {
-        label: "Blood Pressure Medication",
-        emoji: "❤️",
-        tip: "Beta-blockers and calcium channel blockers can cause hyperhidrosis as a side effect",
-      },
-      {
-        label: "Insulin / Diabetes Medication",
-        emoji: "🩸",
-        tip: "Hypoglycemia episodes caused by insulin can trigger compensatory sweating",
-      },
-      {
-        label: "Supplements / Herbal",
-        emoji: "🌿",
-        tip: "Some herbal supplements affect thermoregulation or hormone levels",
-      },
-      {
-        label: "New Medication",
-        emoji: "🔔",
-        tip: "Starting a new medication — sweating is a common adjustment side effect",
-      },
-    ],
-  },
-
-  // ── 5. PHYSICAL & ACTIVITY ───────────────────────────────────────────────────
-  {
-    category: "physical",
-    title: "Physical Activity & Body State",
-    categoryEmoji: "🏃",
-    researchNote:
-      "Exercise-induced sweating is normal but can be disproportionate in hyperhidrosis. Sleep-associated sweating may indicate secondary (systemic) hyperhidrosis.",
-    selectedBg: "bg-blue-50",
-    selectedBorder: "border-blue-400",
-    triggers: [
-      {
-        label: "Physical Exercise",
-        emoji: "🏃",
-        tip: "Exercise raises core body temperature — response is often far beyond what is needed",
-      },
-      {
-        label: "Night Sweats",
-        emoji: "🌙",
-        tip: "Sweating during sleep may indicate secondary hyperhidrosis — consider sharing with your doctor",
-      },
-      {
-        label: "Poor Sleep",
-        emoji: "😴",
-        tip: "Sleep deprivation heightens sympathetic nervous system sensitivity",
-      },
-      {
-        label: "Hormonal Changes",
-        emoji: "🔄",
-        // tip is intentionally omitted here — resolved dynamically from userGender at render time
-      },
-      {
-        label: "Illness / Fever",
-        emoji: "🤒",
-        tip: "Systemic illness increases sweating as part of immune response",
-      },
-      {
-        label: "Hypoglycemia",
-        emoji: "🩸",
-        tip: "Low blood sugar triggers compensatory sweating — especially relevant if diabetic",
-      },
-      {
-        label: "Certain Clothing",
-        emoji: "🧥",
-        tip: "Non-breathable or tight clothing traps heat against the skin",
-      },
-    ],
-  },
-];
 
 // All predefined labels (to identify custom triggers)
-const allPredefinedLabels = triggerGroups.flatMap((g) => g.triggers.map((t) => t.label));
+const allPredefinedLabels = TRIGGER_GROUPS.flatMap((g) => g.triggers.map((t) => t.label));
 
 const TriggerSelector: React.FC<TriggerSelectorProps> = ({
   triggers = [],
   onTriggersChange,
   userGender,
+  highlightedTriggers = [],
 }) => {
   const [customTrigger, setCustomTrigger] = useState("");
   const [showCustomInput, setShowCustomInput] = useState(false);
@@ -386,7 +102,7 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
         What may have caused or contributed to this episode? Select all that apply.
       </p>
 
-      {triggerGroups.map((group) => (
+      {TRIGGER_GROUPS.map((group) => (
         <div key={`${group.category}-${group.title}`} className="space-y-2">
           {/* Category header */}
           <div className="space-y-0.5">
@@ -403,6 +119,7 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
           <div className="flex flex-wrap gap-2 pt-1">
             {group.triggers.map((trigger) => {
               const isSelected = isTriggerSelected(trigger.label);
+              const isHighlighted = highlightedTriggers.includes(trigger.label);
               return (
                 <button
                   key={trigger.label}
@@ -420,7 +137,9 @@ const TriggerSelector: React.FC<TriggerSelectorProps> = ({
                       isSelected
                         ? `${group.selectedBg} ${group.selectedBorder} shadow-sm`
                         : "bg-blue-50 border-gray-200 hover:border-gray-300 hover:bg-gray-100"
-                    }`}
+                    }
+                    ${isHighlighted ? "match-pulse-animation ring-2 ring-blue-300 border-blue-600" : ""}
+                  `}
                 >
                   {isSelected && (
                     <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center shadow-sm">
