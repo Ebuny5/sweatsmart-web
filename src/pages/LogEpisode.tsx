@@ -233,6 +233,7 @@ const LogEpisode = () => {
   // ── Voice logging integration ──────────────────────────────────────────────
   const {
     isListening,
+    voiceStage,
     startListening,
     stopListening,
     transcript,
@@ -251,14 +252,20 @@ const LogEpisode = () => {
       const entry = notes ? `\n\n[Voice log - ${timestamp}]: ${newTranscript}` : `[Voice log - ${timestamp}]: ${newTranscript}`;
       setNotes(prev => prev + entry);
     },
-    onAutoSave: (finalTranscript) => {
+    onAutoSave: (finalTranscript, matches) => {
       let finalNotes = notes;
+      const finalBodyAreas = matches?.bodyAreas?.length ? matches.bodyAreas : bodyAreas;
+      const finalTriggers = matches?.triggers?.length ? matches.triggers : triggers;
+
+      if (matches?.bodyAreas?.length) setBodyAreas(matches.bodyAreas);
+      if (matches?.triggers?.length) setTriggers(matches.triggers);
+
       if (finalTranscript) {
         const timestamp = format(new Date(), "h:mm a");
         finalNotes = notes ? `${notes}\n\n[Voice log - ${timestamp}]: ${finalTranscript}` : `[Voice log - ${timestamp}]: ${finalTranscript}`;
         setNotes(finalNotes);
       }
-      handleSubmit(undefined, finalNotes);
+      handleSubmit(undefined, finalNotes, finalBodyAreas, finalTriggers);
     },
     onUndo: handleUndo,
     isSubmitting,
