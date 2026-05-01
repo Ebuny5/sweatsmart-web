@@ -7,6 +7,7 @@ import { Lightbulb, Stethoscope, Heart, Activity, AlertCircle, Copy, Download, V
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
+import { cn } from '@/lib/utils';
 
 interface AIInsightsProps {
   insights: {
