@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Lightbulb, Stethoscope, Heart, Activity, AlertCircle, Copy, Download } from 'lucide-react';
+import { Lightbulb, Stethoscope, Heart, Activity, AlertCircle, Copy, Download, Volume2, VolumeX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
@@ -23,6 +23,58 @@ interface AIInsightsProps {
 const AIGeneratedInsights: React.FC<AIInsightsProps> = ({ insights }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const synthRef = useRef<SpeechSynthesis | null>(window.speechSynthesis);
+
+  useEffect(() => {
+    return () => {
+      if (synthRef.current) {
+        synthRef.current.cancel();
+      }
+    };
+  }, []);
+
+  const handleToggleSpeak = () => {
+    if (isSpeaking) {
+      synthRef.current?.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    const fullText = `
+      ${insights.emotionalOpener ? insights.emotionalOpener : ""}
+      Clinical Analysis: ${insights.clinicalAnalysis}.
+      Immediate Relief Strategies: ${insights.immediateRelief.join(". ")}.
+      Treatment Recommendations: ${insights.treatmentOptions.join(". ")}.
+      Lifestyle Modifications: ${insights.lifestyleModifications.join(". ")}.
+      When to seek medical attention: ${insights.medicalAttention}.
+    `.trim();
+
+    const utterance = new SpeechSynthesisUtterance(fullText);
+
+    // Try to find a natural female voice
+    const voices = synthRef.current?.getVoices() || [];
+    const femaleVoice = voices.find(v =>
+      (v.name.includes("Natural") || v.name.includes("Premium") || v.name.includes("Neural")) &&
+      (v.name.includes("Female") || v.name.includes("Google US English") || v.name.includes("Samantha") || v.name.includes("Victoria"))
+    ) || voices.find(v =>
+      v.name.includes("Female") ||
+      v.name.includes("Google US English") ||
+      v.name.includes("Samantha") ||
+      v.name.includes("Victoria")
+    );
+
+    if (femaleVoice) {
+      utterance.voice = femaleVoice;
+      utterance.rate = 0.95;
+    }
+
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    setIsSpeaking(true);
+    synthRef.current?.speak(utterance);
+  };
 
   const handleCopyInsights = async () => {
     const insightsText = `
@@ -236,6 +288,27 @@ Disclaimer: These insights are AI-generated and for educational purposes only. A
           </AlertDescription>
         </Alert>
         <div className="flex gap-2 w-full sm:w-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleToggleSpeak}
+            className={cn(
+              "flex-1 sm:flex-none",
+              isSpeaking ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""
+            )}
+          >
+            {isSpeaking ? (
+              <>
+                <VolumeX className="h-4 w-4 mr-2" />
+                Stop Reading
+              </>
+            ) : (
+              <>
+                <Volume2 className="h-4 w-4 mr-2" />
+                Listen
+              </>
+            )}
+          </Button>
           <Button
             variant="outline"
             size="sm"
