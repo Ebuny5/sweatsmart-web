@@ -40,6 +40,7 @@ const DEFAULT_COOLDOWN_MS: Record<NotificationChannel, number> = {
 const GLOBAL_MIN_GAP_MS = 8 * 1000;
 
 const STORAGE_KEY = 'sweatsmart_notif_state_v2';
+const NATIVE_CHANNEL_ID = 'sweatsmart_alerts_v2';
 
 interface PersistedState {
   lastByKey: Record<string, number>;
@@ -83,8 +84,9 @@ class NotificationManager {
   private async createNotificationChannel() {
     if (this.isNative) {
       try {
+        await LocalNotifications.deleteChannel({ id: 'sweatsmart' }).catch(() => undefined);
         await LocalNotifications.createChannel({
-          id: 'sweatsmart',
+          id: NATIVE_CHANNEL_ID,
           name: 'SweatSmart Alerts',
           description: 'Critical climate and check-in reminders',
           importance: 5,
@@ -233,7 +235,7 @@ class NotificationManager {
               body,
               schedule: { at, allowWhileIdle: true },
               sound: 'water_sound.mp3',
-              channelId: 'sweatsmart',
+              channelId: NATIVE_CHANNEL_ID,
               extra: { url }
             }
           ]
@@ -262,7 +264,7 @@ class NotificationManager {
               body: req.body,
               schedule: { at: new Date(Date.now() + 100), allowWhileIdle: true },
               sound: 'water_sound.mp3',
-              channelId: 'sweatsmart',
+              channelId: NATIVE_CHANNEL_ID,
               extra: { url: req.url || '/' }
             }
           ]
@@ -271,7 +273,17 @@ class NotificationManager {
         console.warn('Capacitor notification failed:', err);
       }
     } else {
-      console.log('📱 System notification suppressed (Not in Capacitor environment)');
+      try {
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          const notification = new Notification(req.title, { body: req.body, tag: req.dedupKey });
+          notification.onclick = () => {
+            window.focus();
+            window.location.href = req.url || '/';
+          };
+        }
+      } catch (err) {
+        console.warn('Web notification failed:', err);
+      }
     }
   }
 
