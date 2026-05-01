@@ -113,6 +113,10 @@ class NotificationManager {
         console.warn('📱 Capacitor permission request failed:', err);
       }
     }
+    if (typeof Notification !== 'undefined') {
+      const permission = await Notification.requestPermission();
+      return permission === 'granted';
+    }
     return false;
   }
 
