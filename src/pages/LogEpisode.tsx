@@ -118,6 +118,12 @@ const LogEpisode = () => {
     }
     if (bodyAreas.length === 0) {
       toast({ title: "Body areas required", description: "Please select at least one affected body area.", variant: "destructive" });
+
+      // If this was an auto-save attempt, give voice feedback
+      if (manualNotes !== undefined) {
+        const utterance = new SpeechSynthesisUtterance("I couldn't identify the affected body area. Please select it manually or try describing it again.");
+        window.speechSynthesis.speak(utterance);
+      }
       return;
     }
 
@@ -225,6 +231,7 @@ const LogEpisode = () => {
   // ── Voice logging integration ──────────────────────────────────────────────
   const {
     isListening,
+    voiceState,
     startListening,
     stopListening,
     transcript,
@@ -538,11 +545,21 @@ const LogEpisode = () => {
           {isListening && (
             <div className="bg-white/90 backdrop-blur-md border border-blue-200 rounded-2xl p-4 shadow-xl mb-2 max-w-[200px] animate-in fade-in slide-in-from-bottom-4">
               <div className="flex items-center gap-2 mb-1.5">
-                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">Listening...</span>
+                <div className={cn(
+                  "w-2 h-2 rounded-full animate-pulse",
+                  voiceState === 'listening' ? "bg-red-500" :
+                  voiceState === 'waiting_confirmation' ? "bg-orange-500" :
+                  voiceState === 'reasoning' ? "bg-blue-500" : "bg-green-500"
+                )} />
+                <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">
+                  {voiceState === 'listening' ? "Listening..." :
+                   voiceState === 'waiting_confirmation' ? "Is that all?" :
+                   voiceState === 'reasoning' ? "Analysing..." : "Saving..."}
+                </span>
               </div>
               <p className="text-xs text-gray-600 italic line-clamp-3">
-                {transcript || "Speak naturally about your triggers and affected areas..."}
+                {voiceState === 'reasoning' ? "Reasoning about your explanation for 10 seconds..." :
+                 transcript || "Speak naturally about your triggers and affected areas..."}
               </p>
             </div>
           )}
