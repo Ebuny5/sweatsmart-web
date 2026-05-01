@@ -10,6 +10,7 @@
  */
 
 import { audioAlertPlayer, type AlertKind } from '@/utils/audioAlertPlayer';
+import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 
 export type NotificationChannel = 'climate' | 'reminder' | 'system';
@@ -71,16 +72,16 @@ function writeState(state: PersistedState): void {
 
 class NotificationManager {
   private static instance: NotificationManager;
-  private isCapacitor: boolean;
+  private isNative: boolean;
 
   private constructor() {
-    this.isCapacitor = (window as any).Capacitor !== undefined;
+    this.isNative = Capacitor.isNativePlatform();
     this.initClickListeners();
     this.createNotificationChannel();
   }
 
   private async createNotificationChannel() {
-    if (this.isCapacitor) {
+    if (this.isNative) {
       try {
         await LocalNotifications.createChannel({
           id: 'sweatsmart',
@@ -102,7 +103,7 @@ class NotificationManager {
    * Request permission for native notifications.
    */
   async requestPermission(): Promise<boolean> {
-    if (this.isCapacitor) {
+    if (this.isNative) {
       try {
         const { display } = await LocalNotifications.requestPermissions();
         return display === 'granted';
@@ -114,9 +115,12 @@ class NotificationManager {
   }
 
   async getPermissionStatus(): Promise<'granted' | 'denied' | 'prompt' | 'prompt-with-rationale'> {
-    if (this.isCapacitor) {
+    if (this.isNative) {
       const status = await LocalNotifications.checkPermissions();
       return status.display;
+    }
+    if (typeof Notification !== 'undefined') {
+      return Notification.permission === 'default' ? 'prompt' : Notification.permission;
     }
     return 'denied';
   }
@@ -129,7 +133,7 @@ class NotificationManager {
   }
 
   private initClickListeners() {
-    if (this.isCapacitor) {
+    if (this.isNative) {
       LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
         const url = action.notification.extra?.url || '/';
         console.log('📱 Capacitor notification clicked, navigating to:', url);
@@ -216,7 +220,7 @@ class NotificationManager {
    * This ensures the alert fires even if the app is closed.
    */
   async scheduleReminder(at: Date, title: string, body: string, url: string): Promise<void> {
-    if (this.isCapacitor) {
+    if (this.isNative) {
       try {
         // Clear any existing reminders with this ID (we use a fixed ID for the next log reminder)
         await LocalNotifications.cancel({ notifications: [{ id: 4004 }] });
@@ -227,8 +231,8 @@ class NotificationManager {
               id: 4004,
               title,
               body,
-              schedule: { at },
-              sound: 'water_sound', // Remove .mp3 extension for Android resource lookup
+              schedule: { at, allowWhileIdle: true },
+              sound: 'water_sound.mp3',
               channelId: 'sweatsmart',
               extra: { url }
             }
@@ -239,7 +243,7 @@ class NotificationManager {
         console.error('📅 Native reminder scheduling failed:', err);
       }
     } else {
-      console.log('📅 PWA reminder scheduling fallback (system notification only):', at.toLocaleString());
+      console.log('📅 Web reminder scheduling skipped; browser cannot wake a closed app reliably:', at.toLocaleString());
     }
   }
 
@@ -248,7 +252,7 @@ class NotificationManager {
 
     // Only allow Capacitor-based native notifications.
     // Legacy browser-based notifications are removed as per requirements.
-    if (this.isCapacitor) {
+    if (this.isNative) {
       try {
         await LocalNotifications.schedule({
           notifications: [
@@ -256,8 +260,8 @@ class NotificationManager {
               id: Math.floor(Math.random() * 100000),
               title: req.title,
               body: req.body,
-              schedule: { at: new Date(Date.now() + 100) },
-              sound: 'water_sound', // Remove .mp3 extension for Android resource lookup
+              schedule: { at: new Date(Date.now() + 100), allowWhileIdle: true },
+              sound: 'water_sound.mp3',
               channelId: 'sweatsmart',
               extra: { url: req.url || '/' }
             }
