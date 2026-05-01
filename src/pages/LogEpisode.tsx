@@ -254,11 +254,15 @@ const LogEpisode = () => {
     },
     onAutoSave: (finalTranscript, matches) => {
       let finalNotes = notes;
-      const finalBodyAreas = matches?.bodyAreas?.length ? matches.bodyAreas : bodyAreas;
-      const finalTriggers = matches?.triggers?.length ? matches.triggers : triggers;
+      const finalBodyAreas = matches?.bodyAreas?.length
+        ? Array.from(new Set([...bodyAreas, ...matches.bodyAreas]))
+        : bodyAreas;
+      const finalTriggers = matches?.triggers?.length
+        ? [...triggers, ...matches.triggers.filter((matched) => !triggers.some((existing) => existing.label === matched.label))]
+        : triggers;
 
-      if (matches?.bodyAreas?.length) setBodyAreas(matches.bodyAreas);
-      if (matches?.triggers?.length) setTriggers(matches.triggers);
+      if (matches?.bodyAreas?.length) setBodyAreas(finalBodyAreas);
+      if (matches?.triggers?.length) setTriggers(finalTriggers);
 
       if (finalTranscript) {
         const timestamp = format(new Date(), "h:mm a");
