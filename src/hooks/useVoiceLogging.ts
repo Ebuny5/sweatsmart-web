@@ -82,8 +82,6 @@ export const useVoiceLogging = ({
 
     reasoningTimerRef.current = setTimeout(() => {
       const finalTranscript = transcriptRef.current.trim();
-      if (finalTranscript) onTranscriptUpdate(finalTranscript);
-
       setStage("saving");
       speak("Saving episode");
       onAutoSave(finalTranscript, {
