@@ -10,6 +10,7 @@ import { soundManager } from '@/utils/soundManager';
 import { calculateSweatRisk, getRiskSeverity, type SweatRiskLevel } from '@/utils/sweatRiskCalculator';
 import { notificationManager } from '@/services/NotificationManager';
 import { loggingReminderService } from '@/services/LoggingReminderService';
+import { useToast } from '@/hooks/use-toast';
 
 // --- Realistic Icons matching Gemini mockup ---
 
@@ -281,6 +282,7 @@ const DiagnosticsPanel: React.FC<{
 
 const ClimateMonitor = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [notificationPermission, setNotificationPermission] = useState<PermissionStatus>('prompt');
   const [locationPermission, setLocationPermission] = useState<PermissionStatus>('prompt');
   const [location, setLocation] = useState<GeolocationCoordinates | null>(null);
@@ -359,7 +361,7 @@ const ClimateMonitor = () => {
       if (error) throw new Error(error.message);
       if (data.simulated) throw new Error(data.error || 'Weather API unavailable — no real data received.');
       const now = Date.now();
-      setWeatherData({ ...data, uvIndex: Math.min(11, data.uvIndex ?? data.uvi ?? 0), lastUpdated: now });
+      setWeatherData({ ...data, uvIndex: data.uvIndex ?? data.uvi ?? 0, lastUpdated: now });
       setLastWeatherFetch(now);
       setWeatherError(null);
     } catch (err: any) {
@@ -660,7 +662,7 @@ const ClimateMonitor = () => {
                     // Force service to re-read localStorage and reschedule native notification
                     loggingReminderService.forceCheck();
 
-                    toast.success('Log reminder system reset! Scheduling for 10s...');
+                    toast({ title: 'Log reminder system reset', description: 'Scheduling for 10 seconds...' });
 
                     // Add a foreground fallback to trigger the modal/voice in 10.5s for immediate verification
                     setTimeout(() => {

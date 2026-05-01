@@ -1,7 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { calculateSweatRisk } from '@/utils/sweatRiskCalculator';
 import { notificationManager } from './NotificationManager';
-import type { WeatherData, SkyCondition } from '@/types';
 
 const WEATHER_REFRESH_INTERVAL = 15 * 60 * 1000; // 15 minutes
 

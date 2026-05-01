@@ -104,8 +104,10 @@ const LogEpisode = () => {
   }, [episodes]);
 
   // ── All original logic ─────────────────────────────────────────────────────
-  const handleSubmit = useCallback(async (e?: React.FormEvent, manualNotes?: string) => {
+  const handleSubmit = useCallback(async (e?: React.FormEvent, manualNotes?: string, manualBodyAreas?: BodyArea[], manualTriggers?: Trigger[]) => {
     if (e) e.preventDefault();
+    const finalBodyAreas = manualBodyAreas ?? bodyAreas;
+    const finalTriggers = manualTriggers ?? triggers;
 
     if (!user) {
       toast({ title: "Authentication required", description: "Please log in to save episodes.", variant: "destructive" });
@@ -116,7 +118,7 @@ const LogEpisode = () => {
       toast({ title: "Date required", description: "Please select a date for the episode.", variant: "destructive" });
       return;
     }
-    if (bodyAreas.length === 0) {
+    if (finalBodyAreas.length === 0) {
       toast({ title: "Body areas required", description: "Please select at least one affected body area.", variant: "destructive" });
 
       // If this was an auto-save attempt, give voice feedback
@@ -136,14 +138,14 @@ const LogEpisode = () => {
     const finalNotes = manualNotes !== undefined ? manualNotes : notes;
 
     try {
-      const triggerStrings = triggers.map((trigger) =>
+      const triggerStrings = finalTriggers.map((trigger) =>
         JSON.stringify({ type: trigger.type, value: trigger.value, label: trigger.label })
       );
 
       const { data, error } = await supabase.from("episodes").insert({
         user_id: user.id,
         severity: severity,
-        body_areas: bodyAreas,
+        body_areas: finalBodyAreas,
         triggers: triggerStrings,
         notes: finalNotes || null,
         date: datetime.toISOString(),
@@ -171,7 +173,7 @@ const LogEpisode = () => {
 
         const insights = generateFallbackInsights(
           severity,
-          bodyAreas,
+          finalBodyAreas,
           triggerData,
           finalNotes,
         );
@@ -231,6 +233,7 @@ const LogEpisode = () => {
   // ── Voice logging integration ──────────────────────────────────────────────
   const {
     isListening,
+    voiceStage,
     startListening,
     stopListening,
     transcript,
@@ -249,14 +252,24 @@ const LogEpisode = () => {
       const entry = notes ? `\n\n[Voice log - ${timestamp}]: ${newTranscript}` : `[Voice log - ${timestamp}]: ${newTranscript}`;
       setNotes(prev => prev + entry);
     },
-    onAutoSave: (finalTranscript) => {
+    onAutoSave: (finalTranscript, matches) => {
       let finalNotes = notes;
+      const finalBodyAreas = matches?.bodyAreas?.length
+        ? Array.from(new Set([...bodyAreas, ...matches.bodyAreas]))
+        : bodyAreas;
+      const finalTriggers = matches?.triggers?.length
+        ? [...triggers, ...matches.triggers.filter((matched) => !triggers.some((existing) => existing.label === matched.label))]
+        : triggers;
+
+      if (matches?.bodyAreas?.length) setBodyAreas(finalBodyAreas);
+      if (matches?.triggers?.length) setTriggers(finalTriggers);
+
       if (finalTranscript) {
         const timestamp = format(new Date(), "h:mm a");
         finalNotes = notes ? `${notes}\n\n[Voice log - ${timestamp}]: ${finalTranscript}` : `[Voice log - ${timestamp}]: ${finalTranscript}`;
         setNotes(finalNotes);
       }
-      handleSubmit(undefined, finalNotes);
+      handleSubmit(undefined, finalNotes, finalBodyAreas, finalTriggers);
     },
     onUndo: handleUndo,
     isSubmitting,
@@ -271,6 +284,14 @@ const LogEpisode = () => {
       });
     }
   }, [canUndo, toast]);
+
+  const voiceStatus = {
+    idle: { label: "Voice log", hint: "Tap and speak naturally" },
+    listening: { label: "Listening", hint: transcript || "Speak naturally about your episode" },
+    confirming: { label: "Confirming", hint: "Say yes if that is all" },
+    reasoning: { label: "Reasoning", hint: "Analysing your episode" },
+    saving: { label: "Saving", hint: "Generating your episode" },
+  }[voiceStage];
 
   // ── Success / Insights screen ──────────────────────────────────────────────
   if (showInsights) {
@@ -545,10 +566,10 @@ const LogEpisode = () => {
             <div className="bg-white/90 backdrop-blur-md border border-blue-200 rounded-2xl p-4 shadow-xl mb-2 max-w-[200px] animate-in fade-in slide-in-from-bottom-4">
               <div className="flex items-center gap-2 mb-1.5">
                 <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">Listening...</span>
+                <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">{voiceStatus.label}</span>
               </div>
               <p className="text-xs text-gray-600 italic line-clamp-3">
-                {transcript || "Speak naturally about your triggers and affected areas..."}
+                {voiceStatus.hint}
               </p>
             </div>
           )}
