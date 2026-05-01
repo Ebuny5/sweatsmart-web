@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import { cn } from '@/lib/utils';
+import { speakProfessionally, stopProfessionalSpeech } from '@/utils/webSpeechVoice';
 
 interface AIInsightsProps {
   insights: {
@@ -25,19 +26,16 @@ const AIGeneratedInsights: React.FC<AIInsightsProps> = ({ insights }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const synthRef = useRef<SpeechSynthesis | null>(window.speechSynthesis);
 
   useEffect(() => {
     return () => {
-      if (synthRef.current) {
-        synthRef.current.cancel();
-      }
+      stopProfessionalSpeech();
     };
   }, []);
 
   const handleToggleSpeak = () => {
     if (isSpeaking) {
-      synthRef.current?.cancel();
+      stopProfessionalSpeech();
       setIsSpeaking(false);
       return;
     }
@@ -51,30 +49,8 @@ const AIGeneratedInsights: React.FC<AIInsightsProps> = ({ insights }) => {
       When to seek medical attention: ${insights.medicalAttention}.
     `.trim();
 
-    const utterance = new SpeechSynthesisUtterance(fullText);
-
-    // Try to find a natural female voice
-    const voices = synthRef.current?.getVoices() || [];
-    const femaleVoice = voices.find(v =>
-      (v.name.includes("Natural") || v.name.includes("Premium") || v.name.includes("Neural")) &&
-      (v.name.includes("Female") || v.name.includes("Google US English") || v.name.includes("Samantha") || v.name.includes("Victoria"))
-    ) || voices.find(v =>
-      v.name.includes("Female") ||
-      v.name.includes("Google US English") ||
-      v.name.includes("Samantha") ||
-      v.name.includes("Victoria")
-    );
-
-    if (femaleVoice) {
-      utterance.voice = femaleVoice;
-      utterance.rate = 0.95;
-    }
-
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-
     setIsSpeaking(true);
-    synthRef.current?.speak(utterance);
+    speakProfessionally(fullText).finally(() => setIsSpeaking(false));
   };
 
   const handleCopyInsights = async () => {
