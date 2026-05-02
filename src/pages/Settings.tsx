@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Bell, Save, Info, CloudSun, Database, TestTube } from 'lucide-react';
 import { toast } from 'sonner';
-import { notificationManager } from '@/services/NotificationManager';
+import { notificationManager, isBackgroundNotificationsEnabled, setBackgroundNotificationsEnabled } from '@/services/NotificationManager';
 import { audioAlertPlayer } from '@/utils/audioAlertPlayer';
 import { SettingsPanel } from '@/components/climate/SettingsPanel';
 import { WebPushSettings } from '@/components/climate/WebPushSettings';
@@ -13,6 +13,7 @@ import type { Thresholds } from '@/types';
 const Settings = () => {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [soundAlerts, setSoundAlerts] = useState(true);
+  const [bgNotifications, setBgNotifications] = useState(isBackgroundNotificationsEnabled());
   const [dataRetention, setDataRetention] = useState(30);
   const [alertFrequency, setAlertFrequency] = useState(4);
   const [thresholds, setThresholds] = useState<Thresholds>(() => {
