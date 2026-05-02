@@ -41,6 +41,25 @@ const GLOBAL_MIN_GAP_MS = 8 * 1000;
 
 const STORAGE_KEY = 'sweatsmart_notif_state_v2';
 const NATIVE_CHANNEL_ID = 'sweatsmart_alerts_v2';
+const BG_ENABLED_KEY = 'sweatsmart_bg_notifications_enabled';
+
+export function isBackgroundNotificationsEnabled(): boolean {
+  try {
+    const v = localStorage.getItem(BG_ENABLED_KEY);
+    if (v === null) return true;
+    return JSON.parse(v) !== false;
+  } catch {
+    return true;
+  }
+}
+
+export function setBackgroundNotificationsEnabled(enabled: boolean): void {
+  try {
+    localStorage.setItem(BG_ENABLED_KEY, JSON.stringify(enabled));
+  } catch {
+    /* ignore */
+  }
+}
 
 interface PersistedState {
   lastByKey: Record<string, number>;
