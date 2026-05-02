@@ -634,52 +634,6 @@ const ClimateMonitor = () => {
               edaIsWearableAndFresh={edaIsWearableAndFresh}
             />
 
-            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-4 space-y-4">
-              <p className="text-sm font-semibold text-purple-200">Testing & Debug</p>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  onClick={async () => {
-                    await notificationManager.send({
-                      channel: 'system',
-                      kind: 'reminder',
-                      title: '✅ Voice & Water Test',
-                      body: 'Your alerts are working correctly! 🎉',
-                      dedupKey: `test-${Date.now()}`
-                    });
-                  }}
-                  className="bg-white/20 hover:bg-white/30 border border-white/30 text-white"
-                >Run Voice & Water Test</Button>
-                <Button
-                  onClick={() => {
-                    // Set both times to 4 hours ago PLUS 10.5 seconds.
-                    // This ensures the logic uses this baseline regardless of which is max.
-                    const tenSecondsFromNow = Date.now() + 10500;
-                    const baseline = tenSecondsFromNow - (4 * 60 * 60 * 1000);
-
-                    localStorage.setItem('sweatsmart_last_log_time', baseline.toString());
-                    localStorage.setItem('sweatsmart_onboarding_time', baseline.toString());
-
-                    // Force service to re-read localStorage and reschedule native notification
-                    loggingReminderService.forceCheck();
-
-                    toast({ title: 'Log reminder system reset', description: 'Scheduling for 10 seconds...' });
-
-                    // Add a foreground fallback to trigger the modal/voice in 10.5s for immediate verification
-                    setTimeout(() => {
-                      notificationManager.send({
-                        channel: 'reminder',
-                        kind: 'reminder',
-                        title: '⏰ Time to Check In',
-                        body: 'This is your scheduled check-in alert! 💧',
-                        dedupKey: `manual-test-${Date.now()}`
-                      });
-                    }, 10500);
-                  }}
-                  className="bg-yellow-500/30 hover:bg-yellow-500/50 border border-yellow-400/40 text-yellow-200"
-                >🧪 Trigger in 10s</Button>
-              </div>
-              <p className="text-xs text-purple-200/60">Voice & Water Test verifies sound/notifications. "Trigger in 10s" tests the log reminder system.</p>
-            </div>
           </div>
         </div>
       </div>

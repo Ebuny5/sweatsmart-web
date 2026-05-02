@@ -41,6 +41,25 @@ const GLOBAL_MIN_GAP_MS = 8 * 1000;
 
 const STORAGE_KEY = 'sweatsmart_notif_state_v2';
 const NATIVE_CHANNEL_ID = 'sweatsmart_alerts_v2';
+const BG_ENABLED_KEY = 'sweatsmart_bg_notifications_enabled';
+
+export function isBackgroundNotificationsEnabled(): boolean {
+  try {
+    const v = localStorage.getItem(BG_ENABLED_KEY);
+    if (v === null) return true;
+    return JSON.parse(v) !== false;
+  } catch {
+    return true;
+  }
+}
+
+export function setBackgroundNotificationsEnabled(enabled: boolean): void {
+  try {
+    localStorage.setItem(BG_ENABLED_KEY, JSON.stringify(enabled));
+  } catch {
+    /* ignore */
+  }
+}
 
 interface PersistedState {
   lastByKey: Record<string, number>;
@@ -226,6 +245,10 @@ class NotificationManager {
    * This ensures the alert fires even if the app is closed.
    */
   async scheduleReminder(at: Date, title: string, body: string, url: string): Promise<void> {
+    if (!isBackgroundNotificationsEnabled()) {
+      console.log('🔕 Background notifications disabled — skipping scheduleReminder');
+      return;
+    }
     if (this.isNative) {
       try {
         // Clear any existing reminders with this ID (we use a fixed ID for the next log reminder)
@@ -256,8 +279,12 @@ class NotificationManager {
   private async showSystemNotification(req: NotificationRequest): Promise<void> {
     if (typeof window === 'undefined') return;
 
-    // Only allow Capacitor-based native notifications.
-    // Legacy browser-based notifications are removed as per requirements.
+    // Respect the user's "Background Notifications" toggle.
+    if (!isBackgroundNotificationsEnabled()) {
+      console.log('🔕 Background notifications disabled in settings — skipping system notification');
+      return;
+    }
+
     if (this.isNative) {
       try {
         await LocalNotifications.schedule({
@@ -277,8 +304,14 @@ class NotificationManager {
         console.warn('Capacitor notification failed:', err);
       }
     } else {
+      // Web/PWA fallback — only if the page is hidden, otherwise the
+      // foreground audio + toast already covers it.
       try {
-        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        if (
+          typeof Notification !== 'undefined' &&
+          Notification.permission === 'granted' &&
+          document.visibilityState !== 'visible'
+        ) {
           const notification = new Notification(req.title, { body: req.body, tag: req.dedupKey });
           notification.onclick = () => {
             window.focus();

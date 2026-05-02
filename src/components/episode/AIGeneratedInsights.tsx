@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import { cn } from '@/lib/utils';
-import { speakProfessionally, stopProfessionalSpeech } from '@/utils/webSpeechVoice';
+import { pickProfessionalVoice } from '@/utils/webSpeechVoice';
 
 interface AIInsightsProps {
   insights: {
@@ -29,13 +29,26 @@ const AIGeneratedInsights: React.FC<AIInsightsProps> = ({ insights }) => {
 
   useEffect(() => {
     return () => {
-      stopProfessionalSpeech();
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
     };
   }, []);
 
   const handleToggleSpeak = () => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      toast({
+        title: 'Speech unavailable',
+        description: 'Your browser does not support text-to-speech.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const synth = window.speechSynthesis;
+
     if (isSpeaking) {
-      stopProfessionalSpeech();
+      synth.cancel();
       setIsSpeaking(false);
       return;
     }
@@ -49,8 +62,38 @@ const AIGeneratedInsights: React.FC<AIInsightsProps> = ({ insights }) => {
       When to seek medical attention: ${insights.medicalAttention}.
     `.trim();
 
+    // Create utterance synchronously inside the gesture handler so browsers
+    // (Safari/Chrome) keep the speech permission attached to the user click.
+    const utterance = new SpeechSynthesisUtterance(fullText);
+    utterance.rate = 0.95;
+    utterance.pitch = 1;
+    utterance.lang = 'en-US';
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    const assignVoiceAndSpeak = () => {
+      const voice = pickProfessionalVoice(synth.getVoices());
+      if (voice) utterance.voice = voice;
+      synth.cancel();
+      synth.speak(utterance);
+    };
+
     setIsSpeaking(true);
-    speakProfessionally(fullText).finally(() => setIsSpeaking(false));
+
+    if (synth.getVoices().length > 0) {
+      assignVoiceAndSpeak();
+    } else {
+      // Voices not loaded — speak immediately with default, then swap when ready.
+      synth.cancel();
+      synth.speak(utterance);
+      synth.onvoiceschanged = () => {
+        const voice = pickProfessionalVoice(synth.getVoices());
+        if (voice && !synth.speaking) {
+          utterance.voice = voice;
+          synth.speak(utterance);
+        }
+      };
+    }
   };
 
   const handleCopyInsights = async () => {

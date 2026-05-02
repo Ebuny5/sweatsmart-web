@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Bell, Save, Info, CloudSun, Database, TestTube } from 'lucide-react';
 import { toast } from 'sonner';
-import { notificationManager } from '@/services/NotificationManager';
+import { notificationManager, isBackgroundNotificationsEnabled, setBackgroundNotificationsEnabled } from '@/services/NotificationManager';
 import { audioAlertPlayer } from '@/utils/audioAlertPlayer';
 import { SettingsPanel } from '@/components/climate/SettingsPanel';
 import { WebPushSettings } from '@/components/climate/WebPushSettings';
@@ -13,6 +13,7 @@ import type { Thresholds } from '@/types';
 const Settings = () => {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [soundAlerts, setSoundAlerts] = useState(true);
+  const [bgNotifications, setBgNotifications] = useState(isBackgroundNotificationsEnabled());
   const [dataRetention, setDataRetention] = useState(30);
   const [alertFrequency, setAlertFrequency] = useState(4);
   const [thresholds, setThresholds] = useState<Thresholds>(() => {
@@ -114,6 +115,23 @@ const Settings = () => {
               <Switch
                 checked={soundAlerts}
                 onCheckedChange={setSoundAlerts}
+                className="data-[state=checked]:bg-primary"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="font-bold text-zinc-200">Background Notifications</div>
+                <div className="text-sm text-zinc-400">
+                  Allow alerts to fire when the app is closed or in the background
+                </div>
+              </div>
+              <Switch
+                checked={bgNotifications}
+                onCheckedChange={(v) => {
+                  setBgNotifications(v);
+                  setBackgroundNotificationsEnabled(v);
+                }}
                 className="data-[state=checked]:bg-primary"
               />
             </div>
@@ -242,6 +260,24 @@ const Settings = () => {
               }}
             >
               Test Climate Alert Voice
+            </Button>
+
+            <Button
+              variant="outline"
+              className="w-full border-green-500/30 hover:bg-green-500/20 text-green-400 font-bold"
+              onClick={async () => {
+                toast.info("Testing Full Notification...");
+                const delivered = await notificationManager.send({
+                  channel: 'system',
+                  kind: 'extreme',
+                  title: "🚨 Full Notification Test",
+                  body: "Water sound + voice + system notification firing now.",
+                  dedupKey: `test-full-${Date.now()}`
+                });
+                if (!delivered) toast.error("Notification suppressed (cooldown).");
+              }}
+            >
+              Test Full Notification
             </Button>
           </div>
         </Card>
