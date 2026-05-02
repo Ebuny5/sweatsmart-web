@@ -245,6 +245,10 @@ class NotificationManager {
    * This ensures the alert fires even if the app is closed.
    */
   async scheduleReminder(at: Date, title: string, body: string, url: string): Promise<void> {
+    if (!isBackgroundNotificationsEnabled()) {
+      console.log('🔕 Background notifications disabled — skipping scheduleReminder');
+      return;
+    }
     if (this.isNative) {
       try {
         // Clear any existing reminders with this ID (we use a fixed ID for the next log reminder)
