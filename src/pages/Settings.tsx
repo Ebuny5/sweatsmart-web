@@ -119,6 +119,23 @@ const Settings = () => {
               />
             </div>
 
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="font-bold text-zinc-200">Background Notifications</div>
+                <div className="text-sm text-zinc-400">
+                  Allow alerts to fire when the app is closed or in the background
+                </div>
+              </div>
+              <Switch
+                checked={bgNotifications}
+                onCheckedChange={(v) => {
+                  setBgNotifications(v);
+                  setBackgroundNotificationsEnabled(v);
+                }}
+                className="data-[state=checked]:bg-primary"
+              />
+            </div>
+
             <div className="border-t border-zinc-800 pt-6 mt-6">
               <SettingsPanel
                 thresholds={thresholds}
