@@ -261,6 +261,24 @@ const Settings = () => {
             >
               Test Climate Alert Voice
             </Button>
+
+            <Button
+              variant="outline"
+              className="w-full border-green-500/30 hover:bg-green-500/20 text-green-400 font-bold"
+              onClick={async () => {
+                toast.info("Testing Full Notification...");
+                const delivered = await notificationManager.send({
+                  channel: 'system',
+                  kind: 'extreme',
+                  title: "🚨 Full Notification Test",
+                  body: "Water sound + voice + system notification firing now.",
+                  dedupKey: `test-full-${Date.now()}`
+                });
+                if (!delivered) toast.error("Notification suppressed (cooldown).");
+              }}
+            >
+              Test Full Notification
+            </Button>
           </div>
         </Card>
 
