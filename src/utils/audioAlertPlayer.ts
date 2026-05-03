@@ -189,9 +189,9 @@ class AudioAlertPlayer {
     console.log(`🔊 Playing alert sequence for kind: ${kind}`);
     vibrateForKind(kind);
 
-    // 1. Short water cue (truncated to ~1.5s so it really is "in a jiffy")
+    // 1. Short water cue (hard-capped to ~0.5s so it stays "in a jiffy")
     console.log(`🔊 Playing water sound: ${WATER_SOUND_PATH}`);
-    await this.playClip(WATER_SOUND_PATH, 1500);
+    await this.playClip(WATER_SOUND_PATH, 550);
 
     // Tiny gap for clarity between cue and voice
     await new Promise((r) => setTimeout(r, 80));

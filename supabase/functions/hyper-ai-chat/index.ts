@@ -155,7 +155,9 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const LOVABLE_API_KEY    = Deno.env.get('LOVABLE_API_KEY');
     const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
-    const DEEPGRAM_API_KEY   = Deno.env.get('DEEPGRAM_API_KEY');
+    const GEMINI_API_KEY     = Deno.env.get('GOOGLE_AI_STUDIO_API_KEY')
+      || Deno.env.get('GOOGLE_AI_STUDIO_API_KEY_WEB')
+      || Deno.env.get('GOOGLE_AI_STUDIO_API_KEY_ANDROID');
 
     if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
 
@@ -173,9 +175,8 @@ serve(async (req) => {
     const reqBody = await req.json();
     const reqType = reqBody.type || 'chat';
 
-    // ── STT: Deepgram speech-to-text ─────────────────────────────────────────
+    // ── STT: Gemini speech-to-text ───────────────────────────────────────────
     if (reqType === 'stt') {
-      if (!DEEPGRAM_API_KEY) throw new Error('DEEPGRAM_API_KEY not configured');
       const { audioBase64, mimeType = 'audio/webm', audioSize } = reqBody;
       if (!audioBase64) {
         return new Response(JSON.stringify({ error: 'audioBase64 required' }), {
@@ -183,10 +184,8 @@ serve(async (req) => {
         });
       }
 
-      console.log('STT request - mimeType:', mimeType, 'audioSize:', audioSize);
-
       const audioBytes = Uint8Array.from(atob(audioBase64), c => c.charCodeAt(0));
-      console.log('STT audio bytes length:', audioBytes.length);
+      console.log('Gemini STT request - mimeType:', mimeType, 'audioSize:', audioSize, 'bytes:', audioBytes.length);
 
       if (audioBytes.length < 500) {
         return new Response(JSON.stringify({ transcript: '' }), {
@@ -194,57 +193,44 @@ serve(async (req) => {
         });
       }
 
-      // Deepgram encoding detection — map MIME to Deepgram encoding param
-      const encodingMap: Record<string, string> = {
-        'audio/webm':             'webm',
-        'audio/webm;codecs=opus': 'webm',
-        'audio/ogg':              'ogg',
-        'audio/ogg;codecs=opus':  'ogg',
-        'audio/mp4':              'mp4',
-        'audio/mpeg':             'mp3',
-      };
-      const baseMime    = mimeType.split(';')[0].trim();
-      const dgEncoding  = encodingMap[baseMime] || 'webm';
-      const dgContentType = baseMime;
-
-      const dgUrl = `https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&language=en&encoding=${dgEncoding}`;
-
-      const dgRes = await fetch(dgUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${DEEPGRAM_API_KEY}`,
-          'Content-Type': dgContentType,
-        },
-        body: audioBytes,
-      });
-
-      if (!dgRes.ok) {
-        const errBody = await dgRes.text();
-        console.error('Deepgram error - status:', dgRes.status, 'body:', errBody);
-        // Fallback: try without encoding param
-        const dgRes2 = await fetch(
-          'https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&language=en',
-          {
-            method: 'POST',
-            headers: { 'Authorization': `Token ${DEEPGRAM_API_KEY}`, 'Content-Type': 'audio/webm' },
-            body: audioBytes,
-          }
-        );
-        if (!dgRes2.ok) {
-          const err2 = await dgRes2.text();
-          console.error('Deepgram fallback error:', err2);
-          throw new Error(`Deepgram STT failed: ${dgRes.status}`);
-        }
-        const dgData2 = await dgRes2.json();
-        const transcript2 = dgData2.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
-        return new Response(JSON.stringify({ transcript: transcript2 }), {
+      if (!GEMINI_API_KEY) {
+        return new Response(JSON.stringify({ transcript: '', error: 'Gemini STT not configured' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      const dgData = await dgRes.json();
-      const transcript = dgData.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
-      console.log('Deepgram transcript:', transcript);
+      const geminiRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            role: 'user',
+            parts: [
+              { text: 'Transcribe this audio exactly. Return only the spoken words, with no commentary.' },
+              { inline_data: { mime_type: mimeType.split(';')[0].trim() || 'audio/webm', data: audioBase64 } },
+            ],
+          }],
+          generationConfig: { temperature: 0, maxOutputTokens: 512 },
+        }),
+      });
+
+      if (!geminiRes.ok) {
+        const errBody = await geminiRes.text();
+        console.error('Gemini STT error - status:', geminiRes.status, 'body:', errBody);
+        return new Response(JSON.stringify({ transcript: '', error: 'Gemini STT failed' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const geminiData = await geminiRes.json();
+      const transcript = geminiData.candidates?.[0]?.content?.parts
+        ?.map((part: any) => part.text || '')
+        ?.join(' ')
+        ?.replace(/^transcript:\s*/i, '')
+        ?.trim() || '';
+      console.log('Gemini transcript:', transcript);
 
       return new Response(JSON.stringify({ transcript }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

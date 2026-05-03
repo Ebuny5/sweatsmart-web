@@ -1,7 +1,7 @@
 /**
- * NotificationManager — single pipeline for foreground / background / closed-app
+ * NotificationManager — single web-first pipeline for alerts.
  * alerts. Handles:
- *   - Native Capacitor LocalNotifications (for background/closed app)
+ *   - Web/PWA notifications only (Capacitor routing intentionally disabled)
  *   - Deduplication (same dedupKey within cooldown window is skipped)
  *   - Per-channel cooldowns (climate vs reminder are independent)
  *   - Audio sequence: water sound → voice clip via AudioAlertPlayer
@@ -10,8 +10,6 @@
  */
 
 import { audioAlertPlayer, type AlertKind } from '@/utils/audioAlertPlayer';
-import { Capacitor } from '@capacitor/core';
-import { LocalNotifications } from '@capacitor/local-notifications';
 
 export type NotificationChannel = 'climate' | 'reminder' | 'system';
 
@@ -40,7 +38,6 @@ const DEFAULT_COOLDOWN_MS: Record<NotificationChannel, number> = {
 const GLOBAL_MIN_GAP_MS = 8 * 1000;
 
 const STORAGE_KEY = 'sweatsmart_notif_state_v2';
-const NATIVE_CHANNEL_ID = 'sweatsmart_alerts_v2';
 const BG_ENABLED_KEY = 'sweatsmart_bg_notifications_enabled';
 
 export function isBackgroundNotificationsEnabled(): boolean {
@@ -92,46 +89,15 @@ function writeState(state: PersistedState): void {
 
 class NotificationManager {
   private static instance: NotificationManager;
-  private isNative: boolean;
 
   private constructor() {
-    this.isNative = Capacitor.isNativePlatform();
     this.initClickListeners();
-    this.createNotificationChannel();
-  }
-
-  private async createNotificationChannel() {
-    if (this.isNative) {
-      try {
-        await LocalNotifications.deleteChannel({ id: 'sweatsmart' }).catch(() => undefined);
-        await LocalNotifications.createChannel({
-          id: NATIVE_CHANNEL_ID,
-          name: 'SweatSmart Alerts',
-          description: 'Critical climate and check-in reminders',
-          importance: 5,
-          visibility: 1,
-          sound: 'water_sound.mp3',
-          vibration: true,
-        });
-        console.log('📱 Created high-importance notification channel');
-      } catch (err) {
-        console.warn('📱 Failed to create notification channel:', err);
-      }
-    }
   }
 
   /**
    * Request permission for native notifications.
    */
   async requestPermission(): Promise<boolean> {
-    if (this.isNative) {
-      try {
-        const { display } = await LocalNotifications.requestPermissions();
-        return display === 'granted';
-      } catch (err) {
-        console.warn('📱 Capacitor permission request failed:', err);
-      }
-    }
     if (typeof Notification !== 'undefined') {
       const permission = await Notification.requestPermission();
       return permission === 'granted';
@@ -140,10 +106,6 @@ class NotificationManager {
   }
 
   async getPermissionStatus(): Promise<'granted' | 'denied' | 'prompt' | 'prompt-with-rationale'> {
-    if (this.isNative) {
-      const status = await LocalNotifications.checkPermissions();
-      return status.display;
-    }
     if (typeof Notification !== 'undefined') {
       return Notification.permission === 'default' ? 'prompt' : Notification.permission;
     }
@@ -158,13 +120,8 @@ class NotificationManager {
   }
 
   private initClickListeners() {
-    if (this.isNative) {
-      LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
-        const url = action.notification.extra?.url || '/';
-        console.log('📱 Capacitor notification clicked, navigating to:', url);
-        window.location.href = url;
-      });
-    }
+    // Capacitor LocalNotifications are intentionally not used right now.
+    // They were causing silent Android popups and blocking the web audio path.
   }
 
   /**
@@ -241,39 +198,15 @@ class NotificationManager {
   }
 
   /**
-   * Schedules a future reminder using native local notifications.
-   * This ensures the alert fires even if the app is closed.
+   * Web-first reminder note. Closed-app reminders are handled by Web Push CRON,
+   * not Capacitor LocalNotifications.
    */
   async scheduleReminder(at: Date, title: string, body: string, url: string): Promise<void> {
     if (!isBackgroundNotificationsEnabled()) {
       console.log('🔕 Background notifications disabled — skipping scheduleReminder');
       return;
     }
-    if (this.isNative) {
-      try {
-        // Clear any existing reminders with this ID (we use a fixed ID for the next log reminder)
-        await LocalNotifications.cancel({ notifications: [{ id: 4004 }] });
-
-        await LocalNotifications.schedule({
-          notifications: [
-            {
-              id: 4004,
-              title,
-              body,
-              schedule: { at, allowWhileIdle: true },
-              sound: 'water_sound.mp3',
-              channelId: NATIVE_CHANNEL_ID,
-              extra: { url }
-            }
-          ]
-        });
-        console.log('📅 Scheduled native reminder for:', at.toLocaleString());
-      } catch (err) {
-        console.error('📅 Native reminder scheduling failed:', err);
-      }
-    } else {
-      console.log('📅 Web reminder scheduling skipped; browser cannot wake a closed app reliably:', at.toLocaleString());
-    }
+    console.log('📅 Reminder timing tracked locally; closed-app delivery uses Web Push CRON:', at.toLocaleString(), title, body, url);
   }
 
   private async showSystemNotification(req: NotificationRequest): Promise<void> {
@@ -285,42 +218,22 @@ class NotificationManager {
       return;
     }
 
-    if (this.isNative) {
-      try {
-        await LocalNotifications.schedule({
-          notifications: [
-            {
-              id: Math.floor(Math.random() * 100000),
-              title: req.title,
-              body: req.body,
-              schedule: { at: new Date(Date.now() + 100), allowWhileIdle: true },
-              sound: 'water_sound.mp3',
-              channelId: NATIVE_CHANNEL_ID,
-              extra: { url: req.url || '/' }
-            }
-          ]
-        });
-      } catch (err) {
-        console.warn('Capacitor notification failed:', err);
+    // Web/PWA fallback — only if the page is hidden, otherwise the
+    // foreground audio + toast already covers it.
+    try {
+      if (
+        typeof Notification !== 'undefined' &&
+        Notification.permission === 'granted' &&
+        document.visibilityState !== 'visible'
+      ) {
+        const notification = new Notification(req.title, { body: req.body, tag: req.dedupKey });
+        notification.onclick = () => {
+          window.focus();
+          window.location.href = req.url || '/';
+        };
       }
-    } else {
-      // Web/PWA fallback — only if the page is hidden, otherwise the
-      // foreground audio + toast already covers it.
-      try {
-        if (
-          typeof Notification !== 'undefined' &&
-          Notification.permission === 'granted' &&
-          document.visibilityState !== 'visible'
-        ) {
-          const notification = new Notification(req.title, { body: req.body, tag: req.dedupKey });
-          notification.onclick = () => {
-            window.focus();
-            window.location.href = req.url || '/';
-          };
-        }
-      } catch (err) {
-        console.warn('Web notification failed:', err);
-      }
+    } catch (err) {
+      console.warn('Web notification failed:', err);
     }
   }
 

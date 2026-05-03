@@ -3,7 +3,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Send, Sparkles, Loader2, Copy, Check, Mic, MicOff,
   Trash2, Volume2, VolumeX, FileText, ChevronRight,
   Zap, AlertTriangle, PenSquare, History, ImagePlus, X,
-  Square, Phone, Settings2 } from 'lucide-react';
+  Square, Settings2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +12,7 @@ import { useEpisodes } from '@/hooks/useEpisodes';
 import { useProfile } from '@/hooks/useProfile';
 import { useClimateData } from '@/hooks/useClimateData';
 import { edaManager } from '@/utils/edaManager';
+import { speakProfessionally, stopProfessionalSpeech } from '@/utils/webSpeechVoice';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -407,6 +408,7 @@ const HyperAI = () => {
   const [isRecording, setIsRecording]         = useState(false);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
   const [voiceSettingsOpen, setVoiceSettingsOpen] = useState(false);
+  const [voiceMenuOpen, setVoiceMenuOpen]     = useState(false);
   const [selectedVoiceId, setSelectedVoiceId] = useState(
     () => localStorage.getItem('hyper_voice_id') || '21m00Tcm4TlvDq8ikWAM'
   );
@@ -592,58 +594,29 @@ const HyperAI = () => {
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
-  // ── ElevenLabs TTS via edge function ─────────────────────────────────────
+  // ── Browser speech for message readout (keeps recorded alert audio separate) ─
   const speakMessage = useCallback(async (text: string, msgIndex: number) => {
-    // Toggle off if already speaking this message
     if (speakingIndex === msgIndex) {
-      currentAudioRef.current?.pause();
-      currentAudioRef.current = null;
+      stopProfessionalSpeech();
       setSpeakingIndex(null);
       return;
     }
-    // Stop any current audio
+
     currentAudioRef.current?.pause();
     currentAudioRef.current = null;
+    stopProfessionalSpeech();
     setSpeakingIndex(null);
 
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) return;
-
       setSpeakingIndex(msgIndex);
-
-      const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hyper-ai-chat`;
-      const response = await fetch(CHAT_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionData.session.access_token}`,
-        },
-        body: JSON.stringify({
-          type: 'tts',
-          text: text.replace(/[*_#]/g, '').slice(0, 3000),
-          voiceId: selectedVoiceId,
-          speed: voiceSpeed,
-        }),
-      });
-
-      if (!response.ok) throw new Error('TTS failed');
-
-      const audioBlob = await response.blob();
-      const audioUrl  = URL.createObjectURL(audioBlob);
-      const audio     = new Audio(audioUrl);
-      currentAudioRef.current = audio;
-
-      audio.onended = () => { setSpeakingIndex(null); URL.revokeObjectURL(audioUrl); };
-      audio.onerror = () => { setSpeakingIndex(null); URL.revokeObjectURL(audioUrl); };
-
-      await audio.play();
+      await speakProfessionally(text.replace(/[*_#]/g, '').slice(0, 3000), { rate: voiceSpeed });
+      setSpeakingIndex(null);
     } catch (err) {
       console.error('TTS error:', err);
       setSpeakingIndex(null);
-      toast.error('Voice playback failed — check ElevenLabs credits');
+      toast.error('Speech is unavailable on this device');
     }
-  }, [speakingIndex, selectedVoiceId, voiceSpeed]);
+  }, [speakingIndex, voiceSpeed]);
 
   // ── Voice settings persistence ─────────────────────────────────────────────
   const handleVoiceSelect = (id: string) => {
@@ -656,30 +629,14 @@ const HyperAI = () => {
     localStorage.setItem('hyper_voice_speed', String(s));
   };
 
-  // ── Helper: play TTS greeting before recording ────────────────────────────
+  // ── Helper: play browser-speech greeting before recording ─────────────────
   const playVoiceGreeting = useCallback(async (): Promise<void> => {
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) return;
-      const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hyper-ai-chat`;
-      const res = await fetch(CHAT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionData.session.access_token}` },
-        body: JSON.stringify({ type: 'tts', text: "Hi Warrior, I'm listening. Speak now.", voiceId: selectedVoiceId, speed: voiceSpeed }),
-      });
-      if (!res.ok) return;
-      const blob = await res.blob();
-      const url  = URL.createObjectURL(blob);
-      return new Promise(resolve => {
-        const audio = new Audio(url);
-        audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
-        audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
-        audio.play().catch(() => resolve());
-      });
+      await speakProfessionally("I'm listening. Speak now.", { rate: voiceSpeed });
     } catch { /* greeting failing silently is fine */ }
-  }, [selectedVoiceId, voiceSpeed]);
+  }, [voiceSpeed]);
 
-  // ── Deepgram STT → Chat → ElevenLabs TTS (full voice chat) ────────────────
+  // ── Gemini STT → Chat → browser speech readout (full voice chat) ──────────
   const startVoiceChat = async () => {
     if (getVoiceUsageToday() >= DAILY_VOICE_LIMIT) {
       toast.error('Daily voice limit reached 💙 Upgrade to Warrior Plan for unlimited voice chat');
@@ -729,7 +686,7 @@ const HyperAI = () => {
 
               const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hyper-ai-chat`;
 
-              // Step 1 — STT: audio → transcript via Deepgram
+              // Step 1 — STT: audio → transcript via Gemini
               const sttRes = await fetch(CHAT_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionData.session.access_token}` },
@@ -1206,38 +1163,45 @@ const HyperAI = () => {
               onChange={handleImageAttach}
             />
 
-            {/* Voice chat button */}
-            <button
-              onClick={isRecording ? stopVoiceChat : startVoiceChat}
-              disabled={isProcessingVoice || isLoading}
-              title={isRecording ? 'Stop recording' : `Voice chat (${DAILY_VOICE_LIMIT - getVoiceUsageToday()} left today)`}
-              className={`p-3 rounded-xl transition-all shrink-0 ${
-                isRecording ? 'record-pulse' : ''
-              } disabled:opacity-40`}
-              style={{
-                background: isRecording
-                  ? 'rgba(239,68,68,0.25)'
-                  : 'linear-gradient(135deg, rgba(0,188,212,0.15), rgba(0,151,167,0.15))',
-                border: isRecording
-                  ? '1px solid rgba(239,68,68,0.5)'
-                  : '1px solid rgba(0,188,212,0.3)',
-              }}
-            >
-              <Phone className={`h-4 w-4 ${isRecording ? 'text-red-400' : 'text-teal-400'}`} />
-            </button>
+            {/* Unified voice button */}
+            <div className="relative shrink-0">
+              <button
+                onClick={() => isRecording ? stopVoiceChat() : setVoiceMenuOpen((open) => !open)}
+                disabled={isProcessingVoice || isLoading}
+                title="Voice options"
+                className={`p-3 rounded-xl transition-all ${isRecording ? 'record-pulse' : ''} disabled:opacity-40`}
+                style={{
+                  background: isRecording || isListening
+                    ? 'rgba(239,68,68,0.25)'
+                    : 'linear-gradient(135deg, rgba(0,188,212,0.18), rgba(0,151,167,0.18))',
+                  border: isRecording || isListening
+                    ? '1px solid rgba(239,68,68,0.5)'
+                    : '1px solid rgba(0,188,212,0.35)',
+                }}
+              >
+                {isRecording || isListening ? <MicOff className="h-4 w-4 text-red-400" /> : <Mic className="h-4 w-4 text-teal-400" />}
+              </button>
 
-            {/* Typing mic button */}
-            <button
-              onClick={toggleVoice}
-              className={`p-3 rounded-xl transition-all shrink-0 ${
-                isListening
-                  ? 'bg-red-500/20 border border-red-500/50 text-red-400'
-                  : 'hover:bg-white/10 text-white/30 hover:text-white/60'
-              }`}
-              style={{ border: isListening ? undefined : '1px solid rgba(255,255,255,0.08)' }}
-            >
-              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-            </button>
+              {voiceMenuOpen && !isRecording && !isProcessingVoice && (
+                <div
+                  className="absolute bottom-14 left-0 z-30 w-56 rounded-2xl p-2 space-y-2"
+                  style={{ background: 'rgba(15,15,35,0.98)', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 16px 40px rgba(0,0,0,0.35)' }}
+                >
+                  <button
+                    onClick={() => { setVoiceMenuOpen(false); toggleVoice(); }}
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm text-white/80 hover:bg-white/10"
+                  >
+                    <Mic className="h-4 w-4 text-teal-300" /> Voice to text
+                  </button>
+                  <button
+                    onClick={() => { setVoiceMenuOpen(false); startVoiceChat(); }}
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm text-white/80 hover:bg-white/10"
+                  >
+                    <Volume2 className="h-4 w-4 text-teal-300" /> Speech to speech
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* Image attach button */}
             <button

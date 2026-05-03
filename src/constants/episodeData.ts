@@ -83,7 +83,7 @@ export const BODY_AREA_OPTIONS: BodyAreaOption[] = [
     clinicalName: "Plantar Hyperhidrosis",
     complication: "Slippery grip on floor, fungal risk, discomfort",
     priority: "High",
-    keywords: ["soles"],
+    keywords: ["soles", "sole"],
   },
   {
     area: "feet_soles",
@@ -105,7 +105,7 @@ export const BODY_AREA_OPTIONS: BodyAreaOption[] = [
     clinicalName: "Palmar Hyperhidrosis",
     complication: "Touchscreen difficulty, slippery grip, social anxiety",
     priority: "High",
-    keywords: ["palms"],
+    keywords: ["palms", "palm"],
   },
   {
     area: "fingers",
@@ -127,7 +127,7 @@ export const BODY_AREA_OPTIONS: BodyAreaOption[] = [
     clinicalName: "Palmar Hyperhidrosis",
     complication: "Shaking hands difficulty, social anxiety, grip issues",
     priority: "High",
-    keywords: ["hands"],
+    keywords: ["hands", "hand"],
   },
   {
     area: "underarms",
@@ -138,7 +138,7 @@ export const BODY_AREA_OPTIONS: BodyAreaOption[] = [
     clinicalName: "Axillary Hyperhidrosis",
     complication: "Visible stains, skin irritation, bromhidrosis",
     priority: "High",
-    keywords: ["underarms", "armpits", "pits"],
+    keywords: ["underarms", "underarm", "armpits", "armpit", "arm pit", "pits"],
   },
   {
     area: "entire_body",
