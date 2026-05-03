@@ -636,7 +636,7 @@ const HyperAI = () => {
     } catch { /* greeting failing silently is fine */ }
   }, [voiceSpeed]);
 
-  // ── Deepgram STT → Chat → ElevenLabs TTS (full voice chat) ────────────────
+  // ── Gemini STT → Chat → browser speech readout (full voice chat) ──────────
   const startVoiceChat = async () => {
     if (getVoiceUsageToday() >= DAILY_VOICE_LIMIT) {
       toast.error('Daily voice limit reached 💙 Upgrade to Warrior Plan for unlimited voice chat');
@@ -686,7 +686,7 @@ const HyperAI = () => {
 
               const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hyper-ai-chat`;
 
-              // Step 1 — STT: audio → transcript via Deepgram
+              // Step 1 — STT: audio → transcript via Gemini
               const sttRes = await fetch(CHAT_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionData.session.access_token}` },
