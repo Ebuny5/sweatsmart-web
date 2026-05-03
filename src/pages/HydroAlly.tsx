@@ -593,58 +593,29 @@ const HyperAI = () => {
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
-  // ── ElevenLabs TTS via edge function ─────────────────────────────────────
+  // ── Browser speech for message readout (keeps recorded alert audio separate) ─
   const speakMessage = useCallback(async (text: string, msgIndex: number) => {
-    // Toggle off if already speaking this message
     if (speakingIndex === msgIndex) {
-      currentAudioRef.current?.pause();
-      currentAudioRef.current = null;
+      stopProfessionalSpeech();
       setSpeakingIndex(null);
       return;
     }
-    // Stop any current audio
+
     currentAudioRef.current?.pause();
     currentAudioRef.current = null;
+    stopProfessionalSpeech();
     setSpeakingIndex(null);
 
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) return;
-
       setSpeakingIndex(msgIndex);
-
-      const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hyper-ai-chat`;
-      const response = await fetch(CHAT_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionData.session.access_token}`,
-        },
-        body: JSON.stringify({
-          type: 'tts',
-          text: text.replace(/[*_#]/g, '').slice(0, 3000),
-          voiceId: selectedVoiceId,
-          speed: voiceSpeed,
-        }),
-      });
-
-      if (!response.ok) throw new Error('TTS failed');
-
-      const audioBlob = await response.blob();
-      const audioUrl  = URL.createObjectURL(audioBlob);
-      const audio     = new Audio(audioUrl);
-      currentAudioRef.current = audio;
-
-      audio.onended = () => { setSpeakingIndex(null); URL.revokeObjectURL(audioUrl); };
-      audio.onerror = () => { setSpeakingIndex(null); URL.revokeObjectURL(audioUrl); };
-
-      await audio.play();
+      await speakProfessionally(text.replace(/[*_#]/g, '').slice(0, 3000), { rate: voiceSpeed });
+      setSpeakingIndex(null);
     } catch (err) {
       console.error('TTS error:', err);
       setSpeakingIndex(null);
-      toast.error('Voice playback failed — check ElevenLabs credits');
+      toast.error('Speech is unavailable on this device');
     }
-  }, [speakingIndex, selectedVoiceId, voiceSpeed]);
+  }, [speakingIndex, voiceSpeed]);
 
   // ── Voice settings persistence ─────────────────────────────────────────────
   const handleVoiceSelect = (id: string) => {
@@ -657,28 +628,12 @@ const HyperAI = () => {
     localStorage.setItem('hyper_voice_speed', String(s));
   };
 
-  // ── Helper: play TTS greeting before recording ────────────────────────────
+  // ── Helper: play browser-speech greeting before recording ─────────────────
   const playVoiceGreeting = useCallback(async (): Promise<void> => {
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) return;
-      const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hyper-ai-chat`;
-      const res = await fetch(CHAT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionData.session.access_token}` },
-        body: JSON.stringify({ type: 'tts', text: "Hi Warrior, I'm listening. Speak now.", voiceId: selectedVoiceId, speed: voiceSpeed }),
-      });
-      if (!res.ok) return;
-      const blob = await res.blob();
-      const url  = URL.createObjectURL(blob);
-      return new Promise(resolve => {
-        const audio = new Audio(url);
-        audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
-        audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
-        audio.play().catch(() => resolve());
-      });
+      await speakProfessionally("I'm listening. Speak now.", { rate: voiceSpeed });
     } catch { /* greeting failing silently is fine */ }
-  }, [selectedVoiceId, voiceSpeed]);
+  }, [voiceSpeed]);
 
   // ── Deepgram STT → Chat → ElevenLabs TTS (full voice chat) ────────────────
   const startVoiceChat = async () => {
