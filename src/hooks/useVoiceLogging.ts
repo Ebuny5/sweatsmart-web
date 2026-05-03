@@ -19,8 +19,8 @@ interface UseVoiceLoggingProps {
   isSubmitting: boolean;
 }
 
-const SILENCE_BEFORE_CONFIRM_MS = 4000;
-const CONFIRMATION_TIMEOUT_MS = 5000;
+const SILENCE_BEFORE_CONFIRM_MS = 8000; // Increased to be more patient
+const CONFIRMATION_TIMEOUT_MS = 7000;
 const REASONING_DELAY_MS = 2500;
 
 export const useVoiceLogging = ({
@@ -230,14 +230,21 @@ export const useVoiceLogging = ({
 
     recognition.onresult = (event: any) => {
       let combined = "";
+      let hasFinal = false;
       for (let i = 0; i < event.results.length; i++) {
         combined += `${event.results[i][0].transcript} `;
+        if (event.results[i].isFinal) hasFinal = true;
       }
       combined = combined.trim();
       transcriptRef.current = combined;
       setTranscript(combined);
       processTranscript(combined);
-      if (stageRef.current === "listening") scheduleSilenceCheck();
+
+      // Only schedule the silence check if we actually have some text
+      // and it's not just a transient noise.
+      if (stageRef.current === "listening" && combined.length > 2) {
+        scheduleSilenceCheck();
+      }
     };
 
     recognition.onend = () => {
@@ -252,6 +259,9 @@ export const useVoiceLogging = ({
 
     recognition.onerror = (event: any) => {
       console.error("Speech recognition error", event.error);
+      if (event.error === "not-allowed") {
+        alert("Microphone access was denied. Please enable microphone permissions in your browser settings to use voice logging.");
+      }
       if (event.error !== "no-speech") setStage("idle");
     };
 
