@@ -198,39 +198,15 @@ class NotificationManager {
   }
 
   /**
-   * Schedules a future reminder using native local notifications.
-   * This ensures the alert fires even if the app is closed.
+   * Web-first reminder note. Closed-app reminders are handled by Web Push CRON,
+   * not Capacitor LocalNotifications.
    */
   async scheduleReminder(at: Date, title: string, body: string, url: string): Promise<void> {
     if (!isBackgroundNotificationsEnabled()) {
       console.log('🔕 Background notifications disabled — skipping scheduleReminder');
       return;
     }
-    if (this.isNative) {
-      try {
-        // Clear any existing reminders with this ID (we use a fixed ID for the next log reminder)
-        await LocalNotifications.cancel({ notifications: [{ id: 4004 }] });
-
-        await LocalNotifications.schedule({
-          notifications: [
-            {
-              id: 4004,
-              title,
-              body,
-              schedule: { at, allowWhileIdle: true },
-              sound: 'water_sound.mp3',
-              channelId: NATIVE_CHANNEL_ID,
-              extra: { url }
-            }
-          ]
-        });
-        console.log('📅 Scheduled native reminder for:', at.toLocaleString());
-      } catch (err) {
-        console.error('📅 Native reminder scheduling failed:', err);
-      }
-    } else {
-      console.log('📅 Web reminder scheduling skipped; browser cannot wake a closed app reliably:', at.toLocaleString());
-    }
+    console.log('📅 Reminder timing tracked locally; closed-app delivery uses Web Push CRON:', at.toLocaleString(), title, body, url);
   }
 
   private async showSystemNotification(req: NotificationRequest): Promise<void> {
@@ -242,42 +218,22 @@ class NotificationManager {
       return;
     }
 
-    if (this.isNative) {
-      try {
-        await LocalNotifications.schedule({
-          notifications: [
-            {
-              id: Math.floor(Math.random() * 100000),
-              title: req.title,
-              body: req.body,
-              schedule: { at: new Date(Date.now() + 100), allowWhileIdle: true },
-              sound: 'water_sound.mp3',
-              channelId: NATIVE_CHANNEL_ID,
-              extra: { url: req.url || '/' }
-            }
-          ]
-        });
-      } catch (err) {
-        console.warn('Capacitor notification failed:', err);
+    // Web/PWA fallback — only if the page is hidden, otherwise the
+    // foreground audio + toast already covers it.
+    try {
+      if (
+        typeof Notification !== 'undefined' &&
+        Notification.permission === 'granted' &&
+        document.visibilityState !== 'visible'
+      ) {
+        const notification = new Notification(req.title, { body: req.body, tag: req.dedupKey });
+        notification.onclick = () => {
+          window.focus();
+          window.location.href = req.url || '/';
+        };
       }
-    } else {
-      // Web/PWA fallback — only if the page is hidden, otherwise the
-      // foreground audio + toast already covers it.
-      try {
-        if (
-          typeof Notification !== 'undefined' &&
-          Notification.permission === 'granted' &&
-          document.visibilityState !== 'visible'
-        ) {
-          const notification = new Notification(req.title, { body: req.body, tag: req.dedupKey });
-          notification.onclick = () => {
-            window.focus();
-            window.location.href = req.url || '/';
-          };
-        }
-      } catch (err) {
-        console.warn('Web notification failed:', err);
-      }
+    } catch (err) {
+      console.warn('Web notification failed:', err);
     }
   }
 
