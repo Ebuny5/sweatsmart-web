@@ -1163,38 +1163,45 @@ const HyperAI = () => {
               onChange={handleImageAttach}
             />
 
-            {/* Voice chat button */}
-            <button
-              onClick={isRecording ? stopVoiceChat : startVoiceChat}
-              disabled={isProcessingVoice || isLoading}
-              title={isRecording ? 'Stop recording' : `Voice chat (${DAILY_VOICE_LIMIT - getVoiceUsageToday()} left today)`}
-              className={`p-3 rounded-xl transition-all shrink-0 ${
-                isRecording ? 'record-pulse' : ''
-              } disabled:opacity-40`}
-              style={{
-                background: isRecording
-                  ? 'rgba(239,68,68,0.25)'
-                  : 'linear-gradient(135deg, rgba(0,188,212,0.15), rgba(0,151,167,0.15))',
-                border: isRecording
-                  ? '1px solid rgba(239,68,68,0.5)'
-                  : '1px solid rgba(0,188,212,0.3)',
-              }}
-            >
-              <Phone className={`h-4 w-4 ${isRecording ? 'text-red-400' : 'text-teal-400'}`} />
-            </button>
+            {/* Unified voice button */}
+            <div className="relative shrink-0">
+              <button
+                onClick={() => isRecording ? stopVoiceChat() : setVoiceMenuOpen((open) => !open)}
+                disabled={isProcessingVoice || isLoading}
+                title="Voice options"
+                className={`p-3 rounded-xl transition-all ${isRecording ? 'record-pulse' : ''} disabled:opacity-40`}
+                style={{
+                  background: isRecording || isListening
+                    ? 'rgba(239,68,68,0.25)'
+                    : 'linear-gradient(135deg, rgba(0,188,212,0.18), rgba(0,151,167,0.18))',
+                  border: isRecording || isListening
+                    ? '1px solid rgba(239,68,68,0.5)'
+                    : '1px solid rgba(0,188,212,0.35)',
+                }}
+              >
+                {isRecording || isListening ? <MicOff className="h-4 w-4 text-red-400" /> : <Mic className="h-4 w-4 text-teal-400" />}
+              </button>
 
-            {/* Typing mic button */}
-            <button
-              onClick={toggleVoice}
-              className={`p-3 rounded-xl transition-all shrink-0 ${
-                isListening
-                  ? 'bg-red-500/20 border border-red-500/50 text-red-400'
-                  : 'hover:bg-white/10 text-white/30 hover:text-white/60'
-              }`}
-              style={{ border: isListening ? undefined : '1px solid rgba(255,255,255,0.08)' }}
-            >
-              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-            </button>
+              {voiceMenuOpen && !isRecording && !isProcessingVoice && (
+                <div
+                  className="absolute bottom-14 left-0 z-30 w-56 rounded-2xl p-2 space-y-2"
+                  style={{ background: 'rgba(15,15,35,0.98)', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 16px 40px rgba(0,0,0,0.35)' }}
+                >
+                  <button
+                    onClick={() => { setVoiceMenuOpen(false); toggleVoice(); }}
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm text-white/80 hover:bg-white/10"
+                  >
+                    <Mic className="h-4 w-4 text-teal-300" /> Voice to text
+                  </button>
+                  <button
+                    onClick={() => { setVoiceMenuOpen(false); startVoiceChat(); }}
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm text-white/80 hover:bg-white/10"
+                  >
+                    <Volume2 className="h-4 w-4 text-teal-300" /> Speech to speech
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* Image attach button */}
             <button
