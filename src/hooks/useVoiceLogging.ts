@@ -1,293 +1,211 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { BodyArea, Trigger } from "@/types";
-import { BODY_AREA_OPTIONS, TRIGGER_GROUPS } from "@/constants/episodeData";
-import { speakProfessionally, stopProfessionalSpeech } from "@/utils/webSpeechVoice";
 
-type VoiceStage = "idle" | "listening" | "confirming" | "reasoning" | "saving";
-
-interface VoiceMatches {
-  bodyAreas: BodyArea[];
-  triggers: Trigger[];
-}
+export type VoiceStatus = 'LISTENING' | 'CONFIRMING' | 'REASONING' | 'SAVING' | null;
 
 interface UseVoiceLoggingProps {
-  onBodyAreaMatch: (area: BodyArea) => void;
-  onTriggerMatch: (trigger: Trigger) => void;
-  onTranscriptUpdate: (transcript: string) => void;
-  onAutoSave: (finalTranscript?: string, matches?: VoiceMatches) => void;
-  onUndo: () => void;
-  isSubmitting: boolean;
+  onAnalysisComplete: (bodyAreas: BodyArea[], triggers: Trigger[], notes: string) => void;
 }
 
-const SILENCE_BEFORE_CONFIRM_MS = 8000; // Increased to be more patient
-const CONFIRMATION_TIMEOUT_MS = 7000;
-const REASONING_DELAY_MS = 2500;
-
-export const useVoiceLogging = ({
-  onBodyAreaMatch,
-  onTriggerMatch,
-  onTranscriptUpdate,
-  onAutoSave,
-  onUndo,
-  isSubmitting,
-}: UseVoiceLoggingProps) => {
-  const [voiceStage, setVoiceStage] = useState<VoiceStage>("idle");
+export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) => {
+  const [voiceStatus, setVoiceStatus] = useState<VoiceStatus>(null);
   const [transcript, setTranscript] = useState("");
-  const [highlightedAreas, setHighlightedAreas] = useState<BodyArea[]>([]);
-  const [highlightedTriggers, setHighlightedTriggers] = useState<string[]>([]);
-  const [canUndo, setCanUndo] = useState(false);
-
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const confirmationTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const reasoningTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const transcriptRef = useRef("");
-  const processedTextRef = useRef("");
-  const stageRef = useRef<VoiceStage>("idle");
-  const matchedAreasRef = useRef<Set<BodyArea>>(new Set());
-  const matchedTriggersRef = useRef<Map<string, Trigger>>(new Map());
+  const fullTranscriptRef = useRef("");
 
-  const setStage = useCallback((stage: VoiceStage) => {
-    stageRef.current = stage;
-    setVoiceStage(stage);
-  }, []);
+  const analyseAndSave = useCallback(async (text: string) => {
+    setVoiceStatus('REASONING');
 
-  const clearTimers = useCallback(() => {
-    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-    if (confirmationTimerRef.current) clearTimeout(confirmationTimerRef.current);
-    if (reasoningTimerRef.current) clearTimeout(reasoningTimerRef.current);
-    silenceTimerRef.current = null;
-    confirmationTimerRef.current = null;
-    reasoningTimerRef.current = null;
-  }, []);
+    // Give visual analysis feel
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
-  const speak = useCallback((text: string) => {
-    void speakProfessionally(text);
-  }, []);
+    const lower = text.toLowerCase();
 
-  const stopRecognition = useCallback(() => {
-    try {
-      recognitionRef.current?.stop();
-    } catch {
-      /* ignore */
+    // ── BODY AREAS ──
+    const detectedAreas: BodyArea[] = [];
+
+    // Primary focal zones
+    if (lower.includes('palm') || lower.includes('hand') || lower.includes('hands')) detectedAreas.push('palms');
+    if (lower.includes('finger') || lower.includes('fingers')) detectedAreas.push('fingers');
+    if (lower.includes('sole') || lower.includes('soles') || lower.includes('bottom of')) detectedAreas.push('soles');
+    if (lower.includes('feet') || lower.includes('foot')) detectedAreas.push('feet');
+    if (lower.includes('toe') || lower.includes('toes')) detectedAreas.push('toes');
+    if (lower.includes('feet and sole') || lower.includes('foot and sole')) detectedAreas.push('feet_soles');
+    if ((lower.includes('face') && lower.includes('scalp')) || lower.includes('face and scalp')) detectedAreas.push('face_scalp');
+    else if (lower.includes('face') || lower.includes('forehead') || lower.includes('cheek') || lower.includes('chin')) detectedAreas.push('face');
+    else if (lower.includes('scalp') || (lower.includes('head') && !lower.includes('forehead'))) detectedAreas.push('scalp');
+    if (lower.includes('underarm') || lower.includes('armpit') || lower.includes('armpits')) detectedAreas.push('underarms');
+
+    // Secondary / truncal zones
+    if (lower.includes('entire body') || lower.includes('whole body') || lower.includes('everywhere')) detectedAreas.push('entire_body');
+    if (lower.includes('trunk') || lower.includes('torso') || lower.includes('stomach') || lower.includes('abdomen')) detectedAreas.push('trunk');
+    if (lower.includes('chest')) detectedAreas.push('chest');
+    if (lower.includes('back')) detectedAreas.push('back');
+    if (lower.includes('groin')) detectedAreas.push('groin');
+
+    // Default if nothing detected
+    if (detectedAreas.length === 0) detectedAreas.push('palms');
+
+    // ── TRIGGERS ──
+    const detectedTriggerValues: string[] = [];
+
+    // Environment & Situation
+    if (lower.includes('hot') || lower.includes('heat') || lower.includes('warm') || lower.includes('temperature')) detectedTriggerValues.push('hot_temperature');
+    if (lower.includes('humid') || lower.includes('humidity') || lower.includes('muggy') || lower.includes('sticky')) detectedTriggerValues.push('high_humidity');
+    if (lower.includes('crowd') || lower.includes('crowded') || lower.includes('busy place') || lower.includes('lots of people')) detectedTriggerValues.push('crowded_spaces');
+    if (lower.includes('bright light') || lower.includes('bright lights') || lower.includes('sunlight in eyes')) detectedTriggerValues.push('bright_lights');
+    if (lower.includes('loud') || lower.includes('noise') || lower.includes('noisy')) detectedTriggerValues.push('loud_noises');
+    if (lower.includes('transitional') || lower.includes('temperature change') || lower.includes('moved from') || lower.includes('walked into') || lower.includes('came inside') || lower.includes('went outside')) detectedTriggerValues.push('transitional_temperature');
+    if (lower.includes('synthetic') || lower.includes('fabric') || lower.includes('polyester') || lower.includes('nylon')) detectedTriggerValues.push('synthetic_fabrics');
+    if (lower.includes('sun') || lower.includes('outdoor') || lower.includes('outside') || lower.includes('sunshine') || lower.includes('sunlight')) detectedTriggerValues.push('outdoor_sun_exposure');
+
+    // Emotional & Cognitive
+    if (lower.includes('stress') || lower.includes('stressed')) detectedTriggerValues.push('stress');
+    if (lower.includes('anxi') || lower.includes('anxious') || lower.includes('anxiety')) detectedTriggerValues.push('anxiety');
+    if (lower.includes('anticipat') || lower.includes('dreading') || lower.includes('worrying about sweating')) detectedTriggerValues.push('anticipatory_sweating');
+    if (lower.includes('embarrass')) detectedTriggerValues.push('embarrassment');
+    if (lower.includes('excite') || lower.includes('excited') || lower.includes('excitement')) detectedTriggerValues.push('excitement');
+    if (lower.includes('anger') || lower.includes('angry') || lower.includes('frustrat')) detectedTriggerValues.push('anger');
+    if (lower.includes('nervous') || lower.includes('nervousness') || lower.includes('nerves')) detectedTriggerValues.push('nervousness');
+    if (lower.includes('public speak') || lower.includes('presentation') || lower.includes('speech') || lower.includes('speaking in front')) detectedTriggerValues.push('public_speaking');
+    if (lower.includes('social') || lower.includes('party') || lower.includes('gathering') || lower.includes('event')) detectedTriggerValues.push('social_interaction');
+    if (lower.includes('work pressure') || lower.includes('work stress') || lower.includes('boss') || lower.includes('deadline') || lower.includes('pressure at work')) detectedTriggerValues.push('work_pressure');
+    if (lower.includes('exam') || lower.includes('test') || lower.includes('interview')) detectedTriggerValues.push('exam_test_situation');
+
+    // Food, Drink & Gustatory
+    if (lower.includes('spicy') || lower.includes('pepper') || lower.includes('chilli')) detectedTriggerValues.push('spicy_food');
+    if (lower.includes('caffeine') || lower.includes('coffee') || lower.includes('tea') || lower.includes('energy drink')) detectedTriggerValues.push('caffeine');
+    if (lower.includes('alcohol') || lower.includes('drink') || lower.includes('beer') || lower.includes('wine')) detectedTriggerValues.push('alcohol');
+    if (lower.includes('hot drink') || lower.includes('hot beverage')) detectedTriggerValues.push('hot_drinks');
+    if (lower.includes('heavy meal') || lower.includes('big meal') || lower.includes('overate') || lower.includes('ate a lot')) detectedTriggerValues.push('heavy_meals');
+    if (lower.includes('gustatory') || lower.includes('eating triggered') || lower.includes('after eating')) detectedTriggerValues.push('gustatory_sweating');
+
+    // Physical Activity & Body State
+    if (lower.includes('exercise') || lower.includes('gym') || lower.includes('workout') || lower.includes('running') || lower.includes('sport') || lower.includes('walk')) detectedTriggerValues.push('physical_exercise');
+    if (lower.includes('night sweat') || lower.includes('sweating at night') || lower.includes('woke up sweating')) detectedTriggerValues.push('night_sweats');
+    if (lower.includes('poor sleep') || lower.includes('bad sleep') || lower.includes('no sleep') || lower.includes('tired')) detectedTriggerValues.push('poor_sleep');
+    if (lower.includes('hormonal') || lower.includes('period') || lower.includes('menstrual') || lower.includes('menopause')) detectedTriggerValues.push('hormonal_changes');
+    if (lower.includes('ill') || lower.includes('sick') || lower.includes('fever') || lower.includes('infection')) detectedTriggerValues.push('illness_fever');
+    if (lower.includes('hypoglycemia') || lower.includes('low blood sugar') || lower.includes('sugar dropped')) detectedTriggerValues.push('hypoglycemia');
+    if (lower.includes('clothing') || lower.includes('tight clothes') || lower.includes('uniform') || lower.includes('outfit')) detectedTriggerValues.push('certain_clothing');
+
+    // Medications
+    if (lower.includes('antidepressant') || lower.includes('ssri') || lower.includes('sertraline') || lower.includes('fluoxetine')) detectedTriggerValues.push('ssris_antidepressants');
+    if (lower.includes('opioid') || lower.includes('pain medication') || lower.includes('morphine') || lower.includes('codeine')) detectedTriggerValues.push('opioids_pain_medication');
+    if (lower.includes('ibuprofen') || lower.includes('aspirin') || lower.includes('nsaid')) detectedTriggerValues.push('nsaids');
+    if (lower.includes('blood pressure') || lower.includes('amlodipine') || lower.includes('lisinopril')) detectedTriggerValues.push('blood_pressure_medication');
+    if (lower.includes('insulin') || lower.includes('diabetes medication') || lower.includes('metformin')) detectedTriggerValues.push('insulin_diabetes_medication');
+    if (lower.includes('supplement') || lower.includes('herbal') || lower.includes('vitamin')) detectedTriggerValues.push('supplements_herbal');
+    if (lower.includes('new medication') || lower.includes('started taking') || lower.includes('new tablet') || lower.includes('new pill')) detectedTriggerValues.push('new_medication');
+
+    const detectedTriggers: Trigger[] = detectedTriggerValues.map(t => ({
+      id: `${Date.now()}-${t}`,
+      name: t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      label: t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      value: t,
+      type: 'environmental',
+      category: 'environmental',
+      icon: 'zap'
+    }));
+
+    setVoiceStatus('SAVING');
+    onAnalysisComplete(Array.from(new Set(detectedAreas)), detectedTriggers, text.trim());
+    setVoiceStatus(null);
+  }, [onAnalysisComplete]);
+
+  const startListening = useCallback((isResuming = false) => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    if (!isResuming) {
+        fullTranscriptRef.current = '';
+        setTranscript('');
     }
-  }, []);
-
-  const finishAndSave = useCallback(() => {
-    if (stageRef.current === "saving") return;
-    clearTimers();
-    stopRecognition();
-    setStage("reasoning");
-
-    reasoningTimerRef.current = setTimeout(() => {
-      const finalTranscript = transcriptRef.current.trim();
-      setStage("saving");
-      speak("Saving episode");
-      onAutoSave(finalTranscript, {
-        bodyAreas: Array.from(matchedAreasRef.current),
-        triggers: Array.from(matchedTriggersRef.current.values()),
-      });
-      setStage("idle");
-
-      setCanUndo(true);
-      undoTimerRef.current = setTimeout(() => setCanUndo(false), 10000);
-    }, REASONING_DELAY_MS);
-  }, [clearTimers, onAutoSave, onTranscriptUpdate, setStage, speak, stopRecognition]);
-
-  const askForConfirmation = useCallback(() => {
-    if (stageRef.current !== "listening") return;
-    clearTimers();
-    setStage("confirming");
-    speak("Is that all?");
-    confirmationTimerRef.current = setTimeout(finishAndSave, CONFIRMATION_TIMEOUT_MS);
-  }, [clearTimers, finishAndSave, setStage, speak]);
-
-  const scheduleSilenceCheck = useCallback(() => {
-    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-    silenceTimerRef.current = setTimeout(askForConfirmation, SILENCE_BEFORE_CONFIRM_MS);
-  }, [askForConfirmation]);
-
-  const processTranscript = useCallback((text: string) => {
-    const lowerText = text.toLowerCase().trim();
-    if (!lowerText || lowerText === processedTextRef.current) return;
-
-    if (stageRef.current === "confirming") {
-      if (/\b(yes|yeah|yep|that is all|that's all|save|done|finished)\b/.test(lowerText)) {
-        finishAndSave();
-        processedTextRef.current = lowerText;
-        return;
-      }
-      if (/\b(no|not yet|continue|more)\b/.test(lowerText)) {
-        clearTimers();
-        setStage("listening");
-        scheduleSilenceCheck();
-      }
-    }
-
-    const negations = ["no", "not", "never", "didn't", "don't", "wasn't", "without", "hardly", "barely", "instead"];
-    const words = lowerText.split(/\s+/);
-    const isNegated = (keyword: string) => {
-      const kwWords = keyword.toLowerCase().split(/\s+/);
-      for (let i = 0; i <= words.length - kwWords.length; i++) {
-        if (kwWords.every((word, index) => words[i + index] === word)) {
-          const startSearch = Math.max(0, i - 6);
-          for (let k = startSearch; k < i; k++) {
-            if (negations.includes(words[k])) return true;
-          }
-        }
-      }
-      return false;
-    };
-
-    BODY_AREA_OPTIONS.forEach((option) => {
-      const matchFound = option.keywords.some((kw) => lowerText.includes(kw.toLowerCase()));
-      const negated = option.keywords.some((kw) => lowerText.includes(kw.toLowerCase()) && isNegated(kw));
-      if (matchFound && !negated && !matchedAreasRef.current.has(option.area)) {
-        matchedAreasRef.current.add(option.area);
-        onBodyAreaMatch(option.area);
-        setHighlightedAreas((prev) => [...new Set([...prev, option.area])]);
-        setTimeout(() => setHighlightedAreas((prev) => prev.filter((area) => area !== option.area)), 2000);
-      }
-    });
-
-    TRIGGER_GROUPS.forEach((group) => {
-      group.triggers.forEach((triggerOption) => {
-        const matchFound = triggerOption.keywords.some((kw) => lowerText.includes(kw.toLowerCase()));
-        const negated = triggerOption.keywords.some((kw) => lowerText.includes(kw.toLowerCase()) && isNegated(kw));
-        if (matchFound && !negated && !matchedTriggersRef.current.has(triggerOption.label)) {
-          const trigger: Trigger = {
-            id: `${Date.now()}-${triggerOption.label}`,
-            name: triggerOption.label,
-            label: triggerOption.label,
-            value: triggerOption.label.toLowerCase().replace(/\s+/g, "_"),
-            type: triggerOption.type,
-            category: triggerOption.type,
-            icon: triggerOption.emoji,
-          };
-          matchedTriggersRef.current.set(triggerOption.label, trigger);
-          onTriggerMatch(trigger);
-          setHighlightedTriggers((prev) => [...new Set([...prev, trigger.label])]);
-          setTimeout(() => setHighlightedTriggers((prev) => prev.filter((label) => label !== trigger.label)), 2000);
-        }
-      });
-    });
-
-    if (lowerText.includes("save episode") || lowerText.includes("log this")) {
-      finishAndSave();
-    }
-
-    if (canUndo && lowerText.includes("undo")) {
-      onUndo();
-      setCanUndo(false);
-      speak("Episode deleted");
-      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-    }
-
-    processedTextRef.current = lowerText;
-  }, [canUndo, clearTimers, finishAndSave, onBodyAreaMatch, onTriggerMatch, onUndo, scheduleSilenceCheck, setStage, speak]);
-
-  const stopListening = useCallback((isAutoSave = false) => {
-    clearTimers();
-    stopRecognition();
-    setStage("idle");
-    const finalTranscript = transcriptRef.current.trim();
-    if (finalTranscript) onTranscriptUpdate(finalTranscript);
-    if (isAutoSave) {
-      onAutoSave(finalTranscript, {
-        bodyAreas: Array.from(matchedAreasRef.current),
-        triggers: Array.from(matchedTriggersRef.current.values()),
-      });
-    }
-  }, [clearTimers, onAutoSave, onTranscriptUpdate, setStage, stopRecognition]);
-
-  const startListening = useCallback(() => {
-    if (isSubmitting) return;
-
-    const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("Voice logging is not supported in this browser. Please use Chrome or Safari.");
-      return;
-    }
-
-    if (stageRef.current !== "idle") {
-      stopListening();
-      return;
-    }
-
-    stopProfessionalSpeech();
-    transcriptRef.current = "";
-    processedTextRef.current = "";
-    matchedAreasRef.current = new Set();
-    matchedTriggersRef.current = new Map();
-    setTranscript("");
 
     const recognition = new SpeechRecognition();
     recognitionRef.current = recognition;
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "en-US";
+    recognition.lang = 'en-US';
+
+    const askConfirmation = () => {
+      setVoiceStatus('CONFIRMING');
+      const confirmRecognition = new SpeechRecognition();
+      confirmRecognition.continuous = false;
+      confirmRecognition.lang = 'en-US';
+
+      const confirmTimer = setTimeout(() => {
+        confirmRecognition.stop();
+        analyseAndSave(fullTranscriptRef.current);
+      }, 3000);
+
+      confirmRecognition.onresult = (event: any) => {
+        clearTimeout(confirmTimer);
+        const response = event.results[0][0].transcript.toLowerCase().trim();
+        confirmRecognition.stop();
+
+        if (response.includes('no') || response.includes('wait') || response.includes('more') || response.includes('hold')) {
+          startListening(true);
+        } else {
+          analyseAndSave(fullTranscriptRef.current);
+        }
+      };
+
+      confirmRecognition.onerror = () => {
+        clearTimeout(confirmTimer);
+        analyseAndSave(fullTranscriptRef.current);
+      };
+
+      confirmRecognition.start();
+    };
 
     recognition.onresult = (event: any) => {
-      let combined = "";
-      let hasFinal = false;
-      for (let i = 0; i < event.results.length; i++) {
-        combined += `${event.results[i][0].transcript} `;
-        if (event.results[i].isFinal) hasFinal = true;
-      }
-      combined = combined.trim();
-      transcriptRef.current = combined;
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+
+      const currentTranscript = Array.from(event.results)
+        .map((r: any) => r[0].transcript)
+        .join(' ');
+
+      const combined = isResuming
+        ? (fullTranscriptRef.current + ' ' + currentTranscript).trim()
+        : currentTranscript;
+
       setTranscript(combined);
-      processTranscript(combined);
+      fullTranscriptRef.current = combined;
 
-      // Only schedule the silence check if we actually have some text
-      // and it's not just a transient noise.
-      if (stageRef.current === "listening" && combined.length > 2) {
-        scheduleSilenceCheck();
-      }
+      silenceTimerRef.current = setTimeout(() => {
+        recognition.stop();
+        askConfirmation();
+      }, 5000);
     };
 
-    recognition.onend = () => {
-      if (stageRef.current === "listening" || stageRef.current === "confirming") {
-        try {
-          recognition.start();
-        } catch {
-          setStage("idle");
-        }
+    recognition.onerror = () => {
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      if (fullTranscriptRef.current.trim()) {
+        analyseAndSave(fullTranscriptRef.current);
+      } else {
+        setVoiceStatus(null);
       }
-    };
-
-    recognition.onerror = (event: any) => {
-      console.error("Speech recognition error", event.error);
-      if (event.error === "not-allowed") {
-        alert("Microphone access was denied. Please enable microphone permissions in your browser settings to use voice logging.");
-      }
-      if (event.error !== "no-speech") setStage("idle");
     };
 
     recognition.start();
-    setStage("listening");
-    speak("I'm listening");
-    scheduleSilenceCheck();
-  }, [isSubmitting, processTranscript, scheduleSilenceCheck, setStage, speak, stopListening]);
+    setVoiceStatus('LISTENING');
+  }, [analyseAndSave]);
 
   useEffect(() => {
     return () => {
-      clearTimers();
-      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-      stopRecognition();
-      stopProfessionalSpeech();
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch(e) {}
+      }
     };
-  }, [clearTimers, stopRecognition]);
+  }, []);
 
   return {
-    isListening: voiceStage !== "idle",
-    voiceStage,
-    startListening,
-    stopListening,
+    voiceStatus,
+    startListening: () => startListening(false),
     transcript,
-    highlightedAreas,
-    highlightedTriggers,
-    canUndo,
+    isListening: voiceStatus !== null
   };
 };

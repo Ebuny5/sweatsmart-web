@@ -233,65 +233,26 @@ const LogEpisode = () => {
   // ── Voice logging integration ──────────────────────────────────────────────
   const {
     isListening,
-    voiceStage,
+    voiceStatus,
     startListening,
-    stopListening,
     transcript,
-    highlightedAreas,
-    highlightedTriggers,
-    canUndo,
   } = useVoiceLogging({
-    onBodyAreaMatch: (area) => {
-      setBodyAreas(prev => prev.includes(area) ? prev : [...prev, area]);
-    },
-    onTriggerMatch: (trigger) => {
-      setTriggers(prev => prev.some(t => t.label === trigger.label) ? prev : [...prev, trigger]);
-    },
-    onTranscriptUpdate: (newTranscript) => {
-      const timestamp = format(new Date(), "h:mm a");
-      const entry = notes ? `\n\n[Voice log - ${timestamp}]: ${newTranscript}` : `[Voice log - ${timestamp}]: ${newTranscript}`;
-      setNotes(prev => prev + entry);
-    },
-    onAutoSave: (finalTranscript, matches) => {
-      let finalNotes = notes;
-      const finalBodyAreas = matches?.bodyAreas?.length
-        ? Array.from(new Set([...bodyAreas, ...matches.bodyAreas]))
-        : bodyAreas;
-      const finalTriggers = matches?.triggers?.length
-        ? [...triggers, ...matches.triggers.filter((matched) => !triggers.some((existing) => existing.label === matched.label))]
-        : triggers;
+    onAnalysisComplete: async (detectedAreas, detectedTriggers, transcriptText) => {
+      setBodyAreas(detectedAreas);
+      setTriggers(detectedTriggers);
+      setNotes(transcriptText);
 
-      if (matches?.bodyAreas?.length) setBodyAreas(finalBodyAreas);
-      if (matches?.triggers?.length) setTriggers(finalTriggers);
-
-      if (finalTranscript) {
-        const timestamp = format(new Date(), "h:mm a");
-        finalNotes = notes ? `${notes}\n\n[Voice log - ${timestamp}]: ${finalTranscript}` : `[Voice log - ${timestamp}]: ${finalTranscript}`;
-        setNotes(finalNotes);
-      }
-      handleSubmit(undefined, finalNotes, finalBodyAreas, finalTriggers);
-    },
-    onUndo: handleUndo,
-    isSubmitting,
+      // Save directly with currently selected severity
+      await handleSubmit(undefined, transcriptText, detectedAreas, detectedTriggers);
+    }
   });
 
-  useEffect(() => {
-    if (canUndo) {
-      toast({
-        title: "Episode saved",
-        description: "Say 'undo' within 10 seconds to delete.",
-        duration: 10000,
-      });
-    }
-  }, [canUndo, toast]);
-
-  const voiceStatus = {
-    idle: { label: "Voice log", hint: "Tap and speak naturally" },
-    listening: { label: "Listening", hint: transcript || "Speak naturally about your episode" },
-    confirming: { label: "Confirming", hint: "Say yes if that is all" },
-    reasoning: { label: "Reasoning", hint: "Analysing your episode" },
-    saving: { label: "Saving", hint: "Generating your episode" },
-  }[voiceStage];
+  const voiceUIStatus = {
+    LISTENING: { label: "LISTENING", hint: "Speak naturally about your episode" },
+    CONFIRMING: { label: "CONFIRMING", hint: "Is that all?" },
+    REASONING: { label: "REASONING", hint: "Analysing your episode" },
+    SAVING: { label: "SAVING", hint: "Generating your episode" },
+  }[voiceStatus as string] || { label: "Voice log", hint: "Tap and speak naturally" };
 
   // ── Success / Insights screen ──────────────────────────────────────────────
   if (showInsights) {
@@ -494,7 +455,6 @@ const LogEpisode = () => {
                   <BodyAreaSelector
                     selectedAreas={bodyAreas}
                     onChange={setBodyAreas}
-                    highlightedAreas={highlightedAreas}
                   />
                 </div>
 
@@ -519,7 +479,6 @@ const LogEpisode = () => {
               <TriggerSelector
                 triggers={triggers}
                 onTriggersChange={setTriggers}
-                highlightedTriggers={highlightedTriggers}
               />
             </Section>
 
@@ -566,11 +525,16 @@ const LogEpisode = () => {
             <div className="bg-white/90 backdrop-blur-md border border-blue-200 rounded-2xl p-4 shadow-xl mb-2 max-w-[200px] animate-in fade-in slide-in-from-bottom-4">
               <div className="flex items-center gap-2 mb-1.5">
                 <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">{voiceStatus.label}</span>
+                <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">{voiceUIStatus.label}</span>
               </div>
               <p className="text-xs text-gray-600 italic line-clamp-3">
-                {voiceStatus.hint}
+                {voiceUIStatus.hint}
               </p>
+              {voiceStatus === 'LISTENING' && transcript && (
+                <p className="text-[10px] text-blue-400 mt-2 line-clamp-2 italic border-t border-blue-100 pt-1">
+                  "{transcript}"
+                </p>
+              )}
             </div>
           )}
 
