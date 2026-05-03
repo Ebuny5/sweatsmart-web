@@ -165,7 +165,7 @@ const LogEpisode = () => {
       // Generate insights using the deterministic recommendation engine
       setIsLoadingInsights(true);
       try {
-        const triggerData = triggers.map(t => ({
+        const triggerData = finalTriggers.map(t => ({
           type: t.type,
           value: t.value,
           label: t.label,

@@ -1,7 +1,7 @@
 /**
  * NotificationManager — single web-first pipeline for alerts.
- * alerts. Handles:
- *   - Web/PWA notifications only (Capacitor routing intentionally disabled)
+ * Handles:
+ *   - Web/PWA notifications
  *   - Deduplication (same dedupKey within cooldown window is skipped)
  *   - Per-channel cooldowns (climate vs reminder are independent)
  *   - Audio sequence: water sound → voice clip via AudioAlertPlayer
@@ -120,8 +120,7 @@ class NotificationManager {
   }
 
   private initClickListeners() {
-    // Capacitor LocalNotifications are intentionally not used right now.
-    // They were causing silent Android popups and blocking the web audio path.
+    // Native click listeners handled via standard Notification API
   }
 
   /**
@@ -175,7 +174,7 @@ class NotificationManager {
       /* ignore audio errors */
     });
 
-    // b) System notification (Capacitor ONLY)
+    // b) System notification (Web API)
     void this.showSystemNotification(req);
 
     // c) In-app toast event for foreground listeners
