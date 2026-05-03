@@ -266,13 +266,17 @@ async function logNotification(supabase: any, subscriptionId: string, userId: st
   });
 }
 
-// ── Risk calculation — real temp only, no heat index trick ──
+// ── Hyperhidrosis-sensitive risk calculation — temperature is primary ──
 function calculateSweatRisk(temp: number, humidity: number, uv: number) {
-  const safeUV = Math.min(11, uv);
-  if (temp >= 35 || safeUV >= 11) return 'extreme';
-  if (temp >= 32) return 'high';
-  if (temp >= 28 && humidity >= 80) return 'moderate';
-  if (temp >= 28) return 'moderate';
+  const tempScore = temp >= 38 ? 55 : temp >= 35 ? 48 : temp >= 32 ? 40 : temp >= 29 ? 30 : temp >= 26 ? 18 : 5;
+  const humidityScore = humidity >= 85 ? 20 : humidity >= 70 ? 15 : humidity >= 55 ? 9 : 3;
+  const uvScore = uv >= 12 ? 15 : uv >= 9 ? 12 : uv >= 6 ? 8 : uv >= 3 ? 4 : 0;
+  const score = tempScore + humidityScore + uvScore;
+
+  if (temp >= 38 || score >= 68) return 'extreme';
+  if (temp >= 32 || score >= 52) return 'high';
+  if (temp >= 28 || score >= 36) return 'moderate';
+  if (temp >= 25 || score >= 24) return 'low';
   return 'normal';
 }
 
@@ -488,7 +492,7 @@ serve(async (req) => {
                 `https://api.openweathermap.org/data/2.5/uvi?lat=${sub.latitude}&lon=${sub.longitude}&appid=${weatherApiKey}`
               );
               const uvData = await uvRes.json();
-              uv = Math.min(11, uvData.value || 0);
+              uv = uvData.value || 0;
             } catch { /* optional */ }
           }
 
