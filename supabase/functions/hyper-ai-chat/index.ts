@@ -155,7 +155,9 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const LOVABLE_API_KEY    = Deno.env.get('LOVABLE_API_KEY');
     const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
-    const DEEPGRAM_API_KEY   = Deno.env.get('DEEPGRAM_API_KEY');
+    const GEMINI_API_KEY     = Deno.env.get('GOOGLE_AI_STUDIO_API_KEY')
+      || Deno.env.get('GOOGLE_AI_STUDIO_API_KEY_WEB')
+      || Deno.env.get('GOOGLE_AI_STUDIO_API_KEY_ANDROID');
 
     if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
 
