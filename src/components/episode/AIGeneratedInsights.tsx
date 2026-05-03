@@ -47,52 +47,45 @@ const AIGeneratedInsights: React.FC<AIInsightsProps> = ({ insights }) => {
 
     const synth = window.speechSynthesis;
 
-    if (isSpeaking) {
+    if (synth.speaking) {
       synth.cancel();
       setIsSpeaking(false);
       return;
     }
 
-    const fullText = `
-      ${insights.emotionalOpener ? insights.emotionalOpener : ""}
-      Clinical Analysis: ${insights.clinicalAnalysis}.
-      Immediate Relief Strategies: ${insights.immediateRelief.join(". ")}.
-      Treatment Recommendations: ${insights.treatmentOptions.join(". ")}.
-      Lifestyle Modifications: ${insights.lifestyleModifications.join(". ")}.
-      When to seek medical attention: ${insights.medicalAttention}.
-    `.trim();
+    const sections = [
+      insights.emotionalOpener,
+      insights.clinicalAnalysis,
+      ...(insights.immediateRelief ?? []),
+      ...(insights.treatmentOptions ?? []),
+      ...(insights.lifestyleModifications ?? []),
+      insights.medicalAttention
+    ].filter(Boolean).join('. ');
 
-    // Create utterance synchronously inside the gesture handler so browsers
-    // (Safari/Chrome) keep the speech permission attached to the user click.
-    const utterance = new SpeechSynthesisUtterance(fullText);
-    utterance.rate = 0.95;
-    utterance.pitch = 1;
+    const utterance = new SpeechSynthesisUtterance(sections);
     utterance.lang = 'en-US';
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    utterance.rate = 0.92;
+    utterance.pitch = 1.05;
 
-    const assignVoiceAndSpeak = () => {
-      const voice = pickProfessionalVoice(synth.getVoices());
-      if (voice) utterance.voice = voice;
-      synth.cancel();
+    const setVoiceAndSpeak = () => {
+      const voices = synth.getVoices();
+      const preferred = voices.find(v =>
+        v.lang.startsWith('en') &&
+        ['samantha', 'victoria', 'karen', 'aria', 'zira', 'hazel', 'google uk english female']
+          .some(k => v.name.toLowerCase().includes(k))
+      ) || voices.find(v => v.lang.startsWith('en'));
+
+      if (preferred) utterance.voice = preferred;
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+      setIsSpeaking(true);
       synth.speak(utterance);
     };
 
-    setIsSpeaking(true);
-
-    if (synth.getVoices().length > 0) {
-      assignVoiceAndSpeak();
+    if (synth.getVoices().length === 0) {
+      synth.addEventListener('voiceschanged', setVoiceAndSpeak, { once: true });
     } else {
-      // Voices not loaded — speak immediately with default, then swap when ready.
-      synth.cancel();
-      synth.speak(utterance);
-      synth.onvoiceschanged = () => {
-        const voice = pickProfessionalVoice(synth.getVoices());
-        if (voice && !synth.speaking) {
-          utterance.voice = voice;
-          synth.speak(utterance);
-        }
-      };
+      setVoiceAndSpeak();
     }
   };
 
@@ -313,21 +306,11 @@ Disclaimer: These insights are AI-generated and for educational purposes only. A
             size="sm"
             onClick={handleToggleSpeak}
             className={cn(
-              "flex-1 sm:flex-none",
+              "flex-1 sm:flex-none font-semibold",
               isSpeaking ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""
             )}
           >
-            {isSpeaking ? (
-              <>
-                <VolumeX className="h-4 w-4 mr-2" />
-                Stop Reading
-              </>
-            ) : (
-              <>
-                <Volume2 className="h-4 w-4 mr-2" />
-                Listen
-              </>
-            )}
+            {isSpeaking ? '🔊 Stop' : '🔊 Listen'}
           </Button>
           <Button
             variant="outline"
