@@ -56,15 +56,10 @@ const AIGeneratedInsights: React.FC<AIInsightsProps> = ({ insights }) => {
     // Try to find a natural female voice
     const voices = synthRef.current?.getVoices() || [];
     const femaleVoice = voices.find(v =>
-      (v.name.includes("Natural") || v.name.includes("Premium") || v.name.includes("Neural") || v.name.includes("Azure") || v.name.includes("Microsoft")) &&
-      (v.name.includes("Female") || v.name.includes("Google US English") || v.name.includes("Samantha") || v.name.includes("Victoria") || v.name.includes("Ava"))
-    ) || voices.find(v =>
-      v.name.includes("Female") ||
-      v.name.includes("Google US English") ||
-      v.name.includes("Samantha") ||
-      v.name.includes("Victoria") ||
-      v.name.includes("Ava")
-    );
+      v.lang.startsWith('en') &&
+      ['samantha', 'victoria', 'karen', 'aria', 'zira', 'hazel', 'google uk english female']
+        .some(k => v.name.toLowerCase().includes(k))
+    ) || voices.find(v => v.lang.startsWith('en'));
 
     if (femaleVoice) {
       utterance.voice = femaleVoice;

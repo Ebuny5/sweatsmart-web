@@ -104,8 +104,16 @@ const LogEpisode = () => {
   }, [episodes]);
 
   // ── All original logic ─────────────────────────────────────────────────────
-  const handleSubmit = useCallback(async (e?: React.FormEvent, manualNotes?: string) => {
+  const handleSubmit = useCallback(async (
+    e?: React.FormEvent,
+    manualNotes?: string,
+    voiceAreas?: BodyArea[],
+    voiceTriggers?: Trigger[]
+  ) => {
     if (e) e.preventDefault();
+
+    const finalBodyAreas = voiceAreas && voiceAreas.length > 0 ? voiceAreas : bodyAreas;
+    const finalTriggers = voiceTriggers && voiceTriggers.length > 0 ? voiceTriggers : triggers;
 
     if (!user) {
       toast({ title: "Authentication required", description: "Please log in to save episodes.", variant: "destructive" });
@@ -116,7 +124,7 @@ const LogEpisode = () => {
       toast({ title: "Date required", description: "Please select a date for the episode.", variant: "destructive" });
       return;
     }
-    if (bodyAreas.length === 0) {
+    if (finalBodyAreas.length === 0) {
       toast({ title: "Body areas required", description: "Please select at least one affected body area.", variant: "destructive" });
 
       // If this was an auto-save attempt, give voice feedback
@@ -136,14 +144,14 @@ const LogEpisode = () => {
     const finalNotes = manualNotes !== undefined ? manualNotes : notes;
 
     try {
-      const triggerStrings = triggers.map((trigger) =>
+      const triggerStrings = finalTriggers.map((trigger) =>
         JSON.stringify({ type: trigger.type, value: trigger.value, label: trigger.label })
       );
 
       const { data, error } = await supabase.from("episodes").insert({
         user_id: user.id,
         severity: severity,
-        body_areas: bodyAreas,
+        body_areas: finalBodyAreas,
         triggers: triggerStrings,
         notes: finalNotes || null,
         date: datetime.toISOString(),
@@ -163,7 +171,7 @@ const LogEpisode = () => {
       // Generate insights using the deterministic recommendation engine
       setIsLoadingInsights(true);
       try {
-        const triggerData = triggers.map(t => ({
+        const triggerData = finalTriggers.map(t => ({
           type: t.type,
           value: t.value,
           label: t.label,
@@ -171,7 +179,7 @@ const LogEpisode = () => {
 
         const insights = generateFallbackInsights(
           severity,
-          bodyAreas,
+          finalBodyAreas,
           triggerData,
           finalNotes,
         );
@@ -250,14 +258,24 @@ const LogEpisode = () => {
       const entry = notes ? `\n\n[Voice log - ${timestamp}]: ${newTranscript}` : `[Voice log - ${timestamp}]: ${newTranscript}`;
       setNotes(prev => prev + entry);
     },
-    onAutoSave: (finalTranscript) => {
+    onAutoSave: (finalTranscript, detectedAreas, detectedTriggers) => {
       let finalNotes = notes;
       if (finalTranscript) {
         const timestamp = format(new Date(), "h:mm a");
         finalNotes = notes ? `${notes}\n\n[Voice log - ${timestamp}]: ${finalTranscript}` : `[Voice log - ${timestamp}]: ${finalTranscript}`;
         setNotes(finalNotes);
       }
-      handleSubmit(undefined, finalNotes);
+
+      // Update state with detected items before submitting
+      if (detectedAreas && detectedAreas.length > 0) {
+        setBodyAreas(detectedAreas);
+      }
+      if (detectedTriggers && detectedTriggers.length > 0) {
+        setTriggers(detectedTriggers);
+      }
+
+      // We need to wait a tiny bit for state to batch, or pass directly to handleSubmit
+      handleSubmit(undefined, finalNotes, detectedAreas, detectedTriggers);
     },
     onUndo: handleUndo,
     isSubmitting,
@@ -552,13 +570,13 @@ const LogEpisode = () => {
                   voiceState === 'reasoning' ? "bg-blue-500" : "bg-green-500"
                 )} />
                 <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">
-                  {voiceState === 'listening' ? "Listening..." :
-                   voiceState === 'waiting_confirmation' ? "Is that all?" :
-                   voiceState === 'reasoning' ? "Analysing..." : "Saving..."}
+                  {voiceState === 'listening' ? "LISTENING — Speak naturally about your episode" :
+                   voiceState === 'waiting_confirmation' ? "CONFIRMING — Is that all?" :
+                   voiceState === 'reasoning' ? "REASONING — Analysing your episode" : "SAVING — Generating your episode"}
                 </span>
               </div>
               <p className="text-xs text-gray-600 italic line-clamp-3">
-                {voiceState === 'reasoning' ? "Reasoning about your explanation for 10 seconds..." :
+                {voiceState === 'reasoning' ? "Analysing and mapping speech to body areas and triggers..." :
                  transcript || "Speak naturally about your triggers and affected areas..."}
               </p>
             </div>
