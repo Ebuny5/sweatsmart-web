@@ -21,7 +21,7 @@ interface UseVoiceLoggingProps {
 
 const SILENCE_BEFORE_CONFIRM_MS = 4000;
 const CONFIRMATION_TIMEOUT_MS = 5000;
-const REASONING_DELAY_MS = 10000;
+const REASONING_DELAY_MS = 2500;
 
 export const useVoiceLogging = ({
   onBodyAreaMatch,
@@ -88,6 +88,7 @@ export const useVoiceLogging = ({
         bodyAreas: Array.from(matchedAreasRef.current),
         triggers: Array.from(matchedTriggersRef.current.values()),
       });
+      setStage("idle");
 
       setCanUndo(true);
       undoTimerRef.current = setTimeout(() => setCanUndo(false), 10000);
