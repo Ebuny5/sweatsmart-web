@@ -4,7 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { useEpisodes } from "@/hooks/useEpisodes";
 import { useClimateData } from "@/hooks/useClimateData";
-import { Thermometer, Droplets, Sun, Wind, RefreshCw, ChevronRight, AlertTriangle } from "lucide-react";
+import { gaugeHDSS } from "@/utils/hdssGauger";
+import { Thermometer, Droplets, Sun, Wind, RefreshCw, ChevronRight, AlertTriangle, Shield } from "lucide-react";
 import WarriorBadge from "@/components/dashboard/WarriorBadge";
 import { getWarriorInsight } from "@/utils/warriorLogic";
 
@@ -40,6 +41,8 @@ const COMMUNITY_TIPS = [
 const ClimateCard = ({ onNavigate }: { onNavigate: () => void }) => {
   const { weather, sweatRisk, riskDescription, city, loading, error, lastUpdated, refresh } =
     useClimateData();
+  const { episodes } = useEpisodes();
+  const navigate = useNavigate();
 
   const cfg = RISK_CONFIG[sweatRisk ?? "moderate"];
 
@@ -79,7 +82,16 @@ const ClimateCard = ({ onNavigate }: { onNavigate: () => void }) => {
   }
 
   const safeUV    = Math.min(11, weather.uvIndex);
-  const windSpeed = (weather as any).windSpeed ?? (weather as any).wind_speed ?? null;
+
+  // Gauged HDSS Logic
+  const localLogsJson = localStorage.getItem('sweatSmartLogs');
+  const localLogs = localLogsJson ? JSON.parse(localLogsJson) : [];
+
+  // Use the gager utility
+  const gauged = gaugeHDSS(localLogs, episodes, weather);
+
+  const lastLogTime = parseInt(localStorage.getItem('sweatsmart_last_log_time') || '0', 10);
+  const isStale = Date.now() - lastLogTime > 4 * 60 * 60 * 1000;
 
   return (
     <div className={`rounded-2xl border ${cfg.bg} ${cfg.border} p-4 shadow-sm`}>
@@ -112,13 +124,24 @@ const ClimateCard = ({ onNavigate }: { onNavigate: () => void }) => {
           { Icon: Thermometer, value: `${weather.temperature.toFixed(1)}°C`, label: "Temperature", color: "text-orange-500" },
           { Icon: Droplets,    value: `${weather.humidity.toFixed(0)}%`,      label: "Humidity",    color: "text-blue-500"   },
           { Icon: Sun,         value: `UV ${safeUV.toFixed(1)}`,              label: "UV Index",    color: "text-amber-500"  },
-          { Icon: Wind,        value: windSpeed != null ? `${windSpeed} km/h` : "—", label: "Wind Speed", color: "text-teal-500" },
-        ].map(({ Icon, value, label, color }) => (
-          <div key={label} className="bg-white/70 rounded-xl p-2.5 flex items-center gap-2">
+          {
+            Icon: Shield,
+            value: `HDSS ${gauged.level}`,
+            label: gauged.status,
+            color: isStale ? "text-red-500 animate-pulse" : "text-indigo-600",
+            onClick: () => navigate("/log-episode"),
+            className: "cursor-pointer hover:bg-white/90 transition-colors"
+          },
+        ].map(({ Icon, value, label, color, onClick, className }) => (
+          <div
+            key={label}
+            onClick={onClick}
+            className={`bg-white/70 rounded-xl p-2.5 flex items-center gap-2 ${className || ""}`}
+          >
             <Icon className={`h-4 w-4 ${color} shrink-0`} />
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-black text-gray-800 leading-none">{value}</p>
-              <p className="text-[10px] text-gray-400 leading-tight">{label}</p>
+              <p className="text-[10px] text-gray-400 leading-tight truncate">{label}</p>
             </div>
           </div>
         ))}

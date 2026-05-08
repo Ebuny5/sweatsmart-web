@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { LoggingSystem } from "../components/climate/LoggingSystem";
 import { useNavigate } from "react-router-dom";
 import { supabase } from '@/integrations/supabase/client';
 import { edaManager } from '@/utils/edaManager';
@@ -299,7 +298,6 @@ const ClimateMonitor = () => {
     const saved = localStorage.getItem('sweatSmartLogs');
     return saved ? JSON.parse(saved) : [];
   });
-  const [isLoggingModalOpen, setIsLoggingModalOpen] = useState(false);
   const [nextLogTime, setNextLogTime] = useState<number | null>(null);
   const [alertStatus, setAlertStatus] = useState("Waiting for real weather data...");
   const [lastAlertType, setLastAlertType] = useState<string | null>(() =>
@@ -481,12 +479,15 @@ const ClimateMonitor = () => {
   useEffect(() => {
     const handler = (e: any) => {
       if (arePermissionsGranted && e.detail?.channel === 'reminder') {
-        setIsLoggingModalOpen(true);
+        // Navigating to /log-episode is now the default behavior for reminders
+        // This handler was originally for the in-app modal on the climate page.
+        // We decouple it to follow the new routing logic.
+        navigate('/log-episode');
       }
     };
     window.addEventListener('sweatsmart-notification', handler);
     return () => window.removeEventListener('sweatsmart-notification', handler);
-  }, [arePermissionsGranted]);
+  }, [arePermissionsGranted, navigate]);
 
   // Log reminders are handled globally by LoggingReminderService — we no longer
   // duplicate that loop here. ClimateMonitor only listens for the
@@ -510,22 +511,6 @@ const ClimateMonitor = () => {
 
   const handleThresholdChange = (key: keyof Thresholds, value: number) => {
     setThresholds(prev => ({ ...prev, [key]: value }));
-  };
-
-  const handleLogSubmit = (level: HDSSLevel) => {
-    const now = Date.now();
-    const newLog: LogEntry = {
-      id: new Date().toISOString(),
-      timestamp: now,
-      hdssLevel: level,
-      weather: weatherData ?? { temperature: 0, humidity: 0, uvIndex: 0 },
-      physiologicalData,
-    };
-    setLogs(prev => [...prev, newLog]);
-    localStorage.setItem('sweatsmart_last_log_time', now.toString());
-    setLastLogTime(now);
-    updateNextLogTime(now);
-    setIsLoggingModalOpen(false);
   };
 
   return (
@@ -615,15 +600,6 @@ const ClimateMonitor = () => {
               </button>
             </div>
 
-            <LoggingSystem
-              logs={logs}
-              isModalOpen={isLoggingModalOpen}
-              onCloseModal={() => setIsLoggingModalOpen(false)}
-              onSubmitLog={handleLogSubmit}
-              onLogNow={() => navigate('/log-episode')}
-              nextLogTime={nextLogTime}
-              lastLogTime={lastLogTime}
-            />
 
             <DiagnosticsPanel
               locationPermission={locationPermission}

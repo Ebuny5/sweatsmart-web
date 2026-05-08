@@ -19,6 +19,7 @@ import { CalendarIcon, Clock, Loader2, CheckCircle2, LayoutDashboard, History, P
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEpisodes } from "@/hooks/useEpisodes";
+import { gaugeHDSS } from "@/utils/hdssGauger";
 import { generateFallbackInsights } from "@/engine/recommendationEngine";
 import { loggingReminderService } from "@/services/LoggingReminderService";
 import { useVoiceLogging } from "@/hooks/useVoiceLogging";
@@ -80,13 +81,25 @@ const LogEpisode = () => {
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
-    const lastLogTime = localStorage.getItem("sweatsmart_last_log_time");
-    if (lastLogTime) {
-      setLastLoggedDisplay(format(new Date(parseInt(lastLogTime)), "MMM d, h:mm a"));
+    const lastLogTimeStr = localStorage.getItem("sweatsmart_last_log_time");
+    if (lastLogTimeStr) {
+      setLastLoggedDisplay(format(new Date(parseInt(lastLogTimeStr)), "MMM d, h:mm a"));
     } else {
       setLastLoggedDisplay("First time logging");
     }
-  }, []);
+
+    // Smart Defaulting for Severity
+    const localLogsJson = localStorage.getItem('sweatSmartLogs');
+    const localLogs = localLogsJson ? JSON.parse(localLogsJson) : [];
+
+    // We don't have weather here easily without the hook,
+    // but the gauger handles null weather by just not doing the env check.
+    const gauged = gaugeHDSS(localLogs, episodes || [], null);
+    if (gauged.level) {
+      setSeverity(gauged.level as SeverityLevel);
+      console.log("📍 Smart Default HDSS set to:", gauged.level);
+    }
+  }, [episodes]);
 
   useEffect(() => {
     if (isNow) {
@@ -159,6 +172,22 @@ const LogEpisode = () => {
 
       // Reschedule the next reminder 4 hours from now
       loggingReminderService.handleLogSaved();
+
+      // Update local storage logs for instant Gauged HDSS responsiveness
+      try {
+        const localLogs = JSON.parse(localStorage.getItem('sweatSmartLogs') || '[]');
+        const newLocalEntry = {
+          id: data[0].id,
+          timestamp: datetime.getTime(),
+          hdssLevel: severity as HDSSLevel,
+          weather: { temperature: 0, humidity: 0, uvIndex: 0 },
+          physiologicalData: { eda: 2.5 }
+        };
+        localStorage.setItem('sweatSmartLogs', JSON.stringify([...localLogs, newLocalEntry]));
+        localStorage.setItem('sweatsmart_current_hdss', JSON.stringify({ level: severity, timestamp: datetime.getTime() }));
+      } catch (e) {
+        console.error("Failed to sync local log storage:", e);
+      }
 
       toast({ title: "Episode logged successfully", description: "Generating your personalised insights..." });
 
