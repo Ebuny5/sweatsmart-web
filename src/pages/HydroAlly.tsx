@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { Send, Sparkles, Loader2, Copy, Check, Mic, MicOff,
   Trash2, Volume2, VolumeX, FileText, ChevronRight,
@@ -394,6 +395,7 @@ const HyperAI = () => {
   // ── Core state ────────────────────────────────────────────────────────────
   const [messages, setMessages]           = useState<Message[]>([]);
   const [input, setInput]                 = useState('');
+  const [searchParams]                    = useSearchParams();
   const [pendingImage, setPendingImage]   = useState<string | null>(null);
   const [isLoading, setIsLoading]         = useState(false);
   const [copiedIndex, setCopiedIndex]     = useState<number | null>(null);
@@ -452,8 +454,16 @@ const HyperAI = () => {
           // ONLY set welcome if user has NOT tapped a history item
           // hasLoadedConvRef is set synchronously on history tap, so this is always safe
           if (hasLoadedConvRef.current) return;
+
           let welcome: string;
-          if (!data.length) {
+          const fromDashboard = searchParams.get('from') === 'dashboard_cta';
+          const name = profile?.display_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Warrior';
+
+          if (fromDashboard) {
+            welcome = `Welcome back, ${name}! 💙 I'm ready to give an in-depth analysis of your episode.`;
+            setCurrentConversationId(null);
+            setShowSuggestions(true);
+          } else if (!data.length) {
             welcome = "Hello Warrior 💙 I'm your 24/7 personal hyperhidrosis consultant, here to help you turn sweat into strength. What's on your mind today?";
           } else {
             const lastUpdated = new Date(data[0].updated_at);
@@ -465,7 +475,7 @@ const HyperAI = () => {
           setMessages([{ role: 'assistant', content: welcome }]);
         }
       });
-  }, [user]);
+  }, [user, searchParams, profile?.display_name]);
 
   // ── EDA data ───────────────────────────────────────────────────────────────
   const edaReading = useMemo(() => {

@@ -116,9 +116,45 @@ export const useEpisodes = () => {
     }
   }, [user?.id, toast]);
 
+  const deleteEpisode = useCallback(async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('episodes')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Update local state
+      setEpisodes(prev => prev.filter(ep => ep.id !== id));
+
+      // Update local storage
+      const existingLogsStr = localStorage.getItem('sweatSmartLogs');
+      if (existingLogsStr) {
+        const existingLogs = JSON.parse(existingLogsStr);
+        const updatedLogs = existingLogs.filter((log: any) => log.id !== id);
+        localStorage.setItem('sweatSmartLogs', JSON.stringify(updatedLogs));
+      }
+
+      toast({
+        title: "Episode deleted",
+        description: "The episode has been successfully removed.",
+      });
+      return true;
+    } catch (error) {
+      console.error('Error deleting episode:', error);
+      toast({
+        title: "Error deleting episode",
+        description: "Failed to delete the episode. Please try again.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  }, [toast]);
+
   useEffect(() => {
     fetchEpisodes();
   }, [fetchEpisodes]);
 
-  return { episodes, loading, error, refetch: fetchEpisodes };
+  return { episodes, loading, error, refetch: fetchEpisodes, deleteEpisode };
 };

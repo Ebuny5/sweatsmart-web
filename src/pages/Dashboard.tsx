@@ -49,10 +49,10 @@ const OnboardingStep = ({
 const StatPill = ({ emoji, value, label, gradient }: {
   emoji: string; value: string | number; label: string; gradient: string;
 }) => (
-  <div className={`flex flex-col items-center justify-center px-4 py-3 rounded-2xl ${gradient} min-w-[80px]`}>
-    <span className="text-xl mb-0.5">{emoji}</span>
-    <span className="text-2xl font-black text-[#ffffff] leading-none">{value}</span>
-    <span className="text-xs text-[#ffffff] font-bold text-center leading-tight mt-0.5">{label}</span>
+  <div className={`flex flex-col items-center justify-center px-3 py-2 rounded-2xl ${gradient} min-w-[70px]`}>
+    <span className="text-sm mb-0.5">{emoji}</span>
+    <span className="text-xs font-bold text-[#1e3a8a] leading-none">{value}</span>
+    <span className="text-[10px] text-[#1e3a8a] font-bold text-center leading-tight mt-0.5">{label}</span>
   </div>
 );
 
@@ -285,7 +285,7 @@ const Dashboard = () => {
         <div className="bg-gradient-to-br from-violet-600 via-purple-500 to-pink-500 px-6 pt-8 pb-14 rounded-b-[2.5rem] shadow-lg shadow-purple-200">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h1 className="text-[#1e3a8a] text-xl font-black tracking-tight leading-tight mt-0.5">
+              <h1 className="text-[#1e3a8a] text-lg font-bold tracking-tight leading-tight mt-0.5">
                 {firstName}'s Dashboard 💧
               </h1>
             </div>
@@ -352,23 +352,6 @@ const Dashboard = () => {
             />
           </div>
 
-          {/* Hyper AI prompt card */}
-          <button
-            onClick={() => navigate("/hyper-ai")}
-            className="w-full bg-gradient-to-r from-violet-500 to-pink-500 rounded-2xl p-5 flex items-center gap-4 shadow-md shadow-purple-100 hover:shadow-lg transition-all text-left"
-          >
-            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
-              <Sparkles className="h-6 w-6 text-white" />
-            </div>
-            <div className="flex-1">
-              <p className="text-white font-black text-sm leading-tight">Ask HidroAlly 🤖</p>
-              <p className="text-purple-100 text-xs mt-0.5 leading-snug">
-                "Why do my hands sweat at work?" — HidroAlly reads your history to answer.
-              </p>
-            </div>
-            <ChevronRight className="h-5 w-5 text-white/70 shrink-0" />
-          </button>
-
           {/* Insights nudge */}
           <button
             onClick={() => navigate("/insights")}
@@ -381,6 +364,23 @@ const Dashboard = () => {
               <p className="text-white font-black text-sm leading-tight">View Full Insights 📊</p>
               <p className="text-amber-100 text-xs mt-0.5 leading-snug">
                 Treatment options, trigger analysis & personalised recommendations.
+              </p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-white/70 shrink-0" />
+          </button>
+
+          {/* Hyper AI prompt card */}
+          <button
+            onClick={() => navigate("/hyper-ai?from=dashboard_cta")}
+            className="w-full bg-gradient-to-r from-violet-500 to-pink-500 rounded-2xl p-5 flex items-center gap-4 shadow-md shadow-purple-100 hover:shadow-lg transition-all text-left"
+          >
+            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+              <Sparkles className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <p className="text-white font-black text-sm leading-tight">Ask HidroAlly 🤖</p>
+              <p className="text-purple-100 text-xs mt-0.5 leading-snug">
+                Do you want to more understanding of your analytics click to ask Hidro ally
               </p>
             </div>
             <ChevronRight className="h-5 w-5 text-white/70 shrink-0" />

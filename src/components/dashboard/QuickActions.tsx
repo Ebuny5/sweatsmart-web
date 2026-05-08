@@ -5,9 +5,22 @@ import { useProfile } from "@/hooks/useProfile";
 import { useEpisodes } from "@/hooks/useEpisodes";
 import { useClimateData } from "@/hooks/useClimateData";
 import { gaugeHDSS } from "@/utils/hdssGauger";
-import { Thermometer, Droplets, Sun, Wind, RefreshCw, ChevronRight, AlertTriangle, Shield } from "lucide-react";
+import { Thermometer, Droplets, Sun, Wind, RefreshCw, ChevronRight, AlertTriangle, Shield, Loader2 } from "lucide-react";
 import WarriorBadge from "@/components/dashboard/WarriorBadge";
 import { getWarriorInsight } from "@/utils/warriorLogic";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import SeveritySelector from "@/components/episode/SeveritySelector";
+import { SeverityLevel } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -171,10 +184,13 @@ const WarriorLaunchpad = () => {
   const navigate    = useNavigate();
   const { user }    = useAuth();
   const { profile } = useProfile();
-  const { episodes } = useEpisodes();
+  const { episodes, refetch: refetchEpisodes } = useEpisodes();
   const { sweatRisk } = useClimateData();
 
   const [tipIndex] = useState(() => Math.floor(Math.random() * COMMUNITY_TIPS.length));
+  const [quickLogOpen, setQuickLogOpen] = useState(false);
+  const [quickHDSS, setQuickHDSS] = useState<SeverityLevel>(3);
+  const [isSaving, setIsSaving] = useState(false);
 
   const displayName = profile?.display_name || user?.email?.split("@")[0] || "Warrior";
   const firstName   = displayName.split(" ")[0];
@@ -190,6 +206,54 @@ const WarriorLaunchpad = () => {
   }, [sweatRisk, episodes]);
 
   const tip = COMMUNITY_TIPS[tipIndex];
+
+  const handleQuickSave = async () => {
+    if (!user) return;
+    setIsSaving(true);
+    try {
+      const now = new Date();
+      const isoDate = now.toISOString();
+
+      const { data, error: supabaseError } = await supabase
+        .from('episodes')
+        .insert({
+          user_id: user.id,
+          date: isoDate,
+          severity: quickHDSS,
+          body_areas: ['entire_body'], // Default for quick capture
+          triggers: [],
+          notes: "Quick HDSS Capture"
+        })
+        .select()
+        .single();
+
+      if (supabaseError) throw supabaseError;
+
+      // Update local storage for immediate UI sync (HDSS gager etc)
+      const existingLogsStr = localStorage.getItem('sweatSmartLogs');
+      const existingLogs = existingLogsStr ? JSON.parse(existingLogsStr) : [];
+      const newLog = {
+        id: data.id,
+        datetime: isoDate,
+        severityLevel: quickHDSS,
+        bodyAreas: ['entire_body'],
+        triggers: [],
+        notes: "Quick HDSS Capture"
+      };
+      localStorage.setItem('sweatSmartLogs', JSON.stringify([newLog, ...existingLogs]));
+      localStorage.setItem('sweatsmart_last_log_time', Date.now().toString());
+      localStorage.setItem('sweatsmart_current_hdss', quickHDSS.toString());
+
+      toast.success("HDSS Level logged successfully!");
+      setQuickLogOpen(false);
+      refetchEpisodes();
+    } catch (error) {
+      console.error("Error saving quick log:", error);
+      toast.error("Failed to save log. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="min-h-screen pb-24" style={{ backgroundColor: "#f5f4f7" }}>
@@ -257,8 +321,20 @@ const WarriorLaunchpad = () => {
 
           {/* 2×2 grid */}
           <div className="grid grid-cols-2 gap-3 mb-3">
+            <button
+              onClick={() => setQuickLogOpen(true)}
+              className="bg-gradient-to-br from-cyan-400 to-teal-500 rounded-2xl p-4 flex flex-col items-start gap-2 shadow-md shadow-teal-200 hover:shadow-lg hover:scale-[1.02] transition-all text-left min-h-[100px]"
+            >
+              <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl shadow-inner">
+                ⚡
+              </div>
+              <div>
+                <p className="text-white font-black text-xs leading-tight">Quick Capture</p>
+                <p className="text-white/70 text-[10px] leading-tight mt-0.5">log your HDSS level</p>
+              </div>
+            </button>
+
             {[
-              { emoji: "⚡", title: "Quick Capture",    subtitle: "Log this moment now",      gradient: "from-cyan-400 to-teal-500",    shadow: "shadow-teal-200",   path: "/log-episode?now=true" },
               { emoji: "🗺️", title: "My Sweat Journey", subtitle: "Full episode history",    gradient: "from-pink-400 to-rose-500",    shadow: "shadow-pink-200",   path: "/history"             },
               { emoji: "🔬", title: "Growth Radar",     subtitle: "Insights & treatment",   gradient: "from-amber-400 to-orange-500", shadow: "shadow-amber-200",  path: "/insights"            },
               { emoji: "🤖", title: "HidroAlly",         subtitle: "Your 24/7 companion",    gradient: "from-indigo-400 to-violet-500",shadow: "shadow-indigo-200", path: "/hyper-ai"            },
@@ -322,6 +398,49 @@ const WarriorLaunchpad = () => {
           </div>
         </div>
 
+
+        {/* ── QUICK LOG MODAL ─────────────────────────────────────────── */}
+        <Dialog open={quickLogOpen} onOpenChange={setQuickLogOpen}>
+          <DialogContent className="max-w-[90vw] sm:max-w-md rounded-3xl p-6">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-black text-gray-800">Quick HDSS Log</DialogTitle>
+              <DialogDescription className="text-sm text-gray-500">
+                Log your current sweating severity level immediately.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-4">
+              <SeveritySelector
+                value={quickHDSS}
+                onChange={setQuickHDSS}
+              />
+            </div>
+
+            <DialogFooter className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                variant="outline"
+                onClick={() => setQuickLogOpen(false)}
+                className="rounded-xl font-bold border-gray-200"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleQuickSave}
+                disabled={isSaving}
+                className="rounded-xl font-black bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-200"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Log Severity Now"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* ── WARRIOR BADGE ─────────────────────────────────────────── */}
         <div>
