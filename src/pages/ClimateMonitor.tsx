@@ -464,7 +464,7 @@ const ClimateMonitor = () => {
 
   const updateNextLogTime = useCallback((anchor?: number) => {
     const base = anchor ?? (parseInt(localStorage.getItem('sweatsmart_last_log_time') || '0', 10) || Date.now());
-    const nextTime = base + 4 * 60 * 60 * 1000;
+    const nextTime = base + 6 * 60 * 60 * 1000;
     setNextLogTime(nextTime);
     localStorage.setItem('climateNextLogTime', nextTime.toString());
   }, []);

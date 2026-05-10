@@ -26,15 +26,15 @@ export function gaugeHDSS(
 ): GaugedHDSS {
   const now = Date.now();
   const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
-  const fourHoursAgo = now - 4 * 60 * 60 * 1000;
+  const sixHoursAgo = now - 6 * 60 * 60 * 1000;
 
-  // 1. Get the latest log (within 4 hours)
+  // 1. Get the latest log (within 6 hours)
   const latestLocalLog = [...localLogs]
-    .filter(l => l.timestamp >= fourHoursAgo)
+    .filter(l => l.timestamp >= sixHoursAgo)
     .sort((a, b) => b.timestamp - a.timestamp)[0];
 
   const latestEpisode = [...episodes]
-    .filter(e => new Date(e.date).getTime() >= fourHoursAgo)
+    .filter(e => new Date(e.date).getTime() >= sixHoursAgo)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
 
   let currentLevel: number = 2; // Default baseline if nothing found
@@ -44,7 +44,7 @@ export function gaugeHDSS(
   } else if (latestEpisode) {
     currentLevel = latestEpisode.severity;
   } else {
-    // Fallback to absolute last known if none in 4h
+    // Fallback to absolute last known if none in 6h
     const lastAnyLog = [...localLogs].sort((a, b) => b.timestamp - a.timestamp)[0];
     const lastAnyEpisode = [...episodes].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
 
