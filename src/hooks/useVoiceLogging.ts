@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { BodyArea, Trigger } from "@/types";
+import { TRIGGER_GROUPS } from "@/constants/episodeData";
 
 /**
  * useVoiceLogging — voice episode logging hook
@@ -62,10 +63,12 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const fullTranscriptRef = useRef("");
+  const resumeBaseTranscriptRef = useRef(""); // Stores transcript from previous sessions when resuming
   const isStoppingIntentionallyRef = useRef(false);
   const restartAttemptsRef = useRef(0);
   const hasSpokenRef = useRef(false); // tracks if user has said anything yet
   const hasAskedForAreaRef = useRef(false); // track if we already asked for missing body area
+  const transcriptRef = useRef(""); // Latest transcript string ref for listeners
   const MAX_RESTART_ATTEMPTS = 8; // more attempts = more patient
 
   const clearSilenceTimer = () => {
@@ -76,6 +79,8 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
   };
 
   // ── Speak a prompt aloud to the user ──────────────────────────────────────
+  const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
+
   const speakPrompt = useCallback((text: string, onDone?: () => void) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       onDone?.();
@@ -83,20 +88,36 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
     }
 
     const synth = window.speechSynthesis;
+
+    // Step 1: Unlock AudioContext (Android requirement)
+    try {
+      const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        const buffer = ctx.createBuffer(1, 1, 22050);
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        source.start(0);
+        ctx.resume();
+      }
+    } catch (e) {}
+
+    // Step 2: Cancel existing and wait (Android requirement)
     synth.cancel();
 
     let calledDone = false;
     const safeDone = () => {
       if (!calledDone) {
         calledDone = true;
+        if (heartbeatRef.current) clearInterval(heartbeatRef.current);
         onDone?.();
       }
     };
 
     // Safety timeout in case onend never fires
-    const safetyTimer = setTimeout(safeDone, 10000);
+    const safetyTimer = setTimeout(safeDone, 12000);
 
-    // Small delay after cancel — required on Android
     setTimeout(() => {
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = 'en-US';
@@ -108,15 +129,27 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
         const voices = synth.getVoices();
         const preferred = voices.find(v =>
           v.lang.startsWith('en') &&
-          ['samantha', 'victoria', 'karen', 'aria', 'zira', 'hazel', 'google uk english female']
+          ['google uk english female', 'samantha', 'victoria', 'karen', 'aria', 'zira', 'hazel']
             .some(k => v.name.toLowerCase().includes(k))
         ) || voices.find(v => v.lang.startsWith('en'));
 
         if (preferred) utter.voice = preferred;
 
+        utter.onstart = () => {
+          // Heartbeat to keep Android Chrome from pausing long speech
+          if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+          heartbeatRef.current = setInterval(() => {
+            if (!synth.speaking) {
+              clearInterval(heartbeatRef.current!);
+              return;
+            }
+            if (synth.paused) synth.resume();
+          }, 5000);
+        };
+
         utter.onend = () => {
           clearTimeout(safetyTimer);
-          setTimeout(safeDone, 200);
+          setTimeout(safeDone, 250);
         };
 
         utter.onerror = () => {
@@ -132,7 +165,7 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
       } else {
         go();
       }
-    }, 150);
+    }, 200);
   }, []);
 
   // ── Calculate adaptive silence duration ───────────────────────────────────
@@ -205,13 +238,22 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
     if (
       lower.includes('stress') ||
       lower.includes('stressed') ||
-      lower.includes('stressful') ||
+      lower.includes('stressful')
+    ) detectedTriggerValues.push('stress');
+
+    if (
       lower.includes('conflict') ||
-      lower.includes('argument') ||
       lower.includes('fight') ||
+      lower.includes('clash')
+    ) detectedTriggerValues.push('conflict');
+
+    if (
+      lower.includes('argument') ||
+      lower.includes('arguing') ||
       lower.includes('quarrel') ||
       lower.includes('disagreement')
-    ) detectedTriggerValues.push('stress');
+    ) detectedTriggerValues.push('argument');
+
     if (lower.includes('anxi') || lower.includes('anxious') || lower.includes('anxiety') || lower.includes('worried') || lower.includes('panick')) detectedTriggerValues.push('anxiety');
     if (lower.includes('anticipat') || lower.includes('dreading') || lower.includes('worrying about sweating') || lower.includes('fear of sweating')) detectedTriggerValues.push('anticipatory_sweating');
     if (lower.includes('embarrass') || lower.includes('shame') || lower.includes('humiliat')) detectedTriggerValues.push('embarrassment');
@@ -250,12 +292,15 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
       lower.includes('running') ||
       lower.includes('sport') ||
       lower.includes('jogging') ||
-      lower.includes('walking fast') ||
+      lower.includes('walking fast')
+    ) detectedTriggerValues.push('physical_exercise');
+
+    if (
       lower.includes('heavy load') ||
       lower.includes('heavy lifting') ||
       lower.includes('carrying') ||
       lower.includes('manual labor')
-    ) detectedTriggerValues.push('physical_exercise');
+    ) detectedTriggerValues.push('heavy_load');
     if (lower.includes('night sweat') || lower.includes('sweating at night') || lower.includes('woke up sweating') || lower.includes('sleep sweating')) detectedTriggerValues.push('night_sweats');
     if (lower.includes('poor sleep') || lower.includes('bad sleep') || lower.includes('no sleep') || lower.includes('tired') || lower.includes('exhausted') || lower.includes('insomnia')) detectedTriggerValues.push('poor_sleep');
     if (lower.includes('hormonal') || lower.includes('period') || lower.includes('menstrual') || lower.includes('menopause') || lower.includes('cycle')) detectedTriggerValues.push('hormonal_changes');
@@ -272,15 +317,35 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
     if (lower.includes('supplement') || lower.includes('herbal') || lower.includes('vitamin') || lower.includes('tablet') && lower.includes('natural')) detectedTriggerValues.push('supplements_herbal');
     if (lower.includes('new medication') || lower.includes('started taking') || lower.includes('new tablet') || lower.includes('new pill') || lower.includes('just started')) detectedTriggerValues.push('new_medication');
 
-    const detectedTriggers: Trigger[] = detectedTriggerValues.map(t => ({
-      id: `${Date.now()}-${t}`,
-      name: t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-      label: t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-      value: t,
-      type: 'environmental',
-      category: 'environmental',
-      icon: 'zap'
-    }));
+    const detectedTriggers: Trigger[] = detectedTriggerValues.map(t => {
+      // Find the trigger in TRIGGER_GROUPS to get correct metadata
+      let groupType: any = 'environmental';
+      let icon = 'zap';
+      let label = t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+      for (const group of TRIGGER_GROUPS) {
+        const found = group.triggers.find(tr =>
+          tr.label.toLowerCase().replace(/\s+/g, '_') === t ||
+          tr.label.toLowerCase() === t.replace(/_/g, ' ')
+        );
+        if (found) {
+          groupType = group.category;
+          icon = found.emoji;
+          label = found.label;
+          break;
+        }
+      }
+
+      return {
+        id: `${Date.now()}-${t}`,
+        name: label,
+        label: label,
+        value: t,
+        type: groupType,
+        category: groupType,
+        icon: icon
+      };
+    });
 
     setVoiceStatus('SAVING');
     onAnalysisComplete(Array.from(new Set(detectedAreas)), detectedTriggers, text.trim());
@@ -391,9 +456,13 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
 
     if (!isResuming) {
       fullTranscriptRef.current = '';
+      resumeBaseTranscriptRef.current = '';
       restartAttemptsRef.current = 0;
       hasSpokenRef.current = false;
       setTranscript('');
+    } else {
+      // When resuming, the current fullTranscript becomes the base for the next session
+      resumeBaseTranscriptRef.current = fullTranscriptRef.current;
     }
 
     isStoppingIntentionallyRef.current = false;
@@ -417,12 +486,13 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
         .map((r: any) => r[0].transcript)
         .join(' ');
 
-      const combined = isResuming
-        ? (fullTranscriptRef.current + ' ' + currentTranscript).trim()
+      const combined = resumeBaseTranscriptRef.current
+        ? (resumeBaseTranscriptRef.current + ' ' + currentTranscript).trim()
         : currentTranscript.trim();
 
       setTranscript(combined);
       fullTranscriptRef.current = combined;
+      transcriptRef.current = combined;
 
       // Adaptive silence timer — longer for people who speak slowly
       const silenceDuration = getAdaptiveSilenceDuration(combined);
@@ -441,6 +511,8 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
           restartAttemptsRef.current += 1;
           setTimeout(() => {
             try {
+              if (voiceStatusRef.current !== 'LISTENING') return;
+
               const newRec = new SpeechRecognition();
               recognitionRef.current = newRec;
               newRec.continuous = false;

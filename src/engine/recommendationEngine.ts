@@ -282,14 +282,14 @@ function allTriggerLabels(triggers: TriggerInput[]): string {
 
 const isEmot = (t: TriggerInput[]) => has(t,
   "stress","anxiety","anticipatory","embarrassment","excitement",
-  "anger","nervousness","public speaking","social","work pressure","exam");
+  "anger","conflict","argument","nervousness","public speaking","social","work pressure","exam");
 const isFood = (t: TriggerInput[]) => has(t,
   "spicy","caffeine","alcohol","hot drink","heavy meal","gustatory","energy drink");
 const isMeds = (t: TriggerInput[]) => has(t,
   "ssri","antidepressant","opioid","pain medication","nsaid","aspirin","ibuprofen",
   "blood pressure","insulin","diabetes","supplement","herbal","new medication");
 const isPhys = (t: TriggerInput[]) => has(t,
-  "exercise","night sweat","poor sleep","hormonal","illness","fever","hypoglycemia","clothing");
+  "exercise","heavy load","night sweat","poor sleep","hormonal","illness","fever","hypoglycemia","clothing");
 
 // ─── Variation picker ─────────────────────────────────────────────────────────
 // Uses episodeCount so each logged episode gets a genuinely different phrase pool.
@@ -399,14 +399,14 @@ function buildClinical(
   const tList = allTriggerLabels(triggers); // ← full list, no truncation
   const tClause = tList ? `, with contributing factors including ${tList}` : "";
 
-  // ── Context sentence from notes (the yam-kitchen scenario lives here)
+  // ── Context sentence from notes or triggers
   let contextSentence = "";
-  if (ni.mentionsConflict) {
+  if (ni.mentionsConflict || has(triggers, "conflict", "argument")) {
     contextSentence = pick([
       `The conflict or argument you mentioned in your notes is a powerful emotional trigger — interpersonal stress causes an immediate spike in sympathetic nervous system activity, which directly signals your sweat glands to activate. This is a purely physiological response to emotional distress.`,
       `Interpersonal stress, like the fight you described, creates a unique physiological load. Your brain interprets social conflict as a high-arousal state, triggering the same "fight or flight" pathways that drive hyperhidrosis episodes.`,
     ], seed);
-  } else if (ni.mentionsHeavyLifting) {
+  } else if (ni.mentionsHeavyLifting || has(triggers, "heavy load")) {
     contextSentence = pick([
       `The heavy lifting and physical labor you noted created a significant thermal and physical load. Physical exertion raises your core temperature, while the mechanical effort of carrying heavy loads provides a sustained stimulus for sweat production.`,
       `Working with heavy loads, as you described, combines physical exertion with sustained muscular effort — both of which are primary drivers for thermoregulatory and compensatory sweating.`,

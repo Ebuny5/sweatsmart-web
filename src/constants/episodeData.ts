@@ -323,6 +323,20 @@ export const TRIGGER_GROUPS: {
         keywords: ["angry", "anger"],
       },
       {
+        label: "Conflict",
+        emoji: "💥",
+        type: "emotional",
+        tip: "Interpersonal conflict triggers an immediate sympathetic nervous system spike",
+        keywords: ["conflict", "fight", "clash"],
+      },
+      {
+        label: "Argument",
+        emoji: "🗣️",
+        type: "emotional",
+        tip: "Heated discussions increase emotional arousal and heart rate",
+        keywords: ["argument", "arguing", "quarrel", "disagreement"],
+      },
+      {
         label: "Nervousness",
         emoji: "😬",
         type: "emotional",
@@ -432,6 +446,13 @@ export const TRIGGER_GROUPS: {
         type: "physical",
         tip: "Exercise raises core body temperature",
         keywords: ["exercise", "running", "gym", "workout"],
+      },
+      {
+        label: "Heavy Load",
+        emoji: "📦",
+        type: "physical",
+        tip: "Carrying heavy objects or manual labor increases physical strain and heat",
+        keywords: ["heavy load", "lifting", "carrying", "manual labor"],
       },
       {
         label: "Night Sweats",
