@@ -17,6 +17,7 @@ interface AIInsightsProps {
     lifestyleModifications: string[];
     medicalAttention: string;
     emotionalOpener?: string;
+    emotionalSupport?: string;
     cta?: string;
   };
 }
@@ -39,6 +40,7 @@ const AIGeneratedInsights: React.FC<AIInsightsProps> = ({ insights }) => {
   const buildInsightText = () => {
     return [
       insights.emotionalOpener,
+      insights.emotionalSupport,
       insights.clinicalAnalysis,
       ...(insights.immediateRelief ?? []),
       ...(insights.treatmentOptions ?? []),
@@ -283,6 +285,23 @@ Always consult with a healthcare provider for personalized medical advice.
 
   return (
     <div className="space-y-4">
+      {/* HidroAlly Hears You - Emotional Support Card */}
+      {insights.emotionalSupport && (
+        <Card className="border-l-4 border-l-pink-400 bg-pink-50/50">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <span>💜</span>
+              <CardTitle className="text-pink-700">HidroAlly Hears You</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-700 leading-relaxed italic">
+              {insights.emotionalSupport}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Hidro Ally greeting */}
       {insights.emotionalOpener && (
         <Card className="border-none bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-lg overflow-hidden relative">
