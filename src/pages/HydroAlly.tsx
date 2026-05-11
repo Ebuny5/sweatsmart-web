@@ -85,7 +85,6 @@ const SUGGESTION_PROMPTS = [
   { icon: '💧', text: "Why do my palms sweat when I'm nervous?" },
   { icon: '💊', text: 'What treatments work best for foot sweating?' },
   { icon: '🧘', text: 'Help me break the anxiety-sweat cycle' },
-  { icon: '📋', text: 'Generate my warrior report' },
   { icon: '🌡️', text: "How does today's climate affect my sweating?" },
 ];
 
@@ -472,9 +471,14 @@ const HyperAI = () => {
 
           let welcome: string;
           const fromDashboard = searchParams.get('from') === 'dashboard_cta';
+          const fromEpisodeInsight = searchParams.get('from') === 'episode_insight';
           const name = profile?.display_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Warrior';
 
-          if (fromDashboard) {
+          if (fromEpisodeInsight) {
+            welcome = `Pleased to see you are interested in understanding more about your episode😋. Which aspect are you keen about?`;
+            setCurrentConversationId(null);
+            setShowSuggestions(true);
+          } else if (fromDashboard) {
             const emoji = getRandomEmoji(ANALYTICS_EMOJIS, 'last_analytics_emoji');
             welcome = `Welcome back, ${name}! ${emoji} I'm ready to give an in-depth analysis of your episode.`;
             setCurrentConversationId(null);
@@ -1231,23 +1235,11 @@ const HyperAI = () => {
           climateSnapshot,
           userName,
           imageBase64: capturedImage || undefined,
+          lastEpisodeInsight: localStorage.getItem('last_episode_insight'),
         }),
       });
 
       if (!response.ok) throw new Error('Failed to get response');
-
-      // Non-streaming JSON (warrior report)
-      const contentType = response.headers.get('content-type') || '';
-      if (contentType.includes('application/json')) {
-        const json = await response.json();
-        if (json.report && json.content) {
-          const reportMsg: Message = { role: 'assistant', content: json.content, isReport: true };
-          setMessages(prev => [...prev, reportMsg]);
-          if (convId) await saveMessages(convId, [...allMessages, reportMsg]);
-          setIsLoading(false);
-          return;
-        }
-      }
 
       // Streaming response — fix: only add bubble when first real token arrives
       if (!response.body) throw new Error('No response body');
@@ -1476,7 +1468,7 @@ const HyperAI = () => {
               {SUGGESTION_PROMPTS.map((s, i) => (
                 <button
                   key={i}
-                  onClick={() => s.text === 'Generate my warrior report' ? generatePDFReport() : handleSend(s.text)}
+                  onClick={() => handleSend(s.text)}
                   className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs text-left transition-all hover:scale-[1.02]"
                   style={{
                     background: 'rgba(255,255,255,0.04)',
