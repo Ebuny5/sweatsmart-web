@@ -230,6 +230,12 @@ Always consult with a healthcare provider for personalized medical advice.
     }
   };
 
+  const handleContinueToChat = () => {
+    // Store current insights in localStorage for Hidro Ally to pick up
+    localStorage.setItem('last_episode_insight', JSON.stringify(insights));
+    navigate('/hyper-ai?from=episode_insight');
+  };
+
   const handleDownloadPDF = () => {
     try {
       const doc = new jsPDF();
@@ -455,7 +461,7 @@ Always consult with a healthcare provider for personalized medical advice.
                 {insights.cta}
               </p>
               <Button
-                onClick={() => navigate('/hyper-ai')}
+                onClick={handleContinueToChat}
                 className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl px-8"
               >
                 Continue in Hidro Ally Chat
