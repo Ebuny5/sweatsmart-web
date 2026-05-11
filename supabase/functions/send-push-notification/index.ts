@@ -427,7 +427,7 @@ serve(async (req) => {
             { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
             {
               title: '⏰ Time to Log Your Episode',
-              body: 'It’s time for your 6-hour check-in. Help HidroAlly build your comprehensive report with a quick log of your experience.',
+              body: 'It’s time for your 6-hour check-in. Help Hidro Ally build your comprehensive report with a quick log of your experience.',
               tag: 'logging-reminder',
               type: 'reminder',
               url: '/log-episode',

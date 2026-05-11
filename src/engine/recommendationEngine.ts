@@ -1,9 +1,9 @@
 /**
- * SweatSmart — HidroAlly Recommendation Engine (Definitive Edition)
+ * SweatSmart — Hidro Ally Recommendation Engine (Definitive Edition)
  * ─────────────────────────────────────────────────────────────────────────────
  * This is the SINGLE engine. Do not create additional engines alongside this.
  *
- * Voice: HidroAlly — warm, clinical, companion-like. Think "brilliant
+ * Voice: Hidro Ally — warm, clinical, companion-like. Think "brilliant
  * dermatologist who also genuinely cares about you as a warrior."
  *
  * Knowledge base integration:
@@ -22,7 +22,7 @@
  *   6. Parse the notes field — it is the richest data the user gives us
  *   7. Vary every output genuinely — no two reports should read the same
  *   8. No emojis on medical warnings or red-flag sections — warm ≠ trivial
- *   9. Output ends with HidroAlly CTA directing user to companion chat
+ *   9. Output ends with Hidro Ally CTA directing user to companion chat
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -47,7 +47,7 @@ export interface EpisodeInput {
   notes?: string;
   climate?: ClimateInput;
   episodeCount?: number; // total episodes logged — used for variation + longitudinal context
-  userName?: string;     // optional — used in HidroAlly greeting
+  userName?: string;     // optional — used in Hidro Ally greeting
 }
 
 export interface EpisodeInsights {
@@ -512,7 +512,7 @@ function buildClinical(
   const kbInsight = getKBInsights(p, ni, triggers, seed+3);
   const kbSection = kbInsight ? ` ${kbInsight}` : "";
 
-  // ── Closing + CTA to HidroAlly
+  // ── Closing + CTA to Hidro Ally
   let close = "";
   if (p.isPossibleSecondary) {
     close = " The broader pattern here is worth a medical conversation — not because something serious is necessarily wrong, but because understanding the root cause leads to significantly better outcomes. Let's get you the right information to walk into that appointment well-prepared.";
@@ -529,7 +529,7 @@ function buildClinical(
   // ── Context sentence positioning
   const contextBlock = contextSentence ? `\n\n${contextSentence}` : "";
 
-  const chatCTA = "\n\nIf you need a more clinical or in-depth understanding of this specific episode, let's continue our conversation in the HidroAlly chat. 💙";
+  const chatCTA = "\n\nIf you need a more clinical or in-depth understanding of this specific episode, let's continue our conversation in the Hidro Ally chat. 💙";
 
   return `${opening}${mechText}${climateNote}${contextBlock}${kbSection} ${sv.sentence}${close}${chatCTA}`;
 }
@@ -947,19 +947,19 @@ function buildMedical(
 function buildCTA(ni: NotesIntelligence, seed: number): string {
   if (ni.expressesEmbarrassment || ni.expressesFrustration) {
     return pick([
-      `💬 I know this is hard. If you want to go deeper — explore the science behind what happened today, talk through how to approach a doctor's appointment, or just ask questions — I'm here in the HidroAlly chat, any time. My guidance is based on the most comprehensive clinical knowledge of hyperhidrosis. Let's use it together.`,
-      `💬 You don't have to figure this out alone. The HidroAlly chat is here whenever you want a deeper conversation — about today's episode, about what to say to a doctor, or about anything else you're navigating with this condition. I'm ready when you are.`,
+      `💬 I know this is hard. If you want to go deeper — explore the science behind what happened today, talk through how to approach a doctor's appointment, or just ask questions — I'm here in the Hidro Ally chat, any time. My guidance is based on the most comprehensive clinical knowledge of hyperhidrosis. Let's use it together.`,
+      `💬 You don't have to figure this out alone. The Hidro Ally chat is here whenever you want a deeper conversation — about today's episode, about what to say to a doctor, or about anything else you're navigating with this condition. I'm ready when you are.`,
     ], seed);
   }
   return pick([
-    `💬 Want to go deeper on any part of this analysis? I can walk through the clinical detail behind today's episode, help you prepare for a medical appointment, or explore your full episode history to find patterns you might have missed. Find me in the HidroAlly chat — I'm available any time. 🙏`,
-    `💬 If you'd like a more detailed discussion of what happened today — or want to explore your broader episode pattern — continue in the HidroAlly chat. I can pull up your full history, explain the clinical science behind your specific triggers, and help you build a clear picture to bring to your next appointment. 💙`,
-    `💬 This analysis is a starting point. For a deeper clinical conversation — your trigger patterns over time, the latest evidence on treatments for your specific profile, or help preparing for a dermatologist visit — come find me in the HidroAlly chat. I'm here to support you with exactly this. 💙`,
+    `💬 Want to go deeper on any part of this analysis? I can walk through the clinical detail behind today's episode, help you prepare for a medical appointment, or explore your full episode history to find patterns you might have missed. Find me in the Hidro Ally chat — I'm available any time. 🙏`,
+    `💬 If you'd like a more detailed discussion of what happened today — or want to explore your broader episode pattern — continue in the Hidro Ally chat. I can pull up your full history, explain the clinical science behind your specific triggers, and help you build a clear picture to bring to your next appointment. 💙`,
+    `💬 This analysis is a starting point. For a deeper clinical conversation — your trigger patterns over time, the latest evidence on treatments for your specific profile, or help preparing for a dermatologist visit — come find me in the Hidro Ally chat. I'm here to support you with exactly this. 💙`,
   ], seed);
 }
 
 // ─── HIDROALLY WRAPPER ────────────────────────────────────────────────────────
-// This is what the user sees. It wraps all sections with HidroAlly's voice.
+// This is what the user sees. It wraps all sections with Hidro Ally's voice.
 
 function wrapWithHidroAlly(
   sections: EpisodeInsights,
@@ -968,8 +968,8 @@ function wrapWithHidroAlly(
   seed: number,
 ): EpisodeInsights & { cta: string; emotionalOpener: string } {
   const greeting = userName
-    ? `Hi ${userName}, this is HidroAlly 👋`
-    : `Hi, this is HidroAlly 👋`;
+    ? `Hi ${userName}, this is Hidro Ally 👋`
+    : `Hi, this is Hidro Ally 👋`;
 
   const opener = pick([
     `${greeting} — your personal hyperhidrosis clinical guide, here to help you make sense of what your body just went through. I've analysed your episode data alongside your notes, and here is what I can tell you. 🔍`,
@@ -1055,7 +1055,7 @@ function buildEmptyResponse(
   userName: string | undefined,
   seed: number,
 ): EpisodeInsights & { cta: string; emotionalOpener: string } {
-  const greeting = userName ? `Hi ${userName}, this is HidroAlly 👋` : `Hi, this is HidroAlly 👋`;
+  const greeting = userName ? `Hi ${userName}, this is Hidro Ally 👋` : `Hi, this is Hidro Ally 👋`;
   return {
     emotionalOpener: `${greeting} — I noticed this episode was logged without body areas selected, so I cannot give you a fully personalised analysis yet. Selecting the affected areas next time unlocks everything. 💙`,
     clinicalAnalysis: "No body areas were recorded for this episode. Without knowing which areas were affected, I cannot generate a pattern-specific clinical analysis. Selecting even one area when logging unlocks insights specific to your hyperhidrosis pattern.",
@@ -1074,6 +1074,6 @@ function buildEmptyResponse(
       "Track the timing between triggers and episode onset using the notes field. This pattern data reveals individual thresholds that are not visible from trigger selection alone.",
     ],
     medicalAttention: "No clinical red flags identified from this incomplete log. Complete future logs with body areas selected to generate condition-specific medical attention guidance.",
-    cta: `💬 Come find me in the HidroAlly chat — even without the full episode data, I can answer questions about your condition, help you understand what triggers to look for, and discuss your broader pattern. I'm here. 💙`,
+    cta: `💬 Come find me in the Hidro Ally chat — even without the full episode data, I can answer questions about your condition, help you understand what triggers to look for, and discuss your broader pattern. I'm here. 💙`,
   };
 }

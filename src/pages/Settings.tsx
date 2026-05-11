@@ -237,7 +237,7 @@ const Settings = () => {
                   channel: 'system',
                   kind: 'reminder',
                   title: "⏰ Log Reminder Test",
-                  body: "It’s time for your 6-hour check-in. Help HidroAlly build your comprehensive report with a quick log of your experience.",
+                  body: "It’s time for your 6-hour check-in. Help Hidro Ally build your comprehensive report with a quick log of your experience.",
                   dedupKey: `test-rem-${Date.now()}`
                 });
               }}

@@ -283,7 +283,7 @@ Always consult with a healthcare provider for personalized medical advice.
 
   return (
     <div className="space-y-4">
-      {/* HidroAlly greeting */}
+      {/* Hidro Ally greeting */}
       {insights.emotionalOpener && (
         <Card className="border-none bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-lg overflow-hidden relative">
           <div className="absolute top-0 right-0 p-4 opacity-10">
@@ -294,7 +294,7 @@ Always consult with a healthcare provider for personalized medical advice.
               <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
                 <span className="text-sm">🛡️</span>
               </div>
-              <CardTitle className="text-lg font-bold">HidroAlly Analysis</CardTitle>
+              <CardTitle className="text-lg font-bold">Hidro Ally Analysis</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -427,7 +427,7 @@ Always consult with a healthcare provider for personalized medical advice.
         </CardContent>
       </Card>
 
-      {/* HidroAlly CTA */}
+      {/* Hidro Ally CTA */}
       {insights.cta && (
         <Card className="border-2 border-violet-200 bg-violet-50">
           <CardContent className="pt-6">
@@ -439,7 +439,7 @@ Always consult with a healthcare provider for personalized medical advice.
                 onClick={() => navigate('/hyper-ai')}
                 className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl px-8"
               >
-                Continue in HidroAlly Chat
+                Continue in Hidro Ally Chat
               </Button>
             </div>
           </CardContent>

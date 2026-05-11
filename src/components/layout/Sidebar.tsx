@@ -92,7 +92,7 @@ const menuItems = [
   {
     path: "/hyper-ai",
     icon: Sparkles,
-    label: "HidroAlly",
+    label: "Hidro Ally",
     activeGradient: "from-yellow-400 to-amber-500",
     activeBg: "bg-yellow-50",
     activeText: "text-yellow-700",
