@@ -62,6 +62,7 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const fullTranscriptRef = useRef("");
+  const baseTranscriptRef = useRef("");
   const isStoppingIntentionallyRef = useRef(false);
   const restartAttemptsRef = useRef(0);
   const hasSpokenRef = useRef(false); // tracks if user has said anything yet
@@ -154,11 +155,11 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
     // ── BODY AREAS ──
     const detectedAreas: BodyArea[] = [];
 
-    if (lower.includes('palm') || lower.includes('hand') || lower.includes('hands') || lower.includes('fingers') || lower.includes('fingertips')) detectedAreas.push('palms');
-    if (lower.includes('finger') || lower.includes('fingers') || lower.includes('fingertips')) detectedAreas.push('fingers');
-    if (lower.includes('sole') || lower.includes('soles') || lower.includes('bottom of my feet') || lower.includes('bottom of feet')) detectedAreas.push('soles');
-    if (lower.includes('feet') || lower.includes('foot') || lower.includes('toes')) detectedAreas.push('feet');
-    if (lower.includes('toe') || lower.includes('toes')) detectedAreas.push('toes');
+    if (lower.includes('palm') || lower.includes('hand') || lower.includes('hands')) detectedAreas.push('palms');
+    if (lower.includes('finger')) detectedAreas.push('fingers');
+    if (lower.includes('sole') || lower.includes('bottom of my feet') || lower.includes('bottom of feet')) detectedAreas.push('soles');
+    if (lower.includes('feet') || lower.includes('foot')) detectedAreas.push('feet');
+    if (lower.includes('toe')) detectedAreas.push('toes');
     if (lower.includes('feet and sole') || lower.includes('foot and sole')) detectedAreas.push('feet_soles');
     if ((lower.includes('face') && lower.includes('scalp')) || lower.includes('face and scalp')) {
       detectedAreas.push('face_scalp');
@@ -344,6 +345,7 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
       if (wantsMore) {
         // User wants to keep talking — go back to listening and append
         speakPrompt('Go ahead, I am still listening.', () => {
+          isStoppingIntentionallyRef.current = false;
           startListeningInternal(true);
         });
       } else {
@@ -391,9 +393,12 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
 
     if (!isResuming) {
       fullTranscriptRef.current = '';
+      baseTranscriptRef.current = '';
       restartAttemptsRef.current = 0;
       hasSpokenRef.current = false;
       setTranscript('');
+    } else {
+      baseTranscriptRef.current = fullTranscriptRef.current;
     }
 
     isStoppingIntentionallyRef.current = false;
@@ -413,13 +418,11 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
       restartAttemptsRef.current = 0;
       hasSpokenRef.current = true;
 
-      const currentTranscript = Array.from(event.results)
+      const currentSessionTranscript = Array.from(event.results)
         .map((r: any) => r[0].transcript)
         .join(' ');
 
-      const combined = isResuming
-        ? (fullTranscriptRef.current + ' ' + currentTranscript).trim()
-        : currentTranscript.trim();
+      const combined = (baseTranscriptRef.current + ' ' + currentSessionTranscript).trim();
 
       setTranscript(combined);
       fullTranscriptRef.current = combined;
@@ -427,13 +430,19 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
       // Adaptive silence timer — longer for people who speak slowly
       const silenceDuration = getAdaptiveSilenceDuration(combined);
       silenceTimerRef.current = setTimeout(() => {
-        isStoppingIntentionallyRef.current = true;
-        try { recognition.stop(); } catch (e) {}
-        askConfirmation(fullTranscriptRef.current);
+        // Only trigger confirmation if we are still in LISTENING state
+        if (voiceStatusRef.current === 'LISTENING') {
+          isStoppingIntentionallyRef.current = true;
+          try { recognition.stop(); } catch (e) {}
+          askConfirmation(fullTranscriptRef.current);
+        }
       }, silenceDuration);
     };
 
     recognition.onend = () => {
+      // Finalize the current segment to baseTranscript to avoid duplication on auto-restart
+      baseTranscriptRef.current = fullTranscriptRef.current;
+
       // Android Chrome auto-stops recognition every ~5-10 seconds
       // If we didn't stop it intentionally → restart and keep listening
       if (!isStoppingIntentionallyRef.current && voiceStatusRef.current === 'LISTENING') {
@@ -510,6 +519,7 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
     setVoiceStatus('LISTENING');
     hasAskedForAreaRef.current = false;
     isStoppingIntentionallyRef.current = false;
+    baseTranscriptRef.current = "";
 
     speakPrompt(
       "I'm listening. Please describe your episode in your own words. Take your time.",
