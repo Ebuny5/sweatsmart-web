@@ -20,22 +20,110 @@ interface GeneratedInsights {
   treatmentOptions: string[];
   lifestyleModifications: string[];
   medicalAttention: string;
+  emotionalSupport?: string;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const lower = (s: string) => (s || '').toLowerCase();
 const hasAny = (text: string, ...words: string[]) => words.some(w => text.includes(w));
 
+const detectsMentalHealthImpact = (notes: string, triggers: string[]): {
+  detected: boolean;
+  themes: string[];
+} => {
+  const n = notes.toLowerCase();
+  const themes: string[] = [];
+
+  if (n.includes('low self esteem') || n.includes('self esteem') ||
+      n.includes('ashamed') || n.includes('worthless') ||
+      n.includes('embarrassed') || n.includes('humiliat')) {
+    themes.push('self_esteem');
+  }
+  if (n.includes('depress') || n.includes('hopeless') ||
+      n.includes('giving up') || n.includes('cant cope') ||
+      n.includes("can't cope") || n.includes('struggling')) {
+    themes.push('depression');
+  }
+  if (n.includes('anxious') || n.includes('panic') ||
+      n.includes('scared') || n.includes('fear') ||
+      n.includes('terrified') || n.includes('dread')) {
+    themes.push('anxiety');
+  }
+  if (n.includes('confus') || n.includes('overwhelm') ||
+      n.includes("don't understand") || n.includes('why me') ||
+      n.includes('not fair')) {
+    themes.push('confusion_overwhelm');
+  }
+  if (n.includes('isolat') || n.includes('avoid') ||
+      n.includes('stay home') || n.includes('cancel') ||
+      n.includes('hiding') || n.includes('alone')) {
+    themes.push('social_isolation');
+  }
+  if (n.includes('angry') || n.includes('anger') ||
+      n.includes('frustrated') || n.includes('furious') ||
+      n.includes('rage')) {
+    themes.push('anger');
+  }
+
+  // Also check triggers
+  const triggerText = triggers.map(t => t.toLowerCase());
+  if (triggerText.some(t => t.includes('embarrass') || t.includes('anxiety') ||
+      t.includes('stress') || t.includes('social'))) {
+    if (!themes.includes('anxiety')) themes.push('anxiety');
+  }
+
+  return { detected: themes.length > 0, themes };
+};
+
 class EpisodeInsightGenerator {
 
   generateCompleteInsight(episode: Episode): GeneratedInsights {
+    const triggerLabels = episode.triggers.map(t => t.label || t.value || '');
+    const { detected, themes } = detectsMentalHealthImpact(episode.notes || '', triggerLabels);
+
     return {
       clinicalAnalysis: this.buildClinicalAnalysis(episode),
       immediateRelief: this.buildReliefStrategies(episode),
       treatmentOptions: this.buildTreatmentRecommendations(episode),
       lifestyleModifications: this.buildLifestyleModifications(episode),
       medicalAttention: this.buildMedicalAttention(episode),
+      emotionalSupport: detected ? this.buildEmotionalSupport(themes) : undefined,
     };
+  }
+
+  private buildEmotionalSupport(themes: string[]): string {
+    const responses: string[] = [];
+
+    if (themes.includes('self_esteem')) {
+      responses.push("What you're feeling makes complete sense. Hyperhidrosis has a way of attacking confidence from the inside — not because you are less capable or less worthy, but because the condition creates visible moments that feel impossible to control. Your self-worth is entirely separate from your sweat glands. Many warriors in this community have felt exactly what you're describing, and it gets better — especially as you gain more tools to manage it. You are already doing the hardest part: tracking it, understanding it, and refusing to let it define you.");
+    }
+
+    if (themes.includes('depression')) {
+      responses.push("It is completely understandable to feel weighed down by this. Living with a condition that affects how you move through the world every day is exhausting. What you're feeling is valid. But hyperhidrosis is treatable — often significantly so — and the fact that you are still here, still logging, still trying, means you haven't given up. That matters. If these feelings persist beyond your episodes, speaking to a GP or counsellor alongside managing your hyperhidrosis is genuinely worth considering.");
+    }
+
+    if (themes.includes('anxiety')) {
+      // The prompt didn't have a specific anxiety response in the theme list,
+      // but it's common. I'll use a mix of empathy for anxiety.
+      // Actually, wait, let me check the prompt again.
+      // Ah, "depression / hopeless", "confusion_overwhelm", "social_isolation", "anger" were explicitly listed.
+      // For anxiety, I'll provide a supportive one since it's detected.
+      responses.push("Feeling anxious or fearful because of hyperhidrosis is a very real experience. The uncertainty of when an episode might strike can create a constant state of 'high alert'. Please know that this anxiety is a physiological response to the condition, not a personal flaw. By tracking your patterns, you're taking back control and reducing that uncertainty.");
+    }
+
+    if (themes.includes('confusion_overwhelm')) {
+      responses.push("It can feel overwhelming to manage something that seems to have no clear pattern or cause. But the data you're building here is starting to change that. Hyperhidrosis is not random — it responds to specific triggers, and the more you log, the clearer those patterns become. You don't have to figure it all out today.");
+    }
+
+    if (themes.includes('social_isolation')) {
+      responses.push("Withdrawing from situations because of sweating is one of the most common — and most painful — parts of living with hyperhidrosis. You are not alone in this. Many warriors have cancelled plans, avoided handshakes, or chosen what to wear based on sweat, not preference. This is a recognised part of the condition, and it deserves to be treated as seriously as the physical symptoms.");
+    }
+
+    if (themes.includes('anger')) {
+      responses.push("Anger at this condition is legitimate. It is genuinely unfair to deal with something your body does involuntarily that affects how others perceive you and how you feel in your own skin. Use that energy — it often makes the most determined warriors. The goal is to channel it into understanding your triggers and advocating for the treatment you deserve.");
+    }
+
+    return responses.join('\n\n');
   }
 
   private buildClinicalAnalysis(ep: Episode): string {

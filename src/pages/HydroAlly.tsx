@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import jsPDF from 'jspdf';
 import { useEpisodes } from '@/hooks/useEpisodes';
 import { useProfile } from '@/hooks/useProfile';
 import { useClimateData } from '@/hooks/useClimateData';
@@ -84,9 +85,23 @@ const SUGGESTION_PROMPTS = [
   { icon: '💧', text: "Why do my palms sweat when I'm nervous?" },
   { icon: '💊', text: 'What treatments work best for foot sweating?' },
   { icon: '🧘', text: 'Help me break the anxiety-sweat cycle' },
-  { icon: '📋', text: 'Generate my warrior report for my dermatologist' },
+  { icon: '📋', text: 'Generate my warrior report' },
   { icon: '🌡️', text: "How does today's climate affect my sweating?" },
 ];
+
+// ── Emoji Variety Lists ──────────────────────────────────────────────────────
+const GREETING_EMOJIS = ['😊', '😋', '🤗', '🥰', '✨', '👋'];
+const ANALYTICS_EMOJIS = ['🤎', '💛', '💚', '💖', '💝', '🧡', '💜', '😊', '😋', '😍', '🥳', '🤭', '🤗'];
+
+const getRandomEmoji = (list: string[], key: string) => {
+  const lastIndex = parseInt(localStorage.getItem(key) || '-1');
+  let newIndex = Math.floor(Math.random() * list.length);
+  if (newIndex === lastIndex && list.length > 1) {
+    newIndex = (newIndex + 1) % list.length;
+  }
+  localStorage.setItem(key, newIndex.toString());
+  return list[newIndex];
+};
 
 // ── EDA status pill ───────────────────────────────────────────────────────────
 const EdaPill = ({ value, phase }: { value: number; phase: string }) => {
@@ -460,17 +475,20 @@ const HyperAI = () => {
           const name = profile?.display_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Warrior';
 
           if (fromDashboard) {
-            welcome = `Welcome back, ${name}! 💙 I'm ready to give an in-depth analysis of your episode.`;
+            const emoji = getRandomEmoji(ANALYTICS_EMOJIS, 'last_analytics_emoji');
+            welcome = `Welcome back, ${name}! ${emoji} I'm ready to give an in-depth analysis of your episode.`;
             setCurrentConversationId(null);
             setShowSuggestions(true);
           } else if (!data.length) {
-            welcome = "Hello Warrior 💙 I'm your 24/7 personal hyperhidrosis consultant, here to help you turn sweat into strength. What's on your mind today?";
+            const emoji = getRandomEmoji(GREETING_EMOJIS, 'last_greeting_emoji');
+            welcome = `Hello Warrior ${emoji} I'm your 24/7 personal hyperhidrosis consultant, here to help you turn sweat into strength. What's on your mind today?`;
           } else {
             const lastUpdated = new Date(data[0].updated_at);
             const isToday = format(lastUpdated, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+            const emoji = getRandomEmoji(GREETING_EMOJIS, 'last_greeting_emoji');
             welcome = isToday
-              ? "Welcome back, Warrior 💙 Ready to continue restoring your dignity? What's on your mind today?"
-              : "Welcome back, Warrior 💙 What's on your mind today?";
+              ? `Welcome back, Warrior ${emoji} Ready to continue restoring your dignity? What's on your mind today?`
+              : `Welcome back, Warrior ${emoji} What's on your mind today?`;
           }
           setMessages([{ role: 'assistant', content: welcome }]);
         }
@@ -498,6 +516,35 @@ const HyperAI = () => {
   }, [weather, sweatRisk]);
 
   // ── Dashboard analytics ────────────────────────────────────────────────────
+  const canGenerateReport = useCallback((episodeCount: number) => {
+    if (episodeCount < 5) {
+      return {
+        allowed: false,
+        message: `You have logged ${episodeCount} episode${episodeCount === 1 ? '' : 's'} so far. HidroAlly needs at least 5 logged episodes to generate a meaningful clinical report. The more you log — ideally 3 or more times per week — the more accurate and detailed your report will be for your dermatologist.`,
+        accuracy: 'insufficient'
+      };
+    }
+    if (episodeCount < 10) {
+      return {
+        allowed: true,
+        message: `Report generated with limited data (${episodeCount} episodes). For a full clinical picture, aim for 20+ logged episodes.`,
+        accuracy: 'limited'
+      };
+    }
+    if (episodeCount < 20) {
+      return {
+        allowed: true,
+        message: '',
+        accuracy: 'good'
+      };
+    }
+    return {
+      allowed: true,
+      message: '',
+      accuracy: 'high'
+    };
+  }, []);
+
   const dashboardAnalytics = useMemo(() => {
     if (!rawEpisodes?.length) return null;
     const episodes = rawEpisodes.map(ep => ({
@@ -602,6 +649,302 @@ const HyperAI = () => {
     setCopiedIndex(index);
     toast.success('Copied to clipboard');
     setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  const generatePDFReport = async () => {
+    if (!dashboardAnalytics || !user) return;
+    const gate = canGenerateReport(dashboardAnalytics.totalEpisodes);
+    if (!gate.allowed) {
+      toast.error(gate.message);
+      return;
+    }
+
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 20;
+      const contentWidth = pageWidth - 2 * margin;
+      let y = 20;
+
+      // ── HELPERS ─────────────────────────────────────────────────────────────
+      const addHorizontalRule = (yPos: number) => {
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+      };
+
+      const addHeader = (pageNum: number) => {
+        // Left Side
+        doc.setTextColor(75, 0, 130); // Dark Purple
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text('GIFTOVATE THERAPEUTICS LTD', margin, 15);
+
+        doc.setTextColor(100, 100, 100);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.text('SweatSmart — Hyperhidrosis Management Platform', margin, 19);
+
+        // Right Side
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        const title = 'CONFIDENTIAL CLINICAL SUMMARY';
+        doc.text(title, pageWidth - margin - doc.getTextWidth(title), 15);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        const dateStr = `Report Date: ${format(new Date(), 'dd/MM/yyyy')}`;
+        doc.text(dateStr, pageWidth - margin - doc.getTextWidth(dateStr), 19);
+
+        const reportId = `Report ID: SS-${user.id.slice(0, 6).toUpperCase()}-${Date.now()}`;
+        doc.text(reportId, pageWidth - margin - doc.getTextWidth(reportId), 23);
+
+        const generatedBy = 'Generated by: HidroAlly Clinical Intelligence';
+        doc.text(generatedBy, pageWidth - margin - doc.getTextWidth(generatedBy), 27);
+
+        addHorizontalRule(30);
+      };
+
+      const addFooter = (pageNum: number) => {
+        const footerY = doc.internal.pageSize.getHeight() - 15;
+        addHorizontalRule(footerY - 5);
+
+        doc.setFontSize(7);
+        doc.setTextColor(100, 100, 100);
+        doc.setFont('helvetica', 'italic');
+        const f1 = "This report was generated by HidroAlly, SweatSmart's AI clinical intelligence system, developed by Giftovate Therapeutics Ltd.";
+        doc.text(f1, margin, footerY);
+
+        const f2 = `Generated: ${format(new Date(), 'dd/MM/yyyy HH:mm')} | sweatsmart.guru`;
+        doc.text(f2, pageWidth - margin - doc.getTextWidth(f2), footerY);
+
+        const f3 = "It is intended to support — not replace — clinical consultation. CONFIDENTIAL — Intended for patient and treating clinician only.";
+        doc.text(f3, margin, footerY + 4);
+      };
+
+      // ── PAGE 1 HEADER ───────────────────────────────────────────────────────
+      addHeader(1);
+      y = 40;
+
+      // ── PATIENT SUMMARY BOX ─────────────────────────────────────────────────
+      doc.setFillColor(245, 240, 255); // Light Purple
+      doc.rect(margin, y, contentWidth, 35, 'F');
+
+      doc.setTextColor(0, 0, 0);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text(`Patient Name: ${userName}`, margin + 5, y + 8);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+
+      const episodes = rawEpisodes || [];
+      const dateRange = episodes.length > 0
+        ? `${format(new Date(episodes[episodes.length - 1].datetime), 'dd/MM/yyyy')} – ${format(new Date(episodes[0].datetime), 'dd/MM/yyyy')}`
+        : 'N/A';
+
+      doc.text(`Report Period: ${dateRange}`, margin + 5, y + 14);
+      doc.text(`Total Episodes Logged: ${dashboardAnalytics.totalEpisodes}`, margin + 5, y + 20);
+      doc.text(`Average HDSS Severity: ${dashboardAnalytics.avgSeverity} / 4`, margin + 5, y + 26);
+
+      // Clinical Status Logic
+      const avg = parseFloat(dashboardAnalytics.avgSeverity);
+      let status = '';
+      if (avg < 2.0) status = "Mild — Monitor and maintain lifestyle strategies";
+      else if (avg < 3.0) status = "Moderate — First-line treatment recommended";
+      else if (avg < 3.5) status = "Significant — Prescription treatment clinically indicated. Dermatology referral advised.";
+      else status = "Severe — Urgent dermatology referral recommended. Multiple treatment modalities required.";
+
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Clinical Status: ${status}`, margin + 5, y + 32);
+
+      // Accuracy logic
+      let accuracy = '';
+      const count = dashboardAnalytics.totalEpisodes;
+      if (count < 5) accuracy = "Limited — 20% accuracy. Log more episodes for meaningful analysis.";
+      else if (count < 10) accuracy = "Moderate — 50% accuracy. Continue logging for stronger patterns.";
+      else if (count < 20) accuracy = "Good — 75% accuracy. Patterns emerging reliably.";
+      else accuracy = "High — 90%+ accuracy. Clinical patterns well established.";
+
+      y += 45;
+      if (count < 10) {
+        doc.setTextColor(200, 0, 0);
+        doc.setFontSize(9);
+        doc.text(`⚠️ ${accuracy}`, margin, y);
+        y += 8;
+      }
+      doc.setTextColor(0, 0, 0);
+
+      // ── SECTION 1: PRESENTING COMPLAINT ─────────────────────────────────────
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('SECTION 1: PRESENTING COMPLAINT', margin, y);
+      y += 6;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      const top3Areas = dashboardAnalytics.topAreas.slice(0, 3).map((a: any) => `${a.area} (${a.percentage}%)`).join(', ');
+      const complaintText = `The patient presents with primary focal hyperhidrosis affecting predominantly the ${top3Areas}, with a mean HDSS severity score of ${dashboardAnalytics.avgSeverity} over the documented period. The condition has been tracked across ${dashboardAnalytics.totalEpisodes} individual episodes.`;
+
+      const complaintLines = doc.splitTextToSize(complaintText, contentWidth);
+      doc.text(complaintLines, margin, y);
+      y += (complaintLines.length * 5) + 10;
+
+      // ── SECTION 2: TRIGGER ANALYSIS ─────────────────────────────────────────
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('SECTION 2: TRIGGER ANALYSIS', margin, y);
+      y += 8;
+
+      // Table Header
+      doc.setFontSize(9);
+      doc.text('Trigger', margin, y);
+      doc.text('Episodes (%)', margin + 60, y);
+      doc.text('Avg HDSS', margin + 100, y);
+      doc.text('Category', margin + 130, y);
+      y += 2;
+      addHorizontalRule(y);
+      y += 6;
+
+      doc.setFont('helvetica', 'normal');
+      dashboardAnalytics.topTriggers.forEach((t: any) => {
+        // Find category from raw triggers if possible
+        const rawTrigger = rawEpisodes?.flatMap(e => (e.triggers as any[]))?.find(rt => (rt.label || rt.value) === t.name);
+        const category = rawTrigger?.type || rawTrigger?.category || 'General';
+
+        doc.text(t.name, margin, y);
+        doc.text(`${t.count} (${t.percentage}%)`, margin + 60, y);
+        doc.text(t.avgSeverity, margin + 100, y);
+        doc.text(category.charAt(0).toUpperCase() + category.slice(1), margin + 130, y);
+        y += 6;
+      });
+
+      y += 6;
+      const primaryTrigger = dashboardAnalytics.topTriggers[0]?.name || 'various factors';
+      const triggerInterpret = `Clinical interpretation reveals that ${primaryTrigger} is the primary exacerbating factor, accounting for ${dashboardAnalytics.topTriggers[0]?.percentage || 0}% of reported episodes. This suggests a strong correlation between ${dashboardAnalytics.topTriggers[0]?.category || 'environmental/emotional'} stimuli and autonomic over-activity.`;
+      const triggerLines = doc.splitTextToSize(triggerInterpret, contentWidth);
+      doc.text(triggerLines, margin, y);
+      y += (triggerLines.length * 5) + 10;
+
+      // ── SECTION 3: TEMPORAL PATTERN ─────────────────────────────────────────
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('SECTION 3: TEMPORAL PATTERN', margin, y);
+      y += 8;
+
+      doc.setFontSize(9);
+      doc.text('Week', margin, y);
+      doc.text('Episode Count', margin + 60, y);
+      doc.text('Avg Severity', margin + 120, y);
+      y += 2;
+      addHorizontalRule(y);
+      y += 6;
+
+      doc.setFont('helvetica', 'normal');
+      dashboardAnalytics.weeklyTrends.slice(-6).forEach((w: any) => {
+        doc.text(w.week, margin, y);
+        doc.text(w.count.toString(), margin + 60, y);
+        doc.text(w.avgSeverity, margin + 120, y);
+        y += 6;
+      });
+
+      addFooter(1);
+
+      // ── PAGE 2 ──────────────────────────────────────────────────────────────
+      doc.addPage();
+      addHeader(2);
+      y = 40;
+
+      // ── SECTION 4: AFFECTED AREA HEATMAP TEXT ───────────────────────────────
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('SECTION 4: AFFECTED AREA CLINICAL MAPPING', margin, y);
+      y += 8;
+
+      const clinicalNames: Record<string, string> = {
+        'palms': 'Palmar hyperhidrosis',
+        'hands': 'Palmar hyperhidrosis',
+        'soles': 'Plantar hyperhidrosis',
+        'feet': 'Plantar hyperhidrosis',
+        'underarms': 'Axillary hyperhidrosis',
+        'face': 'Craniofacial hyperhidrosis',
+        'scalp': 'Craniofacial hyperhidrosis',
+        'entire_body': 'Generalized hyperhidrosis',
+      };
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      dashboardAnalytics.topAreas.forEach((a: any, i: number) => {
+        const clinName = clinicalNames[a.area.toLowerCase()] || 'Focal hyperhidrosis';
+        doc.text(`${i + 1}. ${a.area.charAt(0).toUpperCase() + a.area.slice(1)} (${clinName}) — ${a.percentage}% of episodes`, margin, y);
+        y += 7;
+      });
+      y += 10;
+
+      // ── SECTION 5: CLINICAL RECOMMENDATIONS ─────────────────────────────────
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('SECTION 5: CLINICAL RECOMMENDATIONS', margin, y);
+      y += 6;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+
+      let recText = "Based on the primary affected areas, first-line management with clinical-strength aluminium chloride (20-25%) is recommended for nocturnal application. ";
+      if (avg >= 3.0) {
+        recText += "Given the severity scores frequently reach the HDSS 3-4 range, second-line interventions such as Iontophoresis or Botulinum Toxin A injections are clinically indicated to reduce the acetylcholine signal at the gland site. ";
+      }
+      if (avg >= 3.5) {
+        recText += "Due to the severe impact on daily activities, an urgent dermatology referral is recommended for multi-modal treatment evaluation, including potential oral anticholinergics or microwave thermolysis.";
+      }
+
+      const recLines = doc.splitTextToSize(recText, contentWidth);
+      doc.text(recLines, margin, y);
+      y += (recLines.length * 5) + 15;
+
+      // ── SECTION 6: TREATMENT LADDER ─────────────────────────────────────────
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('SECTION 6: TREATMENT LADDER', margin, y);
+      y += 8;
+
+      doc.setFontSize(9);
+      doc.text('Step', margin, y);
+      doc.text('Treatment', margin + 20, y);
+      doc.text('Evidence', margin + 90, y);
+      doc.text('Relevant For Patient', margin + 130, y);
+      y += 2;
+      addHorizontalRule(y);
+      y += 6;
+
+      const ladder = [
+        { step: 1, name: 'Aluminium Chloride (20-25%)', evidence: 'Level A', relevant: 'Yes' },
+        { step: 2, name: 'Iontophoresis', evidence: 'Level A', relevant: dashboardAnalytics.topAreas.some((a: any) => ['palms', 'hands', 'soles', 'feet'].includes(a.area.toLowerCase())) ? 'Yes' : 'No' },
+        { step: 3, name: 'Botulinum Toxin A', evidence: 'Level A', relevant: avg >= 3 ? 'Yes' : 'Consider' },
+        { step: 4, name: 'Oral Anticholinergics', evidence: 'Level B', relevant: avg >= 3 ? 'Yes' : 'No' },
+        { step: 5, name: 'Microwave Thermolysis', evidence: 'Level A', relevant: dashboardAnalytics.topAreas.some((a: any) => ['underarms'].includes(a.area.toLowerCase())) ? 'Yes' : 'No' },
+      ];
+
+      doc.setFont('helvetica', 'normal');
+      ladder.forEach(item => {
+        doc.text(item.step.toString(), margin, y);
+        doc.text(item.name, margin + 20, y);
+        doc.text(item.evidence, margin + 90, y);
+        doc.text(item.relevant, margin + 130, y);
+        y += 7;
+      });
+
+      addFooter(2);
+
+      // Save PDF
+      const filename = `SweatSmart_Clinical_Report_${userName.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.pdf`;
+      doc.save(filename);
+      toast.success('Clinical Warrior Report downloaded');
+
+    } catch (error) {
+      console.error('PDF error:', error);
+      toast.error('Failed to generate PDF report');
+    }
   };
 
   // ── Browser speech for message readout (keeps recorded alert audio separate) ─
@@ -1081,6 +1424,50 @@ const HyperAI = () => {
           <div ref={messagesEndRef} />
         </div>
 
+        {/* ── WARRIOR REPORT GATE ─────────────────────────────────────────────── */}
+        {showSuggestions && dashboardAnalytics && (
+          <div className="relative z-10 px-4 mb-4">
+            <div
+              className="p-4 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md"
+              style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-teal-500/20 flex items-center justify-center">
+                    <FileText className="h-4 w-4 text-teal-300" />
+                  </div>
+                  <h3 className="text-white font-bold text-sm">Clinical Warrior Report</h3>
+                </div>
+                <button
+                  onClick={generatePDFReport}
+                  disabled={dashboardAnalytics.totalEpisodes < 5}
+                  className={`px-4 py-1.5 rounded-xl text-[11px] font-bold transition-all ${
+                    dashboardAnalytics.totalEpisodes < 5
+                      ? 'bg-white/10 text-white/30 cursor-not-allowed'
+                      : 'bg-teal-500 hover:bg-teal-400 text-white shadow-lg shadow-teal-500/20'
+                  }`}
+                >
+                  Generate PDF
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-[11px] text-white/60 leading-relaxed">
+                  {dashboardAnalytics.totalEpisodes < 5
+                    ? canGenerateReport(dashboardAnalytics.totalEpisodes).message
+                    : `Ready to share with your dermatologist. Based on ${dashboardAnalytics.totalEpisodes} logged episodes.`}
+                </p>
+                {dashboardAnalytics.totalEpisodes >= 5 && dashboardAnalytics.totalEpisodes < 10 && (
+                  <div className="flex items-center gap-1.5 text-[10px] text-amber-300 font-medium">
+                    <AlertTriangle className="h-3 w-3" />
+                    <span>Limited data accuracy — continue logging for a fuller picture.</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── SUGGESTION CHIPS ─────────────────────────────────────────────────── */}
         {showSuggestions && messages.length <= 1 && (
           <div className="relative z-10 px-4 pb-2">
@@ -1089,7 +1476,7 @@ const HyperAI = () => {
               {SUGGESTION_PROMPTS.map((s, i) => (
                 <button
                   key={i}
-                  onClick={() => handleSend(s.text)}
+                  onClick={() => s.text === 'Generate my warrior report' ? generatePDFReport() : handleSend(s.text)}
                   className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs text-left transition-all hover:scale-[1.02]"
                   style={{
                     background: 'rgba(255,255,255,0.04)',
