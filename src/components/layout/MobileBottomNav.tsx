@@ -60,7 +60,7 @@ const moreItems = [
   { path: "/climate",      icon: CloudRainWind,    label: "Climate",    color: "text-cyan-600",    bg: "bg-cyan-50"    },
   { path: "/palm-scanner", icon: Hand,             label: "Scanner",    color: "text-cyan-600",    bg: "bg-cyan-50"    },
   { path: "/specialist-radar", icon: MapPin,       label: "Specialist", color: "text-teal-600",    bg: "bg-teal-50"    },
-  { path: "/hyper-ai",     icon: Sparkles,         label: "HidroAlly AI",  color: "text-amber-600",   bg: "bg-amber-50"   },
+  { path: "/hyper-ai",     icon: Sparkles,         label: "Hidro Ally AI",  color: "text-amber-600",   bg: "bg-amber-50"   },
   { path: "/community",    icon: Users,            label: "Community",  color: "text-emerald-600", bg: "bg-emerald-50" },
   { path: "/contact",      icon: MessageSquare,    label: "Feedback",   color: "text-amber-600",   bg: "bg-amber-50"   },
   { path: "/settings",     icon: Settings,         label: "Settings",   color: "text-gray-600",    bg: "bg-gray-50"    },

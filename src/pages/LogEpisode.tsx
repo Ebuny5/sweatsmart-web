@@ -170,7 +170,7 @@ const LogEpisode = () => {
         setLastSavedEpisodeId(data[0].id);
       }
 
-      // Reschedule the next reminder 4 hours from now
+      // Reschedule the next reminder 6 hours from now
       loggingReminderService.handleLogSaved();
 
       // Update local storage logs for instant Gauged HDSS responsiveness

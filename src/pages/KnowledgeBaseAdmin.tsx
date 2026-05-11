@@ -246,7 +246,7 @@ const KnowledgeBaseAdmin = () => {
             Knowledge Base Admin
           </h1>
           <p className="text-muted-foreground mt-2">
-            Build HidroAlly's hyperhidrosis expertise with research from Gemini & ChatGPT
+            Build Hidro Ally's hyperhidrosis expertise with research from Gemini & ChatGPT
           </p>
         </div>
 
@@ -413,7 +413,7 @@ const KnowledgeBaseAdmin = () => {
                   Test Knowledge Search
                 </CardTitle>
                 <CardDescription>
-                  Test how HidroAlly will find relevant knowledge for user questions
+                  Test how Hidro Ally will find relevant knowledge for user questions
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">

@@ -72,7 +72,7 @@ const Settings = () => {
             </div>
             <div className="flex-1">
               <h2 className="text-lg font-bold text-white">App Alerts (Required)</h2>
-              <p className="text-sm text-zinc-400 leading-relaxed">A check‑in alert will be sent every 4 hours to help you log episodes.</p>
+              <p className="text-sm text-zinc-400 leading-relaxed">A check‑in alert will be sent every 6 hours to help you log episodes.</p>
               <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-green-500/10 text-green-400 px-3 py-1 text-xs font-bold">
                 <span className="h-2 w-2 rounded-full bg-green-400" /> Active
               </div>
@@ -237,7 +237,7 @@ const Settings = () => {
                   channel: 'system',
                   kind: 'reminder',
                   title: "⏰ Log Reminder Test",
-                  body: "Time to check in. Log your sweat level for the past 4 hours. 💧",
+                  body: "It’s time for your 6-hour check-in. Help Hidro Ally build your comprehensive report with a quick log of your experience.",
                   dedupKey: `test-rem-${Date.now()}`
                 });
               }}

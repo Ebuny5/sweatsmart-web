@@ -249,11 +249,9 @@ const CurrentStatusCard: React.FC<{
 const DiagnosticsPanel: React.FC<{
   locationPermission: PermissionStatus;
   notificationPermission: PermissionStatus;
-  lastLogTime: number | null;
-  nextLogTime: number | null;
   lastWeatherFetch: number | null;
   edaIsWearableAndFresh: boolean;
-}> = ({ locationPermission, notificationPermission, lastLogTime, nextLogTime, lastWeatherFetch, edaIsWearableAndFresh }) => {
+}> = ({ locationPermission, notificationPermission, lastWeatherFetch, edaIsWearableAndFresh }) => {
   const fmt = (ts: number | null) =>
     ts ? new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
   return (
@@ -264,10 +262,6 @@ const DiagnosticsPanel: React.FC<{
         <span className={locationPermission === 'granted' ? 'text-green-400' : 'text-red-400'}>{locationPermission}</span>
         <span className="text-purple-200/60">Notification permission:</span>
         <span className={notificationPermission === 'granted' ? 'text-green-400' : 'text-red-400'}>{notificationPermission}</span>
-        <span className="text-purple-200/60">Last log time:</span>
-        <span className="text-white">{fmt(lastLogTime)}</span>
-        <span className="text-purple-200/60">Next log time:</span>
-        <span className="text-white">{fmt(nextLogTime)}</span>
         <span className="text-purple-200/60">Last weather fetch:</span>
         <span className="text-white">{fmt(lastWeatherFetch)}</span>
         <span className="text-purple-200/60">EDA source:</span>
@@ -464,7 +458,7 @@ const ClimateMonitor = () => {
 
   const updateNextLogTime = useCallback((anchor?: number) => {
     const base = anchor ?? (parseInt(localStorage.getItem('sweatsmart_last_log_time') || '0', 10) || Date.now());
-    const nextTime = base + 4 * 60 * 60 * 1000;
+    const nextTime = base + 6 * 60 * 60 * 1000;
     setNextLogTime(nextTime);
     localStorage.setItem('climateNextLogTime', nextTime.toString());
   }, []);
@@ -604,8 +598,6 @@ const ClimateMonitor = () => {
             <DiagnosticsPanel
               locationPermission={locationPermission}
               notificationPermission={notificationPermission}
-              lastLogTime={lastLogTime}
-              nextLogTime={nextLogTime}
               lastWeatherFetch={lastWeatherFetch}
               edaIsWearableAndFresh={edaIsWearableAndFresh}
             />

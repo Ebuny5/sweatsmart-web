@@ -337,7 +337,7 @@ const WarriorLaunchpad = () => {
             {[
               { emoji: "🗺️", title: "My Sweat Journey", subtitle: "Full episode history",    gradient: "from-pink-400 to-rose-500",    shadow: "shadow-pink-200",   path: "/history"             },
               { emoji: "🔬", title: "Growth Radar",     subtitle: "Insights & treatment",   gradient: "from-amber-400 to-orange-500", shadow: "shadow-amber-200",  path: "/insights"            },
-              { emoji: "🤖", title: "HidroAlly",         subtitle: "Your 24/7 companion",    gradient: "from-indigo-400 to-violet-500",shadow: "shadow-indigo-200", path: "/hyper-ai"            },
+              { emoji: "🤖", title: "Hidro Ally",         subtitle: "Your 24/7 companion",    gradient: "from-indigo-400 to-violet-500",shadow: "shadow-indigo-200", path: "/hyper-ai"            },
             ].map(({ emoji, title, subtitle, gradient, shadow, path }) => (
               <button
                 key={path}
@@ -355,18 +355,6 @@ const WarriorLaunchpad = () => {
             ))}
           </div>
 
-          {/* Climate full-page CTA */}
-          <button
-            onClick={() => navigate("/climate")}
-            className="w-full bg-gradient-to-r from-sky-400 to-blue-500 rounded-2xl p-4 flex items-center gap-3 shadow-md shadow-sky-200 hover:shadow-lg transition-all text-left"
-          >
-            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-2xl shrink-0">🌡️</div>
-            <div className="flex-1">
-              <p className="text-white font-black text-xs">Full Climate Alert Centre</p>
-              <p className="text-sky-100 text-[10px] mt-0.5">Push notifications · EDA · Thresholds · Log reminders</p>
-            </div>
-            <ChevronRight className="h-4 w-4 text-white/60 shrink-0" />
-          </button>
         </div>
 
         {/* Community snippet */}
