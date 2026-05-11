@@ -95,6 +95,10 @@ interface NotesIntelligence {
   expressesAnxiety: boolean;
   expressesHope: boolean;
 
+  // Additional context from voice logging
+  mentionsConflict: boolean;
+  mentionsHeavyLifting: boolean;
+
   // Raw text for contextual interpolation
   raw: string;
 }
@@ -129,6 +133,9 @@ function parseNotes(notes?: string): NotesIntelligence {
     expressesFrustration:   /frustrat|fed up|tired of|sick of|can.t take|had enough|awful|horrible/.test(n),
     expressesAnxiety:       /anxious|scared|worried|dread|panic|nervous about/.test(n),
     expressesHope:          /hope|better|improv|progress|working|helped/.test(n),
+
+    mentionsConflict:       /conflict|argument|fight|quarrel|disagreement|dispute|angry with|fight with/.test(n),
+    mentionsHeavyLifting:   /heavy load|heavy lifting|carrying|manual labor|worked hard|working hard/.test(n),
 
     raw: notes || "",
   };
@@ -394,7 +401,17 @@ function buildClinical(
 
   // ── Context sentence from notes (the yam-kitchen scenario lives here)
   let contextSentence = "";
-  if (ni.wasCooking && ni.poorVentilation) {
+  if (ni.mentionsConflict) {
+    contextSentence = pick([
+      `The conflict or argument you mentioned in your notes is a powerful emotional trigger — interpersonal stress causes an immediate spike in sympathetic nervous system activity, which directly signals your sweat glands to activate. This is a purely physiological response to emotional distress.`,
+      `Interpersonal stress, like the fight you described, creates a unique physiological load. Your brain interprets social conflict as a high-arousal state, triggering the same "fight or flight" pathways that drive hyperhidrosis episodes.`,
+    ], seed);
+  } else if (ni.mentionsHeavyLifting) {
+    contextSentence = pick([
+      `The heavy lifting and physical labor you noted created a significant thermal and physical load. Physical exertion raises your core temperature, while the mechanical effort of carrying heavy loads provides a sustained stimulus for sweat production.`,
+      `Working with heavy loads, as you described, combines physical exertion with sustained muscular effort — both of which are primary drivers for thermoregulatory and compensatory sweating.`,
+    ], seed);
+  } else if (ni.wasCooking && ni.poorVentilation) {
     contextSentence = pick([
       `Your notes indicate you were preparing food in a poorly ventilated space — this creates a compounding thermal environment: body heat from activity, ambient heat from cooking, and restricted airflow that prevents any cooling from occurring naturally.`,
       `The context you described — cooking in an enclosed space without airflow — is a high-risk convergence point for hyperhidrosis. Heat from the cooking process, reduced ambient airflow, and the physical activity of food preparation stack on top of each other in a way that makes an episode difficult to avoid without environmental intervention.`,

@@ -50,6 +50,13 @@ interface UseVoiceLoggingProps {
 
 export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) => {
   const [voiceStatus, setVoiceStatus] = useState<VoiceStatus>(null);
+  const voiceStatusRef = useRef<VoiceStatus>(null);
+
+  // Keep ref in sync with state for use in callbacks
+  useEffect(() => {
+    voiceStatusRef.current = voiceStatus;
+  }, [voiceStatus]);
+
   const [voiceNotSupported, setVoiceNotSupported] = useState(!isVoiceSupported());
   const [transcript, setTranscript] = useState("");
   const recognitionRef = useRef<any>(null);
@@ -58,6 +65,7 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
   const isStoppingIntentionallyRef = useRef(false);
   const restartAttemptsRef = useRef(0);
   const hasSpokenRef = useRef(false); // tracks if user has said anything yet
+  const hasAskedForAreaRef = useRef(false); // track if we already asked for missing body area
   const MAX_RESTART_ATTEMPTS = 8; // more attempts = more patient
 
   const clearSilenceTimer = () => {
@@ -77,6 +85,17 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
     const synth = window.speechSynthesis;
     synth.cancel();
 
+    let calledDone = false;
+    const safeDone = () => {
+      if (!calledDone) {
+        calledDone = true;
+        onDone?.();
+      }
+    };
+
+    // Safety timeout in case onend never fires
+    const safetyTimer = setTimeout(safeDone, 10000);
+
     // Small delay after cancel — required on Android
     setTimeout(() => {
       const utter = new SpeechSynthesisUtterance(text);
@@ -92,9 +111,19 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
           ['samantha', 'victoria', 'karen', 'aria', 'zira', 'hazel', 'google uk english female']
             .some(k => v.name.toLowerCase().includes(k))
         ) || voices.find(v => v.lang.startsWith('en'));
+
         if (preferred) utter.voice = preferred;
-        utter.onend = () => { setTimeout(() => onDone?.(), 200); };
-        utter.onerror = () => { onDone?.(); };
+
+        utter.onend = () => {
+          clearTimeout(safetyTimer);
+          setTimeout(safeDone, 200);
+        };
+
+        utter.onerror = () => {
+          clearTimeout(safetyTimer);
+          safeDone();
+        };
+
         synth.speak(utter);
       };
 
@@ -125,10 +154,10 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
     // ── BODY AREAS ──
     const detectedAreas: BodyArea[] = [];
 
-    if (lower.includes('palm') || lower.includes('hand') || lower.includes('hands')) detectedAreas.push('palms');
-    if (lower.includes('finger') || lower.includes('fingers')) detectedAreas.push('fingers');
+    if (lower.includes('palm') || lower.includes('hand') || lower.includes('hands') || lower.includes('fingers') || lower.includes('fingertips')) detectedAreas.push('palms');
+    if (lower.includes('finger') || lower.includes('fingers') || lower.includes('fingertips')) detectedAreas.push('fingers');
     if (lower.includes('sole') || lower.includes('soles') || lower.includes('bottom of my feet') || lower.includes('bottom of feet')) detectedAreas.push('soles');
-    if (lower.includes('feet') || lower.includes('foot')) detectedAreas.push('feet');
+    if (lower.includes('feet') || lower.includes('foot') || lower.includes('toes')) detectedAreas.push('feet');
     if (lower.includes('toe') || lower.includes('toes')) detectedAreas.push('toes');
     if (lower.includes('feet and sole') || lower.includes('foot and sole')) detectedAreas.push('feet_soles');
     if ((lower.includes('face') && lower.includes('scalp')) || lower.includes('face and scalp')) {
@@ -144,7 +173,20 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
     if (lower.includes('chest')) detectedAreas.push('chest');
     if (lower.includes('back') && !lower.includes('come back') && !lower.includes('go back')) detectedAreas.push('back');
     if (lower.includes('groin')) detectedAreas.push('groin');
-    if (detectedAreas.length === 0) detectedAreas.push('palms');
+
+    // If no body areas detected, ask for clarification once
+    if (detectedAreas.length === 0 && !hasAskedForAreaRef.current) {
+      hasAskedForAreaRef.current = true;
+      setVoiceStatus('LISTENING');
+      speakPrompt(
+        "I couldn't identify the affected body area. Which part of your body was affected?",
+        () => {
+          isStoppingIntentionallyRef.current = false;
+          startListeningInternal(true);
+        }
+      );
+      return;
+    }
 
     // ── TRIGGERS ──
     const detectedTriggerValues: string[] = [];
@@ -160,7 +202,16 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
     if (lower.includes('sun') || lower.includes('outdoor') || lower.includes('outside') || lower.includes('sunshine') || lower.includes('sunlight') || lower.includes('in the open')) detectedTriggerValues.push('outdoor_sun_exposure');
 
     // Emotional & Cognitive
-    if (lower.includes('stress') || lower.includes('stressed') || lower.includes('stressful')) detectedTriggerValues.push('stress');
+    if (
+      lower.includes('stress') ||
+      lower.includes('stressed') ||
+      lower.includes('stressful') ||
+      lower.includes('conflict') ||
+      lower.includes('argument') ||
+      lower.includes('fight') ||
+      lower.includes('quarrel') ||
+      lower.includes('disagreement')
+    ) detectedTriggerValues.push('stress');
     if (lower.includes('anxi') || lower.includes('anxious') || lower.includes('anxiety') || lower.includes('worried') || lower.includes('panick')) detectedTriggerValues.push('anxiety');
     if (lower.includes('anticipat') || lower.includes('dreading') || lower.includes('worrying about sweating') || lower.includes('fear of sweating')) detectedTriggerValues.push('anticipatory_sweating');
     if (lower.includes('embarrass') || lower.includes('shame') || lower.includes('humiliat')) detectedTriggerValues.push('embarrassment');
@@ -169,7 +220,18 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
     if (lower.includes('nervous') || lower.includes('nervousness') || lower.includes('nerves') || lower.includes('jittery') || lower.includes('on edge')) detectedTriggerValues.push('nervousness');
     if (lower.includes('public speak') || lower.includes('presentation') || lower.includes('speaking in front') || lower.includes('giving a talk') || lower.includes('speech')) detectedTriggerValues.push('public_speaking');
     if (lower.includes('social') || lower.includes('party') || lower.includes('gathering') || lower.includes('event') || lower.includes('meeting people') || lower.includes('group')) detectedTriggerValues.push('social_interaction');
-    if (lower.includes('work pressure') || lower.includes('work stress') || lower.includes('boss') || lower.includes('deadline') || lower.includes('pressure at work') || lower.includes('office') || lower.includes('job')) detectedTriggerValues.push('work_pressure');
+    if (
+      lower.includes('work pressure') ||
+      lower.includes('work stress') ||
+      lower.includes('boss') ||
+      lower.includes('deadline') ||
+      lower.includes('pressure at work') ||
+      lower.includes('office') ||
+      lower.includes('job') ||
+      lower.includes('heavy load') ||
+      lower.includes('working hard') ||
+      lower.includes('at work')
+    ) detectedTriggerValues.push('work_pressure');
     if (lower.includes('exam') || lower.includes('test') || lower.includes('interview') || lower.includes('assessment')) detectedTriggerValues.push('exam_test_situation');
 
     // Food, Drink & Gustatory
@@ -181,7 +243,19 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
     if (lower.includes('gustatory') || lower.includes('eating triggered') || lower.includes('after eating') || lower.includes('while eating')) detectedTriggerValues.push('gustatory_sweating');
 
     // Physical Activity & Body State
-    if (lower.includes('exercise') || lower.includes('gym') || lower.includes('workout') || lower.includes('running') || lower.includes('sport') || lower.includes('jogging') || lower.includes('walking fast')) detectedTriggerValues.push('physical_exercise');
+    if (
+      lower.includes('exercise') ||
+      lower.includes('gym') ||
+      lower.includes('workout') ||
+      lower.includes('running') ||
+      lower.includes('sport') ||
+      lower.includes('jogging') ||
+      lower.includes('walking fast') ||
+      lower.includes('heavy load') ||
+      lower.includes('heavy lifting') ||
+      lower.includes('carrying') ||
+      lower.includes('manual labor')
+    ) detectedTriggerValues.push('physical_exercise');
     if (lower.includes('night sweat') || lower.includes('sweating at night') || lower.includes('woke up sweating') || lower.includes('sleep sweating')) detectedTriggerValues.push('night_sweats');
     if (lower.includes('poor sleep') || lower.includes('bad sleep') || lower.includes('no sleep') || lower.includes('tired') || lower.includes('exhausted') || lower.includes('insomnia')) detectedTriggerValues.push('poor_sleep');
     if (lower.includes('hormonal') || lower.includes('period') || lower.includes('menstrual') || lower.includes('menopause') || lower.includes('cycle')) detectedTriggerValues.push('hormonal_changes');
@@ -362,7 +436,7 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
     recognition.onend = () => {
       // Android Chrome auto-stops recognition every ~5-10 seconds
       // If we didn't stop it intentionally → restart and keep listening
-      if (!isStoppingIntentionallyRef.current && voiceStatus === 'LISTENING') {
+      if (!isStoppingIntentionallyRef.current && voiceStatusRef.current === 'LISTENING') {
         if (restartAttemptsRef.current < MAX_RESTART_ATTEMPTS) {
           restartAttemptsRef.current += 1;
           setTimeout(() => {
@@ -430,11 +504,22 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
 
   // ── Public start — says "I'm listening" first ─────────────────────────────
   const startListening = useCallback(() => {
+    if (voiceStatus !== null) return; // Already active
+
+    // Set status immediately so UI (red button) responds instantly
+    setVoiceStatus('LISTENING');
+    hasAskedForAreaRef.current = false;
+    isStoppingIntentionallyRef.current = false;
+
     speakPrompt(
       "I'm listening. Please describe your episode in your own words. Take your time.",
-      () => startListeningInternal(false)
+      () => {
+        // Only proceed if user hasn't stopped it while we were speaking
+        if (isStoppingIntentionallyRef.current) return;
+        startListeningInternal(false);
+      }
     );
-  }, [speakPrompt, startListeningInternal]);
+  }, [voiceStatus, speakPrompt, startListeningInternal]);
 
   const stopListening = useCallback(() => {
     clearSilenceTimer();
