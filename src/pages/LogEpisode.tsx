@@ -284,6 +284,11 @@ const LogEpisode = () => {
   }[voiceStatus as string] || { label: "Voice log", hint: "Tap and speak naturally" };
 
   // ── Success / Insights screen ──────────────────────────────────────────────
+  const successEmoji = useMemo(() => {
+    const emojis = ["🎉", "💪", "✨", "😊", "🛡️", "🙌", "💙", "✅"];
+    return emojis[Math.floor(Math.random() * emojis.length)];
+  }, []);
+
   if (showInsights) {
     return (
       <AppLayout>
@@ -294,7 +299,7 @@ const LogEpisode = () => {
             <div className="w-16 h-16 rounded-full bg-white/30 flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
               <CheckCircle2 className="h-9 w-9 text-white" />
             </div>
-            <h1 className="text-white text-2xl font-black tracking-tight">Episode Logged! 🎉</h1>
+            <h1 className="text-white text-2xl font-black tracking-tight">Episode Logged! {successEmoji}</h1>
             <p className="text-green-100 text-sm mt-1">Your data helps build a better understanding of your triggers</p>
           </div>
 
