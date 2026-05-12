@@ -326,9 +326,19 @@ const ClimateMonitor = () => {
     checkPermissions();
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (position) => { setLocation(position.coords); setLocationPermission('granted'); },
-        (error) => { if (error.code === error.PERMISSION_DENIED) setLocationPermission('denied'); },
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+        (position) => {
+          setLocation(position.coords);
+          setLocationPermission('granted');
+        },
+        (error) => {
+          console.warn('📍 Geolocation error:', error);
+          if (error.code === error.PERMISSION_DENIED) {
+            setLocationPermission('denied');
+          } else if (error.code === error.TIMEOUT) {
+            setWeatherError('Location request timed out. Please ensure GPS is on and try refreshing.');
+          }
+        },
+        { enableHighAccuracy: false, timeout: 20000, maximumAge: 60000 }
       );
     }
   }, [checkPermissions]);
@@ -494,12 +504,20 @@ const ClimateMonitor = () => {
   };
 
   const handleRequestLocation = () => {
+    setIsFetchingWeather(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setLocation(position.coords); setLocationPermission('granted');
+        setLocation(position.coords);
+        setLocationPermission('granted');
         if (notificationPermission === 'prompt') requestNotificationPermission();
       },
-      (error) => { if (error.code === error.PERMISSION_DENIED) setLocationPermission('denied'); }
+      (error) => {
+        console.warn('📍 handleRequestLocation error:', error);
+        if (error.code === error.PERMISSION_DENIED) setLocationPermission('denied');
+        else setWeatherError(`Location error: ${error.message}`);
+        setIsFetchingWeather(false);
+      },
+      { enableHighAccuracy: false, timeout: 20000 }
     );
   };
 
