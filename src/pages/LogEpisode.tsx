@@ -20,7 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEpisodes } from "@/hooks/useEpisodes";
 import { gaugeHDSS } from "@/utils/hdssGauger";
-import { generateFallbackInsights } from "@/engine/recommendationEngine";
+import { generateFallbackInsights, detectMetadataFromNotes } from "@/engine/recommendationEngine";
 import { loggingReminderService } from "@/services/LoggingReminderService";
 import { useVoiceLogging } from "@/hooks/useVoiceLogging";
 
@@ -117,10 +117,19 @@ const LogEpisode = () => {
   }, [episodes]);
 
   // ── All original logic ─────────────────────────────────────────────────────
-  const handleSubmit = useCallback(async (e?: React.FormEvent, manualNotes?: string, manualBodyAreas?: BodyArea[], manualTriggers?: Trigger[]) => {
+  const handleSubmit = useCallback(async (
+    e?: React.FormEvent,
+    manualNotes?: string,
+    manualBodyAreas?: BodyArea[],
+    manualTriggers?: Trigger[],
+    manualSeverity?: number
+  ) => {
     if (e) e.preventDefault();
-    const finalBodyAreas = manualBodyAreas ?? bodyAreas;
-    const finalTriggers = manualTriggers ?? triggers;
+
+    let finalBodyAreas = [...(manualBodyAreas ?? bodyAreas)];
+    let finalTriggers = [...(manualTriggers ?? triggers)];
+    const finalNotes = manualNotes !== undefined ? manualNotes : notes;
+    let finalSeverity = manualSeverity ?? severity;
 
     if (!user) {
       toast({ title: "Authentication required", description: "Please log in to save episodes.", variant: "destructive" });
@@ -131,15 +140,34 @@ const LogEpisode = () => {
       toast({ title: "Date required", description: "Please select a date for the episode.", variant: "destructive" });
       return;
     }
-    if (finalBodyAreas.length === 0) {
-      toast({ title: "Body areas required", description: "Please select at least one affected body area.", variant: "destructive" });
 
-      // If this was an auto-save attempt, give voice feedback
-      if (manualNotes !== undefined) {
-        const utterance = new SpeechSynthesisUtterance("I couldn't identify the affected body area. Please select it manually or try describing it again.");
-        window.speechSynthesis.speak(utterance);
+    // ── Intelligent "Lowkey" Detection ──
+    // If no body areas are selected (common in voice logging), try to detect them from notes
+    if (finalBodyAreas.length === 0 && finalNotes) {
+      const detected = detectMetadataFromNotes(finalNotes);
+      if (detected.bodyAreas.length > 0) {
+        finalBodyAreas = detected.bodyAreas as BodyArea[];
+        // Update UI state so user sees what was found
+        setBodyAreas(finalBodyAreas);
       }
-      return;
+
+      // Also try to supplement triggers if none are present
+      if (finalTriggers.length === 0 && detected.triggers.length > 0) {
+        finalTriggers = detected.triggers as Trigger[];
+        setTriggers(finalTriggers);
+      }
+
+      // And severity if not explicitly provided
+      if (manualSeverity === undefined && detected.severity) {
+        finalSeverity = detected.severity as SeverityLevel;
+        setSeverity(finalSeverity);
+      }
+    }
+
+    // If STILL no body areas, default to entire_body (as per user request)
+    if (finalBodyAreas.length === 0) {
+      finalBodyAreas = ['entire_body'];
+      setBodyAreas(finalBodyAreas);
     }
 
     setIsSubmitting(true);
@@ -168,6 +196,12 @@ const LogEpisode = () => {
 
       if (data && data[0]) {
         setLastSavedEpisodeId(data[0].id);
+
+        // Play the "Saving your episode" audio ONLY after successful DB save
+        try {
+          const a = new Audio('/sounds/saving your episode.mp3');
+          a.play().catch(e => console.warn("Audio play failed:", e));
+        } catch (e) {}
       }
 
       // Reschedule the next reminder 6 hours from now
@@ -266,13 +300,14 @@ const LogEpisode = () => {
     startListening,
     transcript,
   } = useVoiceLogging({
-    onAnalysisComplete: async (detectedAreas, detectedTriggers, transcriptText) => {
+    onAnalysisComplete: async (detectedAreas, detectedTriggers, transcriptText, detectedSeverity) => {
       setBodyAreas(detectedAreas);
       setTriggers(detectedTriggers);
       setNotes(transcriptText);
+      if (detectedSeverity) setSeverity(detectedSeverity as SeverityLevel);
 
-      // Save directly with currently selected severity
-      await handleSubmit(undefined, transcriptText, detectedAreas, detectedTriggers);
+      // Save directly with currently detected/selected values
+      await handleSubmit(undefined, transcriptText, detectedAreas, detectedTriggers, detectedSeverity);
     }
   });
 

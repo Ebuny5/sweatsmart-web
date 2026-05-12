@@ -25,7 +25,7 @@ export const isVoiceSupported = (): boolean => {
 export type VoiceStatus = 'LISTENING' | 'CONFIRMING' | 'REASONING' | 'SAVING' | null;
 
 interface UseVoiceLoggingProps {
-  onAnalysisComplete: (bodyAreas: BodyArea[], triggers: Trigger[], notes: string) => void;
+  onAnalysisComplete: (bodyAreas: BodyArea[], triggers: Trigger[], notes: string, severity?: number) => void;
 }
 
 const SOUND = {
@@ -347,9 +347,8 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
 
     if (cancelledRef.current) return cleanupAudio();
 
-    // Step D: saving
-    setVoiceStatus('SAVING');
-    await playSound(SOUND.savingEpisode);
+    // Step D: Reasoning/Transcribing
+    setVoiceStatus('SAVING'); // Keep status for UI, but move sound to after DB save
 
     // Stop mic before transcription to save battery
     if (streamRef.current) {
@@ -380,6 +379,8 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
     // LLM extract tags (with keyword fallback)
     let bodyAreas: BodyArea[] = [];
     let triggerValues: string[] = [];
+    let detectedSeverity: number | undefined;
+
     try {
       const { data } = await supabase.functions.invoke('voice-transcribe', {
         body: { mode: 'extract', text: fullText },
@@ -387,9 +388,11 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
       const tags = data?.tags;
       if (tags?.body_areas?.length) bodyAreas = tags.body_areas as BodyArea[];
       if (tags?.triggers?.length) triggerValues = tags.triggers;
+      if (tags?.severity) detectedSeverity = tags.severity;
     } catch (e) {
       console.warn('extract failed, falling back', e);
     }
+
     if (bodyAreas.length === 0 || triggerValues.length === 0) {
       const fb = fallbackExtract(fullText);
       if (bodyAreas.length === 0) bodyAreas = fb.bodyAreas;
@@ -402,6 +405,7 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
       Array.from(new Set(bodyAreas)),
       valuesToTriggers(triggerValues),
       fullText.trim(),
+      detectedSeverity
     );
   }, [onAnalysisComplete]);
 
