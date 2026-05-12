@@ -103,6 +103,117 @@ interface NotesIntelligence {
   raw: string;
 }
 
+/**
+ * detectMetadataFromNotes — "Lowkey" intelligent metadata extraction from raw text.
+ * Used as a fallback or enhancement when explicit tags are missing.
+ */
+export function detectMetadataFromNotes(notes: string): {
+  bodyAreas: string[];
+  triggers: TriggerInput[];
+  severity?: number;
+} {
+  const n = notes.toLowerCase();
+  const bodyAreas: string[] = [];
+  const triggers: TriggerInput[] = [];
+  let severity: number | undefined;
+
+  // ── Body Area Detection ───────────────────────────────────────────────────
+  if (/palm|hand|finger|grip|hold|touch/.test(n)) bodyAreas.push("palms");
+  if (/sole|feet|foot|toe|walk|shoe|sock|slip|floor/.test(n)) bodyAreas.push("soles");
+  if (/underarm|armpit|axilla|shirt|pit/.test(n)) bodyAreas.push("underarms");
+  if (/face|forehead|cheek|brow|eye|nose|upper lip|chin/.test(n)) bodyAreas.push("face");
+  if (/scalp|head|hair/.test(n)) bodyAreas.push("scalp");
+  if (/back|spine|lumbar/.test(n)) bodyAreas.push("back");
+  if (/chest|breast|torso/.test(n)) bodyAreas.push("chest");
+  if (/groin|private|crotch/.test(n)) bodyAreas.push("groin");
+  if (/everywhere|all over|entire body|whole body|generalized|drench/.test(n)) bodyAreas.push("entire_body");
+
+  // Default to entire_body if user mentions sweating but no specific area
+  if (bodyAreas.length === 0 && (n.includes("sweat") || n.includes("perspir") || n.includes("dripping"))) {
+    bodyAreas.push("entire_body");
+  }
+
+  // ── Trigger Detection ─────────────────────────────────────────────────────
+  // Environmental
+  if (/hot|heat|warm|sun|summer|burning|weather/.test(n)) {
+    triggers.push({ type: "environmental", value: "hot_temperature", label: "Hot Temperature" });
+  }
+  if (/humid|muggy|sticky|moist|damp/.test(n)) {
+    triggers.push({ type: "environmental", value: "high_humidity", label: "High Humidity" });
+  }
+  if (/crowd|people|gathering|party|mall|market/.test(n)) {
+    triggers.push({ type: "environmental", value: "crowded_spaces", label: "Crowded Spaces" });
+  }
+  if (/light|glare|bright/.test(n)) {
+    triggers.push({ type: "environmental", value: "bright_lights", label: "Bright Lights" });
+  }
+  if (/noise|loud|sound|noisy/.test(n)) {
+    triggers.push({ type: "environmental", value: "loud_noises", label: "Loud Noises" });
+  }
+  if (/chang|transition|switch|shift/.test(n) && /temp|heat|cool/.test(n)) {
+    triggers.push({ type: "environmental", value: "transitional_temperature", label: "Transitional Temperature" });
+  }
+  if (/synthetic|polyester|nylon|fabric/.test(n)) {
+    triggers.push({ type: "environmental", value: "synthetic_fabrics", label: "Synthetic Fabrics" });
+  }
+  if (/outside|sun|beach|outdoor/.test(n)) {
+    triggers.push({ type: "environmental", value: "outdoor_sun_exposure", label: "Outdoor Sun Exposure" });
+  }
+
+  // Emotional/Situational
+  if (/stress|pressur|deadline|worry/.test(n)) {
+    triggers.push({ type: "emotional", value: "stress", label: "Stress" });
+  }
+  if (/anxious|anxiety|panic|dread|fear/.test(n)) {
+    triggers.push({ type: "emotional", value: "anxiety", label: "Anxiety" });
+  }
+  if (/nervous|shak|jitter/.test(n)) {
+    triggers.push({ type: "emotional", value: "nervousness", label: "Nervousness" });
+  }
+  if (/speak|presentation|meeting|talk|interview/.test(n)) {
+    triggers.push({ type: "emotional", value: "public_speaking", label: "Public Speaking" });
+  }
+  if (/fight|argu|conflict|quarrel|angry|disagree/.test(n)) {
+    triggers.push({ type: "emotional", value: "conflict", label: "Conflict" });
+  }
+
+  // Dietary
+  if (/spicy|chilli|pepper|hot food|curry/.test(n)) {
+    triggers.push({ type: "dietary", value: "spicy_food", label: "Spicy Food" });
+  }
+  if (/coffee|caffeine|tea|energy drink/.test(n)) {
+    triggers.push({ type: "dietary", value: "caffeine", label: "Caffeine" });
+  }
+
+  // Physical
+  if (/exercise|gym|run|workout|training|sport/.test(n)) {
+    triggers.push({ type: "physical", value: "physical_exercise", label: "Physical Exercise" });
+  }
+  if (/heavy|load|lifting|carrying|labor|manual/.test(n)) {
+    triggers.push({ type: "physical", value: "heavy_load", label: "Heavy Load" });
+  }
+  if (/night|sleep|woke/.test(n)) {
+    triggers.push({ type: "physical", value: "night_sweats", label: "Night Sweats" });
+  }
+
+  // ── Severity Inference ────────────────────────────────────────────────────
+  if (/dripping|soaked|drenched|extreme|horrible|can't take|barely tolerable/.test(n)) {
+    severity = 5;
+  } else if (/frequent|interfering|disrupting|bad|tough/.test(n)) {
+    severity = 4;
+  } else if (/noticeable|getting in the way|uncomfortable/.test(n)) {
+    severity = 3;
+  } else if (/tolerable|little|mild/.test(n)) {
+    severity = 2;
+  }
+
+  return {
+    bodyAreas: Array.from(new Set(bodyAreas)),
+    triggers: Array.from(new Set(triggers)),
+    severity
+  };
+}
+
 function parseNotes(notes?: string): NotesIntelligence {
   const n = (notes || "").toLowerCase();
 
