@@ -83,7 +83,7 @@ class LoggingReminderService {
     await notificationManager.scheduleReminder(
       new Date(nextTime),
       '⏰ Time to Check In',
-      'It’s time for your 6-hour check-in. Help Hidro Ally build your comprehensive report with a quick log of your experience.',
+      "It's time for your six hour check-in, help Hidro Ally build your comprehensive report with a quick log of your experience.",
       '/log-episode'
     );
 
@@ -94,7 +94,7 @@ class LoggingReminderService {
         channel: 'reminder',
         kind: 'reminder',
         title: '⏰ Time to Check In',
-        body: 'It’s time for your 6-hour check-in. Help Hidro Ally build your comprehensive report with a quick log of your experience.',
+        body: "It's time for your six hour check-in, help Hidro Ally build your comprehensive report with a quick log of your experience.",
         dedupKey: `log-reminder-${nextTime}`,
         url: '/log-episode',
       });

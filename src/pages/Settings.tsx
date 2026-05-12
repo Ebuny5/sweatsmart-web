@@ -224,6 +224,40 @@ const Settings = () => {
             </div>
             <h2 className="text-xl font-black text-white uppercase tracking-wider">Diagnostics</h2>
           </div>
+
+          <div className="mb-6 p-4 rounded-xl bg-blue-500/10 border border-blue-500/30">
+            <h3 className="text-sm font-bold text-blue-400 mb-2 uppercase tracking-tight">Permissions Fix</h3>
+            <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
+              If you aren't receiving notifications or the app isn't showing up in Android Settings, use this button to force a permission request.
+            </p>
+            <Button
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-widest text-xs py-5"
+              onClick={async () => {
+                try {
+                  toast.info("Requesting permissions...");
+                  const notifPerm = await Notification.requestPermission();
+
+                  if ('geolocation' in navigator) {
+                    navigator.geolocation.getCurrentPosition(
+                      () => toast.success("Location & Notifications enabled!"),
+                      (err) => console.warn("Location check:", err),
+                      { timeout: 5000 }
+                    );
+                  }
+
+                  if (notifPerm === 'granted') {
+                    toast.success("Notifications allowed!");
+                  } else {
+                    toast.error("Notification permission denied.");
+                  }
+                } catch (e) {
+                  toast.error("Could not request permissions.");
+                }
+              }}
+            >
+              🚀 Fix & Refresh Permissions
+            </Button>
+          </div>
           <p className="text-sm text-zinc-400 mb-4 leading-relaxed">
             Verify alert delivery, sound synchronization, and notification reliability.
           </p>
@@ -237,7 +271,7 @@ const Settings = () => {
                   channel: 'system',
                   kind: 'reminder',
                   title: "⏰ Log Reminder Test",
-                  body: "It’s time for your 6-hour check-in. Help Hidro Ally build your comprehensive report with a quick log of your experience.",
+                  body: "It's time for your six hour check-in, help Hidro Ally build your comprehensive report with a quick log of your experience.",
                   dedupKey: `test-rem-${Date.now()}`
                 });
               }}
