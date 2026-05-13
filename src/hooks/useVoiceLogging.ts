@@ -32,13 +32,12 @@ export const isVoiceSupported = (): boolean => {
   );
 };
 
-export type VoiceStatus = 'LISTENING' | 'CONFIRMING' | 'REASONING' | 'SAVING' | null;
+export type VoiceStatus = 'LISTENING' | 'CONFIRMING' | 'SAVING' | null;
 
 // Status labels — match the audio files exactly
 export const VOICE_STATUS_LABELS: Record<NonNullable<VoiceStatus>, string> = {
   LISTENING: "I'm listening...",
   CONFIRMING: "Got it — anything else?",
-  REASONING: "Analysing your episode...",
   SAVING: "Saving your episode...",
 };
 
@@ -242,7 +241,7 @@ function fallbackExtract(text: string): { bodyAreas: BodyArea[]; triggerValues: 
   if (/\b(poor sleep|bad sleep|no sleep|tired|exhausted)\b/.test(lower)) triggerValues.push('poor_sleep');
 
   return {
-    bodyAreas: bodyAreas.length > 0 ? Array.from(new Set(bodyAreas)) : ['palms'],
+    bodyAreas: Array.from(new Set(bodyAreas)),
     triggerValues: Array.from(new Set(triggerValues)),
   };
 }
@@ -350,7 +349,7 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
 
     if (cancelledRef.current) return;
 
-    // ── Step 3: Play "Saving your episode" ────────────────────────────────
+    // ── Step 3: Play "Saving your episode" & Extract ──────────────────────
     setVoiceStatus('SAVING');
     await playAudio(SOUNDS.saving);
     if (cancelledRef.current) return;
@@ -364,9 +363,7 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
       return;
     }
 
-    // ── Step 4: Extract body areas + triggers ──────────────────────────────
-    setVoiceStatus('REASONING');
-
+    // Extraction happens while "Saving..." is shown (or after it finishes)
     let bodyAreas: BodyArea[] = [];
     let triggerValues: string[] = [];
     let detectedSeverity: number | undefined;
@@ -384,11 +381,9 @@ export const useVoiceLogging = ({ onAnalysisComplete }: UseVoiceLoggingProps) =>
     }
 
     // Keyword fallback if AI extraction failed or returned nothing
-    if (bodyAreas.length === 0 || triggerValues.length === 0) {
-      const fb = fallbackExtract(finalText);
-      if (bodyAreas.length === 0) bodyAreas = fb.bodyAreas;
-      if (triggerValues.length === 0) triggerValues = fb.triggerValues;
-    }
+    const fb = fallbackExtract(finalText);
+    if (bodyAreas.length === 0) bodyAreas = fb.bodyAreas;
+    if (triggerValues.length === 0) triggerValues = fb.triggerValues;
 
     setVoiceStatus(null);
     setLiveTranscript('');

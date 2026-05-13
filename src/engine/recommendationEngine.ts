@@ -1185,7 +1185,7 @@ function buildEmptyResponse(
 ): EpisodeInsights & { cta: string; emotionalOpener: string } {
   const greeting = userName ? `Hi ${userName}, this is Hidro Ally 👋` : `Hi, this is Hidro Ally 👋`;
   return {
-    emotionalOpener: `${greeting} — I noticed this episode was logged without body areas selected, so I cannot give you a fully personalised analysis yet. Selecting the affected areas next time unlocks everything. 💙`,
+    emotionalOpener: `${greeting} — I've reviewed your episode and your notes. You're showing incredible strength in tracking this. 💙`,
     clinicalAnalysis: "No body areas were recorded for this episode. Without knowing which areas were affected, I cannot generate a pattern-specific clinical analysis. Selecting even one area when logging unlocks insights specific to your hyperhidrosis pattern.",
     immediateRelief: [
       "Cool your wrists under running water for 4 to 5 minutes. The blood vessels in the wrist run close enough to the surface that cooling them communicates a whole-body temperature drop to your nervous system, reducing sweat output quickly across most affected areas.",

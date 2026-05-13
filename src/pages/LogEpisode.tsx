@@ -176,8 +176,6 @@ const LogEpisode = () => {
     const datetime = new Date(date);
     datetime.setHours(hours, minutes);
 
-    const finalNotes = manualNotes !== undefined ? manualNotes : notes;
-
     try {
       const triggerStrings = finalTriggers.map((trigger) =>
         JSON.stringify({ type: trigger.type, value: trigger.value, label: trigger.label })
@@ -185,7 +183,7 @@ const LogEpisode = () => {
 
       const { data, error } = await supabase.from("episodes").insert({
         user_id: user.id,
-        severity: severity,
+        severity: finalSeverity,
         body_areas: finalBodyAreas,
         triggers: triggerStrings,
         notes: finalNotes || null,
@@ -196,12 +194,6 @@ const LogEpisode = () => {
 
       if (data && data[0]) {
         setLastSavedEpisodeId(data[0].id);
-
-        // Play the "Saving your episode" audio ONLY after successful DB save
-        try {
-          const a = new Audio('/sounds/saving your episode.mp3');
-          a.play().catch(e => console.warn("Audio play failed:", e));
-        } catch (e) {}
       }
 
       // Reschedule the next reminder 6 hours from now
@@ -213,12 +205,12 @@ const LogEpisode = () => {
         const newLocalEntry = {
           id: data[0].id,
           timestamp: datetime.getTime(),
-          hdssLevel: severity as HDSSLevel,
+          hdssLevel: finalSeverity as any,
           weather: { temperature: 0, humidity: 0, uvIndex: 0 },
           physiologicalData: { eda: 2.5 }
         };
         localStorage.setItem('sweatSmartLogs', JSON.stringify([...localLogs, newLocalEntry]));
-        localStorage.setItem('sweatsmart_current_hdss', JSON.stringify({ level: severity, timestamp: datetime.getTime() }));
+        localStorage.setItem('sweatsmart_current_hdss', JSON.stringify({ level: finalSeverity, timestamp: datetime.getTime() }));
       } catch (e) {
         console.error("Failed to sync local log storage:", e);
       }
@@ -235,7 +227,7 @@ const LogEpisode = () => {
         }));
 
         const insights = generateFallbackInsights(
-          severity,
+          finalSeverity,
           finalBodyAreas,
           triggerData,
           finalNotes,
@@ -297,26 +289,32 @@ const LogEpisode = () => {
   const {
     isListening,
     voiceStatus,
+    voiceStatusLabel,
     startListening,
+    stopListening,
+    liveTranscript,
     transcript,
   } = useVoiceLogging({
     onAnalysisComplete: async (detectedAreas, detectedTriggers, transcriptText, detectedSeverity) => {
-      setBodyAreas(detectedAreas);
-      setTriggers(detectedTriggers);
+      // 1. Populate form fields silently
       setNotes(transcriptText);
+      if (detectedAreas.length > 0) setBodyAreas(detectedAreas);
+      if (detectedTriggers.length > 0) setTriggers(detectedTriggers);
       if (detectedSeverity) setSeverity(detectedSeverity as SeverityLevel);
 
-      // Save directly with currently detected/selected values
-      await handleSubmit(undefined, transcriptText, detectedAreas, detectedTriggers, detectedSeverity);
+      // 2. Smart Save: Only auto-submit if we found at least one body area
+      // If we found nothing, let the user review the notes and select areas manually.
+      if (detectedAreas.length > 0) {
+        await handleSubmit(undefined, transcriptText, detectedAreas, detectedTriggers, detectedSeverity);
+      } else {
+        toast({
+          title: "Transcript captured",
+          description: "Please select the affected areas to complete your log.",
+        });
+      }
     }
   });
 
-  const voiceUIStatus = {
-    LISTENING: { label: "LISTENING", hint: "Speak naturally about your episode" },
-    CONFIRMING: { label: "CONFIRMING", hint: "Is that all?" },
-    REASONING: { label: "REASONING", hint: "Analysing your episode" },
-    SAVING: { label: "SAVING", hint: "Generating your episode" },
-  }[voiceStatus as string] || { label: "Voice log", hint: "Tap and speak naturally" };
 
   // ── Success / Insights screen ──────────────────────────────────────────────
   const successEmoji = useMemo(() => {
@@ -590,18 +588,21 @@ const LogEpisode = () => {
 
         {/* Floating Microphone Action Button */}
         <div className="fixed bottom-24 right-6 z-50 flex flex-col items-center gap-3">
-          {isListening && (
-            <div className="bg-white/90 backdrop-blur-md border border-blue-200 rounded-2xl p-4 shadow-xl mb-2 max-w-[200px] animate-in fade-in slide-in-from-bottom-4">
+          {voiceStatus && (
+            <div className="bg-white/90 backdrop-blur-md border border-blue-200 rounded-2xl p-4 shadow-xl mb-2 max-w-[220px] animate-in fade-in slide-in-from-bottom-4">
               <div className="flex items-center gap-2 mb-1.5">
-                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">{voiceUIStatus.label}</span>
+                <div className={cn(
+                  "w-2 h-2 rounded-full animate-pulse",
+                  voiceStatus === 'SAVING' ? "bg-green-500" : "bg-red-500"
+                )} />
+                <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">
+                  {voiceStatusLabel}
+                </span>
               </div>
-              <p className="text-xs text-gray-600 italic line-clamp-3">
-                {voiceUIStatus.hint}
-              </p>
-              {voiceStatus === 'LISTENING' && transcript && (
-                <p className="text-[10px] text-blue-400 mt-2 line-clamp-2 italic border-t border-blue-100 pt-1">
-                  "{transcript}"
+
+              {liveTranscript && (
+                <p className="text-xs text-blue-500 mt-2 italic border-t border-blue-100 pt-2 line-clamp-4">
+                  "{liveTranscript}"
                 </p>
               )}
             </div>
@@ -609,7 +610,7 @@ const LogEpisode = () => {
 
           <button
             type="button"
-            onClick={startListening}
+            onClick={isListening ? stopListening : startListening}
             className={cn(
               "w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all active:scale-95",
               isListening
